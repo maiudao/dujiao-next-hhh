@@ -29,7 +29,9 @@ const updateLabel = (index: number, value: string | number) => {
   const labels = Array.from({ length: 3 }, (_, itemIndex) => ({
     ...(props.modelValue[itemIndex] || { 'zh-CN': '', 'zh-TW': '', 'en-US': '' }),
   })) as SamplingLabel[]
-  labels[index][props.currentLang] = String(value)
+  const label = labels[index]
+  if (!label) return
+  label[props.currentLang] = String(value)
   emit('update:modelValue', labels)
 }
 

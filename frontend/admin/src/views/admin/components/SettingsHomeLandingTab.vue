@@ -36,7 +36,9 @@ const updateHighlight = (index: number, value: string | number) => {
   const highlights = Array.from({ length: 3 }, (_, itemIndex) => ({
     ...((props.modelValue.highlights?.[itemIndex] || {}) as LocalizedText),
   }))
-  highlights[index][props.currentLang] = String(value)
+  const highlight = highlights[index]
+  if (!highlight) return
+  highlight[props.currentLang] = String(value)
   emit('update:modelValue', { ...props.modelValue, highlights })
 }
 </script>
