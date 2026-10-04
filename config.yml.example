@@ -162,6 +162,8 @@ email:
 order:
   payment_expire_minutes: 15
   max_refund_days: 30
+  # 游客订单默认关闭；开启前请确认游客下单、支付与交付链路已单独验收。
+  allow_guest_orders: false
 
 reseller:
   enabled: false

@@ -88,6 +88,7 @@ type Handler struct {
 	google         GoogleAuthPublic
 	googleFallback GoogleAuthFallback
 	overlay        ResellerOverlay
+	allowGuestOrders bool
 }
 
 func NewHandler(
@@ -100,6 +101,7 @@ func NewHandler(
 	google GoogleAuthPublic,
 	googleFallback GoogleAuthFallback,
 	overlay ResellerOverlay,
+	allowGuestOrders bool,
 ) *Handler {
 	if cache == nil {
 		panic("public config handler: cache is nil")
@@ -120,6 +122,7 @@ func NewHandler(
 		google:         google,
 		googleFallback: googleFallback,
 		overlay:        overlay,
+		allowGuestOrders: allowGuestOrders,
 	}
 }
 
@@ -204,6 +207,7 @@ func (h *Handler) GetConfig(c *gin.Context) {
 	emailVerificationEnabled, _ := h.settings.GetEmailVerificationEnabled(true)
 	data["registration_enabled"] = registrationEnabled
 	data["email_verification_enabled"] = emailVerificationEnabled
+	data["guest_orders_enabled"] = h.allowGuestOrders
 	enabled, allowedDomains, policyErr := h.settings.GetRegistrationEmailDomainPolicy()
 	if policyErr != nil {
 		ginutil.RespondError(c, response.CodeInternal, "error.config_fetch_failed", policyErr)

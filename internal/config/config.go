@@ -143,6 +143,7 @@ type QueueConfig struct {
 type OrderConfig struct {
 	PaymentExpireMinutes int `mapstructure:"payment_expire_minutes"`
 	MaxRefundDays        int `mapstructure:"max_refund_days"`
+	AllowGuestOrders     bool `mapstructure:"allow_guest_orders"`
 }
 
 // EmailConfig 邮件服务配置
@@ -404,6 +405,7 @@ func Load() *Config {
 	viper.SetDefault("email.verify_code.length", 6)
 	viper.SetDefault("order.payment_expire_minutes", 15)
 	viper.SetDefault("order.max_refund_days", 30)
+	viper.SetDefault("order.allow_guest_orders", false)
 	viper.SetDefault("captcha.provider", "none")
 	viper.SetDefault("captcha.scenes.login", false)
 	viper.SetDefault("captcha.scenes.register_send_code", false)

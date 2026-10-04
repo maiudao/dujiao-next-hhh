@@ -87,16 +87,18 @@ func registerStorefrontRoutes(
 	guestRead := guest.Group("")
 	guestRead.Use(middleware.RateLimitMiddleware(redisClient, guestReadRule, middleware.KeyByIP))
 	{
-		ordertransport.RegisterGuestPreviewRoute(guestRead, orderPreviewHandler)
 		ordertransport.RegisterGuestReadRoutes(guestRead, guestOrderHandler)
 		paymenttransport.RegisterGuestLatestRoute(guestRead, paymentLatestHandler)
 	}
 	guestWrite := guest.Group("")
 	guestWrite.Use(middleware.RateLimitMiddleware(redisClient, guestWriteRule, middleware.KeyByIP))
 	{
-		ordertransport.RegisterGuestCreateRoute(guestWrite, orderCreateHandler)
-		ordertransport.RegisterGuestCreateAndPayRoute(guestWrite, orderCreateHandler)
-		paymenttransport.RegisterGuestWriteRoutes(guestWrite, paymentWriteHandler)
+		if cfg.Order.AllowGuestOrders {
+			ordertransport.RegisterGuestPreviewRoute(guestWrite, orderPreviewHandler)
+			ordertransport.RegisterGuestCreateRoute(guestWrite, orderCreateHandler)
+			ordertransport.RegisterGuestCreateAndPayRoute(guestWrite, orderCreateHandler)
+			paymenttransport.RegisterGuestWriteRoutes(guestWrite, paymentWriteHandler)
+		}
 	}
 
 	// 用户认证接口

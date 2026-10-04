@@ -152,11 +152,13 @@ const router = createRouter({
             path: '/checkout',
             name: 'checkout',
             component: templateView('Checkout', checkoutViewLoader),
+            meta: { requiresUserAuth: true },
         },
         {
             path: '/pay',
             name: 'payment',
             component: templateView('Payment', paymentViewLoader),
+            meta: { requiresUserAuth: true },
         },
         {
             path: '/me',
