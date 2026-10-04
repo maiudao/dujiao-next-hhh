@@ -71,12 +71,6 @@
             {{ t('navbar.personalCenter') }}
           </router-link>
         </Button>
-        <Button v-if="userAuthStore.isAuthenticated" variant="ghost" size="sm"
-          class="hidden lg:inline-flex gap-1.5 whitespace-nowrap text-destructive hover:text-destructive hover:bg-destructive/10"
-          @click="userAuthStore.logout()">
-          <LogOut class="w-4 h-4 shrink-0 opacity-70" />
-          {{ t('navbar.logout') }}
-        </Button>
         <!-- Theme Switcher -->
         <Button variant="ghost" size="icon" class="text-muted-foreground" @click="toggleTheme">
           <Sun v-if="theme === 'dark'" class="w-4 h-4" />
@@ -174,14 +168,6 @@
             </router-link>
           </Button>
 
-          <!-- Logout (login/me already in bottom nav) -->
-          <Button v-if="userAuthStore.isAuthenticated" variant="ghost"
-            class="w-full justify-start gap-3 h-auto py-3 rounded-xl text-sm text-destructive hover:text-destructive hover:bg-destructive/10 [&_svg]:size-5"
-            @click="userAuthStore.logout(); showMobileMenu = false">
-            <LogOut class="shrink-0 opacity-60" />
-            {{ t('navbar.logout') }}
-          </Button>
-
           <!-- Language Switcher -->
           <div class="mt-4 pt-4 border-t">
             <span class="text-xs text-muted-foreground font-semibold uppercase tracking-wider px-4">{{ t('navbar.selectLanguage') }}</span>
@@ -213,7 +199,7 @@ import { useTheme } from '../utils/theme'
 import { getImageUrl } from '../utils/image'
 import { useNavConfig } from '../composables/useNavConfig'
 import {
-  Sun, Moon, ShoppingCart, ClipboardList, LogIn, User, LogOut, Languages,
+  Sun, Moon, ShoppingCart, ClipboardList, LogIn, User, Languages,
   EllipsisVertical, X,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'

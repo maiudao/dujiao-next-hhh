@@ -36,6 +36,14 @@
             <component :is="item.icon" class="h-[18px] w-[18px] flex-none" />
             <span>{{ t(item.label) }}</span>
           </button>
+          <button
+            type="button"
+            class="mt-2 flex w-full items-center gap-[11px] rounded-sm border-t px-3.5 pb-1 pt-3 text-left text-[14.5px] font-semibold text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive max-[900px]:mt-0 max-[900px]:border-t-0 max-[900px]:px-3.5 max-[900px]:py-[11px]"
+            @click="userAuthStore.logout()"
+          >
+            <LogOut class="h-[18px] w-[18px] flex-none" />
+            <span>{{ t('navbar.logout') }}</span>
+          </button>
         </nav>
       </aside>
 
@@ -189,7 +197,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Crown, ShoppingBag, ShieldCheck, Percent } from 'lucide-vue-next'
+import { Crown, ShoppingBag, ShieldCheck, Percent, LogOut } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getImageUrl } from '../../utils/image'
@@ -201,8 +209,10 @@ import GiftCardPanel from '../../views/personal/GiftCardPanel.vue'
 import AffiliatePanel from '../../views/personal/AffiliatePanel.vue'
 import ApiPanel from '../../views/personal/ApiPanel.vue'
 import { usePersonalCenter, type PersonalSection } from '../../composables/usePersonalCenter'
+import { useUserAuthStore } from '../../stores/userAuth'
 
 const { t } = useI18n()
+const userAuthStore = useUserAuthStore()
 
 const props = withDefaults(defineProps<{ section?: PersonalSection }>(), {
   section: 'overview',

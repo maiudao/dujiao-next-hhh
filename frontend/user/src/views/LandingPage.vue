@@ -1,7 +1,7 @@
 <template>
   <div class="landing-page" :class="{ 'landing-dark': theme === 'dark' }">
     <div class="landing-shell">
-      <header class="landing-header">
+      <header v-if="!isVaultTemplate" class="landing-header">
         <RouterLink to="/" class="store-brand" :aria-label="storeName">
           <span class="store-mark"><Store :size="20" aria-hidden="true" /></span>
           <span class="store-name">{{ storeName }}</span>
@@ -64,7 +64,7 @@
               <ArrowRight :size="17" aria-hidden="true" />
             </button>
             <button
-              v-if="content.secondaryLabel && content.secondaryUrl"
+              v-if="content.secondaryLabel && content.secondaryUrl && !userAuthStore.isAuthenticated"
               type="button"
               class="button-secondary"
               @click="followLink(content.secondaryUrl)"
@@ -202,6 +202,8 @@ import { useAnnouncement, type HomeAnnouncement } from '../composables/useAnnoun
 import { useStorefrontMode } from '../composables/useStorefrontMode'
 import AnnouncementModal from '../components/AnnouncementModal.vue'
 import { useAppStore } from '../stores/app'
+import { useUserAuthStore } from '../stores/userAuth'
+import { getActiveTemplate } from '../templates/registry'
 import { useTheme } from '../utils/theme'
 import { loadAllPages } from '../utils/loadAllPages'
 
@@ -209,6 +211,8 @@ type LandingField = Record<string, string> | undefined
 
 const router = useRouter()
 const appStore = useAppStore()
+const userAuthStore = useUserAuthStore()
+const isVaultTemplate = computed(() => getActiveTemplate() === 'vault')
 const { samplingMode, samplingLabelFor, samplingNotice } = useStorefrontMode()
 const { theme, toggleTheme } = useTheme()
 const { getLocalizedText, formatPrice, siteCurrency } = useLocalized()
@@ -433,9 +437,9 @@ onMounted(async () => {
 }
 
 .landing-shell {
-  width: min(100%, 1360px);
+  width: min(100%, 1180px);
   margin: 0 auto;
-  padding: 24px 32px 52px;
+  padding: 24px 24px 52px;
 }
 
 .landing-header,

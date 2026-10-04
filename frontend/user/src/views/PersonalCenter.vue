@@ -52,6 +52,14 @@
                 <component :is="item.icon" class="h-4 w-4 shrink-0" />
                 <span class="truncate">{{ t(item.label) }}</span>
               </button>
+              <button
+                type="button"
+                @click="userAuthStore.logout()"
+                class="group relative mt-2 flex w-full items-center gap-2.5 rounded-lg border-t py-2.5 pl-4 pr-3 pt-3 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              >
+                <LogOut class="h-4 w-4 shrink-0" />
+                <span class="truncate">{{ t('navbar.logout') }}</span>
+              </button>
             </div>
 
             <div class="lg:hidden">
@@ -72,6 +80,16 @@
                   </span>
                 </button>
               </div>
+              <button
+                type="button"
+                @click="userAuthStore.logout()"
+                class="mt-2 shrink-0 rounded-lg px-3.5 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <span class="flex items-center gap-1.5">
+                  <LogOut class="h-3.5 w-3.5" />
+                  <span>{{ t('navbar.logout') }}</span>
+                </span>
+              </button>
             </div>
           </div>
         </aside>
@@ -285,7 +303,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Crown, ShoppingBag, ShieldCheck, Percent } from 'lucide-vue-next'
+import { Crown, ShoppingBag, ShieldCheck, Percent, LogOut } from 'lucide-vue-next'
 import { getImageUrl } from '../utils/image'
 import { pageAlertVariant, pageAlertToneClass } from '../utils/alerts'
 import StatCard from '../components/shared/StatCard.vue'
@@ -300,8 +318,10 @@ import GiftCardPanel from './personal/GiftCardPanel.vue'
 import AffiliatePanel from './personal/AffiliatePanel.vue'
 import ApiPanel from './personal/ApiPanel.vue'
 import { usePersonalCenter, type PersonalSection } from '../composables/usePersonalCenter'
+import { useUserAuthStore } from '../stores/userAuth'
 
 const { t } = useI18n()
+const userAuthStore = useUserAuthStore()
 
 const props = withDefaults(defineProps<{ section?: PersonalSection }>(), {
   section: 'overview',

@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="min-h-screen bg-background text-foreground flex flex-col">
-    <template v-if="isLandingPage">
+    <template v-if="isLandingPage && !isVault">
       <ErrorBoundary>
         <RouterView />
       </ErrorBoundary>
