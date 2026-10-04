@@ -30,7 +30,8 @@ export function useStorefrontMode() {
       : String(product ?? '')
     let hash = 0
     for (const character of value) hash = (hash * 31 + character.charCodeAt(0)) | 0
-    return samplingLabels.value[Math.abs(hash) % samplingLabels.value.length]
+    const labels = samplingLabels.value
+    return labels[Math.abs(hash) % labels.length] ?? labels[0] ?? '今日暂停营业'
   }
   const samplingNotice = computed(() => t('storefront.samplingNotice'))
 
