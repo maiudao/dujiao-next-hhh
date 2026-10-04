@@ -1,34 +1,6 @@
 <template>
   <div class="landing-page" :class="{ 'landing-dark': theme === 'dark' }">
     <div class="landing-shell">
-      <header v-if="!isVaultTemplate" class="landing-header">
-        <RouterLink to="/" class="store-brand" :aria-label="storeName">
-          <span class="store-mark"><Store :size="20" aria-hidden="true" /></span>
-          <span class="store-name">{{ storeName }}</span>
-        </RouterLink>
-
-        <div class="header-controls">
-          <label class="locale-picker">
-            <span class="sr-only">{{ copy.language }}</span>
-            <select :value="appStore.locale" @change="changeLocale">
-              <option value="zh-CN">简体中文</option>
-              <option value="zh-TW">繁體中文</option>
-              <option value="en-US">English</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            class="theme-toggle"
-            :aria-label="theme === 'dark' ? copy.switchLight : copy.switchDark"
-            :title="theme === 'dark' ? copy.switchLight : copy.switchDark"
-            @click="toggleTheme"
-          >
-            <Sun v-if="theme === 'dark'" :size="18" aria-hidden="true" />
-            <Moon v-else :size="18" aria-hidden="true" />
-          </button>
-        </div>
-      </header>
-
       <main class="landing-layout">
         <section class="landing-story" aria-labelledby="landing-title">
           <div class="story-badges">
@@ -72,6 +44,16 @@
               {{ content.secondaryLabel }}
               <ArrowRight :size="16" aria-hidden="true" />
             </button>
+            <button
+              v-else-if="userAuthStore.isAuthenticated"
+              type="button"
+              class="button-secondary button-secondary-authenticated"
+              disabled
+              aria-label="已登录"
+              aria-disabled="true"
+            >
+              已登录
+            </button>
           </div>
 
           <div v-if="visibleHighlights.length" class="story-highlights">
@@ -82,6 +64,11 @@
               <span>{{ highlight }}</span>
             </div>
           </div>
+
+          <aside class="support-character" :class="{ 'support-character-sampling': samplingMode }" aria-live="polite">
+            <p class="support-character-message">{{ characterMessage }}</p>
+            <img class="support-character-image" :src="characterImage" alt="店铺客服角色" loading="lazy" decoding="async" />
+          </aside>
         </section>
 
         <section id="products" class="product-panel" aria-labelledby="products-title">
@@ -182,19 +169,17 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   ArrowRight,
   Boxes,
   ClipboardCheck,
   MessageCircle,
-  Moon,
   PackageCheck,
   PackageSearch,
   RefreshCw,
   ShieldCheck,
   Store,
-  Sun,
 } from 'lucide-vue-next'
 import { productAPI } from '../api'
 import { useLocalized, useProductLabels } from '../composables/useProduct'
@@ -203,7 +188,6 @@ import { useStorefrontMode } from '../composables/useStorefrontMode'
 import AnnouncementModal from '../components/AnnouncementModal.vue'
 import { useAppStore } from '../stores/app'
 import { useUserAuthStore } from '../stores/userAuth'
-import { getActiveTemplate } from '../templates/registry'
 import { useTheme } from '../utils/theme'
 import { loadAllPages } from '../utils/loadAllPages'
 
@@ -212,9 +196,8 @@ type LandingField = Record<string, string> | undefined
 const router = useRouter()
 const appStore = useAppStore()
 const userAuthStore = useUserAuthStore()
-const isVaultTemplate = computed(() => getActiveTemplate() === 'vault')
 const { samplingMode, samplingLabelFor, samplingNotice } = useStorefrontMode()
-const { theme, toggleTheme } = useTheme()
+const { theme } = useTheme()
 const { getLocalizedText, formatPrice, siteCurrency } = useLocalized()
 const { isSoldOut, getStockStatusLabel, hasPromotionPrice, getPromotionPriceAmount } = useProductLabels()
 const products = ref<any[]>([])
@@ -271,7 +254,6 @@ const landingDefaults = {
 
 const copy = computed(() => localeCopy[appStore.locale as keyof typeof localeCopy] || localeCopy['zh-CN'])
 const defaultLanding = computed(() => landingDefaults[appStore.locale as keyof typeof landingDefaults] || landingDefaults['zh-CN'])
-const storeName = computed(() => String(appStore.config?.brand?.site_name || 'huihuahui.xyz').trim())
 const landingConfig = computed(() => appStore.config?.home_landing || {})
 
 const localizedValue = (field: LandingField, fallback: string) => {
@@ -308,14 +290,21 @@ const content = computed(() => {
     accentTitle: localizedValue(config.accent_title, defaults.accentTitle),
     description: localizedValue(config.description, defaults.description),
     primaryLabel: localizedValue(config.primary_label, defaults.primaryLabel),
-    primaryUrl: safeLink(config.primary_url ?? '#products') || '#products',
+    primaryUrl: '/products',
     secondaryLabel: localizedValue(config.secondary_label, defaults.secondaryLabel),
-    secondaryUrl: safeLink(config.secondary_url ?? '/login?returnTo=%2Fproducts'),
+     secondaryUrl: safeLink(config.secondary_url ?? '/auth/login?redirect=%2Fproducts'),
     supportLabel: localizedValue(config.support_label, defaults.supportLabel),
     supportUrl: safeLink(config.support_url),
     highlights: highlights.map((item: LandingField, index: number) => localizedValue(item, defaults.highlights[index] || '')).filter(Boolean),
   }
 })
+
+const characterMessage = computed(() => samplingMode.value
+  ? '打样了，明天再来吧，营业时间是每天9：00到12：00'
+  : '营业中，购买前后有什么不清楚的，都可以和客服保持联系哦 (*^_^*)')
+const characterImage = computed(() => samplingMode.value
+  ? '/storefront/evelyn-02.webp'
+  : '/storefront/evelyn-01.webp')
 
 const visibleHighlights = computed(() => content.value.highlights.slice(0, 3))
 const availableCount = computed(() => products.value.filter((product) => !isSoldOut(product)).length)
@@ -369,11 +358,6 @@ const openProduct = (slug: string) => {
   if (slug) void router.push(`/products/${encodeURIComponent(slug)}`)
 }
 
-const changeLocale = (event: Event) => {
-  const value = (event.target as HTMLSelectElement).value
-  if (['zh-CN', 'zh-TW', 'en-US'].includes(value)) appStore.setLocale(value)
-}
-
 const loadProducts = async () => {
   loading.value = true
   loadError.value = false
@@ -417,6 +401,7 @@ onMounted(async () => {
   --amber: #a56a00;
   --amber-soft: #fff6e4;
   min-height: 100vh;
+  padding-top: 88px;
   color: var(--ink);
   background: var(--page-bg);
 }
@@ -670,6 +655,45 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 9px;
   margin-top: 27px;
+}
+
+.support-character {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 156px;
+  align-items: end;
+  gap: 10px;
+  min-height: 156px;
+  margin-top: 24px;
+  padding: 12px 10px 0 16px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--panel-bg) 86%, var(--blue-soft));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.vault-scope .landing-page {
+  padding-top: 0;
+}
+
+.support-character-message {
+  align-self: center;
+  max-width: 30ch;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.support-character-image {
+  align-self: end;
+  width: 156px;
+  height: 156px;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 8px 8px rgb(31 63 108 / 14%));
+}
+
+.support-character-sampling {
+  background: color-mix(in srgb, var(--panel-bg) 88%, var(--surface-soft));
 }
 
 .highlight-item {
@@ -1038,6 +1062,31 @@ onMounted(async () => {
 
   .story-actions {
     margin-top: 20px;
+  }
+
+  .support-character {
+    grid-template-columns: 1fr;
+    min-height: 220px;
+    margin-top: 18px;
+    padding: 24px 12px 0;
+    overflow: visible;
+  }
+
+  .support-character-message {
+    order: 2;
+    max-width: none;
+    padding: 0 4px 14px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .support-character-image {
+    order: 1;
+    width: 180px;
+    height: 180px;
+    margin: -52px auto 0;
+    position: relative;
+    z-index: 1;
   }
 
   .story-highlights {

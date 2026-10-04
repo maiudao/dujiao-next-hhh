@@ -7,12 +7,14 @@
       <!-- Logo -->
       <router-link to="/" class="theme-wordmark group relative gap-3" :title="brandSiteName">
         <img
-          v-if="brandLogo"
-          :src="brandLogo"
+          :src="brandLogo || '/dj.svg'"
           :alt="brandSiteName"
           class="h-8 max-w-[180px] shrink-0 object-contain"
         />
-        <span class="theme-wordmark-text">{{ brandSiteName }}</span>
+        <span class="theme-wordmark-copy">
+          <span class="theme-wordmark-text">{{ brandSiteName }}</span>
+          <span class="theme-wordmark-description">{{ brandDescription }}</span>
+        </span>
       </router-link>
 
       <!-- Desktop Menu -->
@@ -100,7 +102,7 @@
 
         <!-- Mobile Menu Button (more menu, not main nav) -->
         <Button variant="ghost" size="icon" class="lg:hidden text-muted-foreground [&_svg]:size-5"
-          @click="toggleMobileMenu">
+          aria-haspopup="dialog" :aria-expanded="showMobileMenu" @pointerdown.stop @click.stop="toggleMobileMenu">
           <EllipsisVertical />
         </Button>
       </div>
@@ -238,7 +240,18 @@ const cartCount = computed(() => cartStore.totalItems)
 
 const brandSiteName = computed(() => {
   const text = String(appStore.config?.brand?.site_name || '').trim()
-  return text !== '' ? text : 'Dujiao-Next'
+  return text !== '' ? text : 'HHH 小店'
+})
+
+const brandDescription = computed(() => {
+  const description = appStore.config?.brand?.site_description
+  if (description && typeof description === 'object') {
+    const localized = (description as Record<string, string>)[appStore.locale]
+      || (description as Record<string, string>)['zh-CN']
+      || ''
+    if (localized.trim()) return localized.trim()
+  }
+  return '有售后保障'
 })
 
 const brandLogo = computed(() => {

@@ -312,6 +312,23 @@ html[data-telegram-mini-app="true"] body {
     text-overflow: ellipsis;
   }
 
+  .theme-wordmark-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1;
+  }
+
+  .theme-wordmark-description {
+    margin-top: 3px;
+    color: var(--ui-text-muted);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
   .theme-section-heading {
     font-weight: 700;
     letter-spacing: -0.02em;

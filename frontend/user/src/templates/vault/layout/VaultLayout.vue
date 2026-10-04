@@ -3,9 +3,12 @@
     <!-- 顶栏 -->
     <header class="sticky top-0 z-50 border-b bg-[color:var(--bg)]">
       <div class="mx-auto flex h-[70px] w-full max-w-[1180px] items-center gap-3 px-4 sm:gap-5 sm:px-6">
-        <RouterLink class="inline-flex min-w-0 items-center gap-2.5 text-[19px] font-extrabold tracking-[-0.02em] text-foreground" to="/" :title="brandName">
-          <img v-if="brandLogo" :src="brandLogo" :alt="brandName" class="h-8 max-w-[120px] object-contain sm:max-w-[160px]" />
-          <span v-else class="truncate">{{ brandName }}</span>
+        <RouterLink class="inline-flex min-w-0 items-center gap-2.5 text-foreground" to="/" :title="brandName">
+          <img :src="brandLogo || '/dj.svg'" :alt="brandName" class="h-8 max-w-[120px] object-contain sm:max-w-[160px]" />
+          <span class="flex min-w-0 flex-col justify-center leading-tight">
+            <span class="truncate text-[19px] font-extrabold tracking-[-0.02em]">{{ brandName }}</span>
+            <span class="mt-0.5 whitespace-nowrap text-[10px] font-medium text-muted-foreground">{{ brandDescription }}</span>
+          </span>
         </RouterLink>
 
         <nav class="flex gap-0.5 max-[900px]:hidden">
@@ -54,13 +57,13 @@
 
           <!-- 登录 / 个人中心（桌面） -->
           <template v-if="userAuthStore.isAuthenticated">
-            <RouterLink class="inline-flex items-center gap-2 rounded-full border-2 border-hairline-strong px-3.5 py-1.5 text-[13px] font-bold text-foreground transition-colors hover:border-[color:var(--ink)] max-[900px]:hidden" to="/me"><User class="h-[18px] w-[18px]" /> {{ t('navbar.personalCenter') }}</RouterLink>
+            <RouterLink class="inline-flex items-center gap-2 rounded-full border-2 border-hairline-strong px-3.5 py-1.5 text-[13px] font-bold text-foreground transition-colors hover:border-[color:var(--ink)] max-[900px]:hidden" to="/me">已登录</RouterLink>
           </template>
           <RouterLink v-else class="inline-flex items-center gap-2 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-bold text-primary-foreground transition-colors hover:bg-primary/90 max-[900px]:hidden" to="/auth/login">{{ t('navbar.login') }}</RouterLink>
 
           <!-- 移动端：更多菜单 -->
           <div class="relative hidden max-[900px]:block" ref="moreEl">
-            <button class="grid h-10 w-10 flex-none place-items-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" type="button" :aria-label="t('navbar.more')" @click.stop="toggleMore">
+            <button class="grid h-10 w-10 flex-none place-items-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" type="button" :aria-label="t('navbar.more')" :aria-expanded="moreOpen" aria-haspopup="menu" @pointerdown.stop @click.stop="toggleMore">
               <Menu v-if="!moreOpen" class="pointer-events-none h-[18px] w-[18px]" />
               <X v-else class="pointer-events-none h-[18px] w-[18px]" />
             </button>
@@ -93,10 +96,9 @@
       <div class="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-[30px] px-6 pb-9 pt-[52px] sm:grid-cols-2 lg:grid-cols-[1.7fr_repeat(3,1fr)]">
         <div>
           <RouterLink class="inline-flex items-center gap-2.5 text-[19px] font-extrabold tracking-[-0.02em] text-foreground" to="/">
-            <img v-if="brandLogo" :src="brandLogo" :alt="brandName" class="h-8 max-w-[160px] object-contain" />
-            <span v-else>{{ brandName }}</span>
+            <img :src="brandLogo || '/dj.svg'" :alt="brandName" class="h-8 max-w-[160px] object-contain" />
+            <span class="truncate">{{ brandName }}</span>
           </RouterLink>
-          <p class="mt-3 max-w-[36ch] text-[14.5px] text-muted-foreground">{{ brandDescription || t('vault.footer.tagline') }}</p>
         </div>
         <div>
           <h4 class="mb-3 text-sm font-bold">{{ t('vault.footer.shop') }}</h4>
@@ -119,16 +121,6 @@
           <a v-for="link in footerLinks" :key="link.name" :href="link.url || 'javascript:void(0)'" :target="link.url ? '_blank' : undefined" rel="noopener noreferrer" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary">{{ link.name }}</a>
         </div>
       </div>
-      <div class="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-3.5 border-t px-6 pb-[30px] pt-[18px] text-[13.5px] text-muted-foreground">
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span>© {{ year }} {{ brandName }}</span>
-          <a href="https://github.com/dujiao-next" target="_blank" rel="noopener noreferrer" aria-label="Dujiao-Next on GitHub" class="inline-flex items-center gap-1.5 hover:text-primary">
-            <Github class="h-[15px] w-[15px]" />
-            <span>Dujiao-Next</span>
-          </a>
-        </div>
-        <span>简体中文 · 繁體 · English</span>
-      </div>
     </footer>
   </div>
 </template>
@@ -137,7 +129,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  Search, Moon, Sun, ShoppingCart, Languages, Menu, X, User, Info, ClipboardList, Github,
+  Search, Moon, Sun, ShoppingCart, Languages, Menu, X, Info, ClipboardList,
   LayoutGrid, Send, MessageCircle,
 } from 'lucide-vue-next'
 import { useAppStore } from '../../../stores/app'
@@ -170,9 +162,7 @@ const moreOpen = ref(false)
 const langEl = ref<HTMLElement | null>(null)
 const moreEl = ref<HTMLElement | null>(null)
 
-const year = new Date().getFullYear()
-
-const brandName = computed(() => String(appStore.config?.brand?.site_name || '').trim() || 'D&J Studio')
+const brandName = computed(() => String(appStore.config?.brand?.site_name || '').trim() || 'HHH 小店')
 const brandLogo = computed(() => {
   const raw = String(appStore.config?.brand?.site_logo || '').trim()
   return raw ? getImageUrl(raw) : ''
@@ -181,9 +171,9 @@ const brandDescription = computed(() => {
   const desc = appStore.config?.brand?.site_description
   if (desc && typeof desc === 'object') {
     const val = (desc as Record<string, string>)[appStore.locale] || (desc as Record<string, string>)['zh-CN'] || ''
-    return typeof val === 'string' ? val.trim() : ''
+    return typeof val === 'string' && val.trim() ? val.trim() : '有售后保障'
   }
-  return ''
+  return '有售后保障'
 })
 
 const { isListMode, blogEnabled, noticeEnabled, aboutEnabled, secondaryNavItems } = useNavConfig()
