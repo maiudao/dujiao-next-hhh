@@ -31,6 +31,9 @@
     "retry": "重试",
     "defaultMessage": "页面加载出错，请重试"
   },
+  "storefront": {
+    "samplingNotice": "店铺目前处于打样模式，暂不接受新订单。已创建订单的支付与处理不受影响。"
+  },
   "formValidation": {
     "required": "此字段为必填项",
     "emailInvalid": "请输入有效的邮箱地址",
@@ -162,10 +165,10 @@
     "saveAmount": "立省",
     "stockStatus": {
       "unlimited": "库存不限",
-      "inStock": "有库存",
-      "lowStock": "库存紧张",
-      "lowStockCount": "库存紧张（剩 {count}）",
-      "outOfStock": "售罄"
+      "inStock": "库存充足",
+      "lowStock": "库存较少",
+      "lowStockCount": "库存较少（剩 {count}）",
+      "outOfStock": "暂无库存"
     },
     "fulfillmentType": {
       "manual": "人工交付",

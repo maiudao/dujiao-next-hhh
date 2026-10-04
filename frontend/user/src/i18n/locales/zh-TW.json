@@ -31,6 +31,9 @@
     "retry": "重試",
     "defaultMessage": "頁面載入出錯，請重試"
   },
+  "storefront": {
+    "samplingNotice": "店鋪目前處於打樣模式，暫不接受新訂單。已建立訂單的付款與處理不受影響。"
+  },
   "formValidation": {
     "required": "此欄位為必填項",
     "emailInvalid": "請輸入有效的電郵地址",
@@ -162,10 +165,10 @@
     "saveAmount": "現省",
     "stockStatus": {
       "unlimited": "庫存不限",
-      "inStock": "有庫存",
-      "lowStock": "庫存緊張",
-      "lowStockCount": "庫存緊張（剩 {count}）",
-      "outOfStock": "售罄"
+      "inStock": "庫存充足",
+      "lowStock": "庫存較少",
+      "lowStockCount": "庫存較少（剩 {count}）",
+      "outOfStock": "暫無庫存"
     },
     "fulfillmentType": {
       "manual": "人工交付",

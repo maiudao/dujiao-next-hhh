@@ -7,6 +7,7 @@
       </div>
 
       <CheckoutSteps class="mb-8" current-step="cart" />
+      <p v-if="samplingMode" role="status" class="mb-6 rounded-lg border bg-muted p-3 text-sm text-muted-foreground">{{ samplingNotice }}</p>
 
       <!-- Empty State -->
       <EmptyState
@@ -38,12 +39,11 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
-                    <router-link
-                      :to="`/products/${item.slug}`"
-                      class="text-base md:text-lg font-bold text-primary hover:underline line-clamp-1"
-                    >
-                      {{ getLocalizedText(item.title) }}
-                    </router-link>
+                    <RouterLink :to="`/products/${item.slug}`" custom v-slot="{ href, navigate }">
+                      <component :is="samplingMode ? 'span' : 'a'" :href="samplingMode ? undefined : href" class="text-base md:text-lg font-bold text-primary hover:underline line-clamp-1" @click="samplingMode ? undefined : navigate($event)">
+                        {{ getLocalizedText(item.title) }}
+                      </component>
+                    </RouterLink>
                     <p class="mt-1 text-sm text-muted-foreground">{{ t('cart.priceLabel') }}：{{ formatPrice(item.priceAmount, totalCurrency) }}</p>
                     <p v-if="itemSkuDisplay(item)" class="mt-1 text-xs text-muted-foreground truncate">{{ t('cart.skuLabel') }}：{{ itemSkuDisplay(item) }}</p>
                     <p v-if="itemStockHint(item)" class="mt-1 text-xs text-muted-foreground">{{ itemStockHint(item) }}</p>
@@ -137,11 +137,12 @@
           </div>
 
           <div class="mt-6 space-y-2">
-            <Button as-child size="lg" class="w-full font-semibold">
+            <Button v-if="!samplingMode" as-child size="lg" class="w-full font-semibold">
               <router-link to="/checkout">
                 {{ t('cart.checkout') }}
               </router-link>
             </Button>
+            <Button v-else size="lg" class="w-full font-semibold" disabled>{{ t('cart.checkout') }}</Button>
             <Button as-child variant="secondary" size="lg" class="w-full font-semibold">
               <router-link to="/products">
                 {{ t('cart.emptyAction') }}
@@ -163,8 +164,10 @@ import EmptyState from '../components/EmptyState.vue'
 import SmartImage from '../components/SmartImage.vue'
 import CheckoutSteps from '../components/checkout/CheckoutSteps.vue'
 import { useCart } from '../composables/useCart'
+import { useStorefrontMode } from '../composables/useStorefrontMode'
 
 const { t } = useI18n()
+const { samplingMode, samplingNotice } = useStorefrontMode()
 
 const {
   getLocalizedText, formatPrice, totalCurrency,

@@ -13,6 +13,7 @@ import { debounceAsync } from '../utils/debounce'
 import { buildSkuDisplayText, normalizeSkuId } from '../utils/sku'
 import { resolveSkuAvailableStock, resolveSkuStockDisplay, type PublicStockDisplay } from '../utils/publicStock'
 import { useLocalized, useProductLabels } from './useProduct'
+import { useStorefrontMode } from './useStorefrontMode'
 import { toast } from './useToast'
 
 /**
@@ -28,6 +29,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
   const router = useRouter()
   const { t } = useI18n()
   const appStore = useAppStore()
+  const { samplingMode, samplingNotice } = useStorefrontMode()
   const cartStore = useCartStore()
   const buyNowStore = useBuyNowStore()
   const userAuthStore = useUserAuthStore()
@@ -308,6 +310,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     return limit < quantityEffectiveMin.value
   })
   const canPurchase = computed(() => {
+    if (samplingMode.value) return false
     if (!product.value) return false
     if (activeSkus.value.length === 0) return false
     if (product.value.is_sold_out) return false
@@ -319,6 +322,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
   })
   const cannotPurchaseReason = computed(() => {
     if (!product.value) return ''
+    if (samplingMode.value) return samplingNotice.value
     if (requiresLogin.value) return ''
     if (requiresSKUSelection.value) return t('productDetail.skuRequired')
     if (stockBelowMinPurchase.value) return t('productDetail.stockBelowMinPurchase', { count: quantityEffectiveMin.value })
@@ -688,6 +692,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
     // 购买能力
     purchaseType, requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
+    samplingMode, samplingNotice,
     categoryName, images,
     // 动作
     addToCart, buyNow, goLogin, loadProduct,

@@ -1,5 +1,6 @@
 <template>
-  <RouterLink :to="`/products/${product.slug}`" class="flex h-full flex-col gap-2.5 rounded-lg border bg-card p-3 text-left transition hover:-translate-y-[3px] hover:border-hairline-strong hover:shadow-[var(--shadow)]" :class="{ 'opacity-[0.74]': soldOut }">
+  <RouterLink :to="`/products/${product.slug}`" custom v-slot="{ href, navigate }">
+  <component :is="samplingMode ? 'div' : 'a'" :href="samplingMode ? undefined : href" class="flex h-full flex-col gap-2.5 rounded-lg border bg-card p-3 text-left" :class="samplingMode ? 'cursor-not-allowed grayscale opacity-75' : [soldOut ? 'opacity-[0.74]' : '', 'transition hover:-translate-y-[3px] hover:border-hairline-strong hover:shadow-[var(--shadow)]']" :aria-disabled="samplingMode" @click="samplingMode ? undefined : navigate($event)">
     <div class="flex flex-col items-stretch gap-[11px]">
       <span
         class="relative grid h-[152px] w-full flex-none place-items-center overflow-hidden rounded-[13px] will-change-transform after:absolute after:inset-0 after:bg-[radial-gradient(130%_80%_at_78%_14%,rgba(255,255,255,0.26),transparent_56%)]"
@@ -8,7 +9,7 @@
         <img v-if="coverImage" :src="coverImage" :alt="title" loading="lazy" class="absolute inset-0 h-full w-full object-cover" @error="imageErrored = true" />
         <Package v-else class="relative z-[1] h-[58px] w-[58px] text-white" />
         <!-- 商家标签浮层 -->
-        <div v-if="!soldOut && product.tags && product.tags.length" class="absolute right-1.5 top-1.5 z-[3] flex max-w-[80%] flex-wrap justify-end gap-1">
+        <div v-if="!samplingMode && !soldOut && product.tags && product.tags.length" class="absolute right-1.5 top-1.5 z-[3] flex max-w-[80%] flex-wrap justify-end gap-1">
           <span v-for="(tag, i) in product.tags.slice(0, 2)" :key="i" class="inline-flex max-w-full items-center truncate rounded-md border border-white/25 bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">{{ tag }}</span>
         </div>
       </span>
@@ -45,7 +46,8 @@
         </div>
         <span v-if="priceSignal" class="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="priceSignal.tone">{{ priceSignal.label }}</span>
       </div>
-      <span v-if="soldOut" class="inline-flex flex-none items-center rounded-full border-2 border-hairline-strong px-3.5 py-1.5 text-[13px] font-bold text-foreground" aria-disabled="true">{{ t('products.stockStatus.outOfStock') }}</span>
+      <span v-if="samplingMode" class="inline-flex flex-none items-center rounded-full border border-border bg-muted px-3.5 py-1.5 text-[13px] font-bold text-muted-foreground" aria-disabled="true">{{ samplingLabelFor(product) }}</span>
+      <span v-else-if="soldOut" class="inline-flex flex-none items-center rounded-full border-2 border-hairline-strong px-3.5 py-1.5 text-[13px] font-bold text-foreground" aria-disabled="true">{{ t('products.stockStatus.outOfStock') }}</span>
       <button
         v-else
         type="button"
@@ -57,6 +59,7 @@
         {{ t('products.quickBuy') }}
       </button>
     </div>
+  </component>
   </RouterLink>
 </template>
 
@@ -66,12 +69,14 @@ import { useI18n } from 'vue-i18n'
 import { AlarmClock, Lock, Package, Pencil, UserPlus, XCircle, Zap } from 'lucide-vue-next'
 import { getFirstImageUrl, getImageUrl } from '../../../utils/image'
 import { useLocalized, useProductLabels } from '../../../composables/useProduct'
+import { useStorefrontMode } from '../../../composables/useStorefrontMode'
 
 const props = withDefaults(defineProps<{ product: any; index?: number }>(), { index: 0 })
 
 defineEmits<{ quickBuy: [product: any] }>()
 
 const { t } = useI18n()
+const { samplingMode, samplingLabelFor } = useStorefrontMode()
 const { getLocalizedText, siteCurrency, formatPrice } = useLocalized()
 const {
   getStockStatusLabel, getPurchaseTypeLabel, getFulfillmentTypeLabel,
@@ -103,6 +108,9 @@ const coverImage = computed(() => {
 })
 
 const stockPill = computed<{ tone: string; icon: Component; label: string }>(() => {
+  if (samplingMode.value) {
+    return { tone: 'bg-muted text-muted-foreground', icon: AlarmClock, label: samplingLabelFor(props.product) }
+  }
   if (soldOut.value) {
     return { tone: 'bg-secondary text-muted-foreground', icon: XCircle, label: t('products.stockStatus.outOfStock') }
   }

@@ -1,6 +1,7 @@
 package settingsapp
 
 import (
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -26,6 +27,15 @@ const (
 
 	settingRegistrationEmailDomainMaxCount  = 100
 	settingRegistrationEmailDomainMaxLength = 253
+
+	settingSiteLandingBadgeMaxRuneSize     = 100
+	settingSiteLandingTitleMaxRuneSize     = 200
+	settingSiteLandingDescriptionMaxRunes  = 1000
+	settingSiteLandingHighlightMaxRuneSize = 120
+	settingSiteLandingURLMaxRuneSize       = 2000
+	settingSiteLandingHighlightMaxCount    = 3
+	settingSiteSamplingLabelMaxCount       = 3
+	settingSiteSamplingLabelMaxRuneSize    = 100
 )
 
 // normalizeSiteSetting 归一化站点配置结构。
@@ -42,6 +52,9 @@ func normalizeSiteSetting(value map[string]interface{}) jsonmap.JSON {
 	normalized["about"] = normalizeSiteAbout(value["about"])
 	normalized["scripts"] = normalizeSiteScripts(value["scripts"])
 	normalized["footer_links"] = normalizeSiteFooterLinks(value["footer_links"])
+	normalized["home_landing"] = normalizeSiteLandingPage(value["home_landing"])
+	normalized["storefront_mode"] = normalizeSiteStorefrontMode(value["storefront_mode"])
+	normalized["storefront_sampling_labels"] = normalizeSiteStorefrontSamplingLabels(value["storefront_sampling_labels"])
 	normalized[constants.SettingFieldSiteCurrency] = normalizeSiteCurrency(value[constants.SettingFieldSiteCurrency])
 	normalized["template_mode"] = normalizeSiteTemplateMode(value["template_mode"])
 	normalized[constants.SettingFieldStorefrontTemplate] = normalizeStorefrontTemplate(value[constants.SettingFieldStorefrontTemplate])
@@ -51,6 +64,45 @@ func normalizeSiteSetting(value map[string]interface{}) jsonmap.JSON {
 	}
 
 	return normalized
+}
+
+func normalizeSiteStorefrontMode(raw interface{}) string {
+	mode := strings.ToLower(normalizeSettingText(raw))
+	if mode == "sampling" {
+		return mode
+	}
+	return "open"
+}
+
+func normalizeSiteStorefrontSamplingLabels(raw interface{}) []interface{} {
+	defaults := defaultSiteStorefrontSamplingLabels()
+	items, _ := raw.([]interface{})
+	result := make([]interface{}, 0, settingSiteSamplingLabelMaxCount)
+	for index := 0; index < settingSiteSamplingLabelMaxCount; index++ {
+		var item interface{}
+		if index < len(items) {
+			item = items[index]
+		} else {
+			item = defaults[index]
+		}
+		result = append(result, normalizeSiteLandingLocalizedField(item, settingSiteSamplingLabelMaxRuneSize, defaults[index]))
+	}
+	return result
+}
+
+func defaultSiteStorefrontSamplingLabels() []interface{} {
+	localized := func(simplified, traditional, english string) map[string]interface{} {
+		return map[string]interface{}{
+			"zh-CN": simplified,
+			"zh-TW": traditional,
+			"en-US": english,
+		}
+	}
+	return []interface{}{
+		localized("老板睡觉中", "老闆睡覺中", "Owner is asleep"),
+		localized("老板在摸鱼", "老闆在摸魚", "Owner is away"),
+		localized("今日暂停营业", "今日暫停營業", "Temporarily closed"),
+	}
 }
 
 func normalizeSiteScripts(raw interface{}) []interface{} {
@@ -122,6 +174,136 @@ func normalizeSiteFooterLinks(raw interface{}) []interface{} {
 	}
 
 	return result
+}
+
+func normalizeSiteLandingPage(raw interface{}) map[string]interface{} {
+	defaults := defaultSiteLandingPage()
+	landing, ok := raw.(map[string]interface{})
+	if !ok {
+		return defaults
+	}
+
+	result := make(map[string]interface{}, len(defaults))
+	localizedLimits := map[string]int{
+		"badge_primary":   settingSiteLandingBadgeMaxRuneSize,
+		"badge_secondary": settingSiteLandingBadgeMaxRuneSize,
+		"title":           settingSiteLandingTitleMaxRuneSize,
+		"accent_title":    settingSiteLandingTitleMaxRuneSize,
+		"description":     settingSiteLandingDescriptionMaxRunes,
+		"primary_label":   settingSiteLandingBadgeMaxRuneSize,
+		"secondary_label": settingSiteLandingBadgeMaxRuneSize,
+		"support_label":   settingSiteLandingBadgeMaxRuneSize,
+	}
+	for key, maxRunes := range localizedLimits {
+		rawValue, exists := landing[key]
+		if !exists {
+			rawValue = defaults[key]
+		}
+		result[key] = normalizeSiteLandingLocalizedField(rawValue, maxRunes, defaults[key])
+	}
+
+	for _, key := range []string{"primary_url", "secondary_url", "support_url"} {
+		rawValue, exists := landing[key]
+		if !exists {
+			result[key] = defaults[key]
+			continue
+		}
+		result[key] = normalizeSiteLandingURL(rawValue)
+	}
+
+	rawHighlights, exists := landing["highlights"]
+	if !exists {
+		rawHighlights = defaults["highlights"]
+	}
+	result["highlights"] = normalizeSiteLandingHighlights(rawHighlights)
+	return result
+}
+
+func defaultSiteLandingPage() map[string]interface{} {
+	localized := func(simplified, traditional, english string) map[string]interface{} {
+		return map[string]interface{}{
+			"zh-CN": simplified,
+			"zh-TW": traditional,
+			"en-US": english,
+		}
+	}
+	return map[string]interface{}{
+		"badge_primary":   localized("店铺精选", "店鋪精選", "Selected for you"),
+		"badge_secondary": localized("商品库存实时展示", "商品庫存即時展示", "Live product availability"),
+		"title":           localized("选择适合你的服务", "選擇適合你的服務", "Find a service that fits"),
+		"accent_title":    localized("从这里开始", "從這裡開始", "Start here"),
+		"description":     localized("浏览店铺当前可购买的商品，查看价格与库存后再下单。", "瀏覽店鋪目前可購買的商品，確認價格與庫存後再下單。", "Browse available products and review their price and stock before ordering."),
+		"primary_label":   localized("查看商品套餐", "查看商品方案", "Browse products"),
+		"primary_url":     "#products",
+		"secondary_label": localized("登录或注册", "登入或註冊", "Sign in or register"),
+		"secondary_url":   "/login?returnTo=%2Fproducts",
+		"highlights": []interface{}{
+			localized("商品信息清晰", "商品資訊清晰", "Clear product details"),
+			localized("实时查看库存", "即時查看庫存", "Live stock status"),
+			localized("订单进度可查", "訂單進度可查", "Track order progress"),
+		},
+		"support_label": localized("在线咨询", "線上諮詢", "Contact support"),
+		"support_url":   "",
+	}
+}
+
+func normalizeSiteLandingLocalizedField(raw interface{}, maxRunes int, fallback interface{}) map[string]interface{} {
+	field, _ := raw.(map[string]interface{})
+	fallbackField, _ := fallback.(map[string]interface{})
+	result := make(map[string]interface{}, len(settingSupportedLanguages))
+	for _, language := range settingSupportedLanguages {
+		value, exists := field[language]
+		if !exists {
+			value = fallbackField[language]
+		}
+		result[language] = normalizeSettingTextWithRuneLimit(value, maxRunes)
+	}
+	return result
+}
+
+func normalizeSiteLandingHighlights(raw interface{}) []interface{} {
+	items, _ := raw.([]interface{})
+	result := make([]interface{}, 0, settingSiteLandingHighlightMaxCount)
+	for index := 0; index < settingSiteLandingHighlightMaxCount; index++ {
+		var item interface{}
+		if index < len(items) {
+			item = items[index]
+		}
+		result = append(result, normalizeSiteLandingLocalizedField(item, settingSiteLandingHighlightMaxRuneSize, nil))
+	}
+	return result
+}
+
+func normalizeSiteLandingURL(raw interface{}) string {
+	value := normalizeSettingTextWithRuneLimit(raw, settingSiteLandingURLMaxRuneSize)
+	if value == "" {
+		return ""
+	}
+	if strings.HasPrefix(value, "#") {
+		return value
+	}
+	if strings.HasPrefix(value, "/") {
+		if strings.HasPrefix(value, "//") {
+			return ""
+		}
+		return value
+	}
+
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return ""
+	}
+	switch strings.ToLower(parsed.Scheme) {
+	case "http", "https":
+		if parsed.Host != "" {
+			return value
+		}
+	case "mailto", "tel":
+		if parsed.Opaque != "" || parsed.Path != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func normalizeSiteContact(raw interface{}) map[string]interface{} {

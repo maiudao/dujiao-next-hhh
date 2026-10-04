@@ -21,6 +21,8 @@ import SettingsCaptchaTab from './components/SettingsCaptchaTab.vue'
 import SettingsOrderEmailTemplateTab from './components/SettingsOrderEmailTemplateTab.vue'
 import SettingsNavigationTab from './components/SettingsNavigationTab.vue'
 import SettingsHomeAnnouncementTab from './components/SettingsHomeAnnouncementTab.vue'
+import SettingsHomeLandingTab from './components/SettingsHomeLandingTab.vue'
+import SettingsStorefrontModeTab from './components/SettingsStorefrontModeTab.vue'
 import SettingsUpstreamSyncTab from './components/SettingsUpstreamSyncTab.vue'
 
 const { t } = useI18n()
@@ -73,6 +75,8 @@ const languages = computed(() => [
 const tabs = computed(() => [
   { label: t('admin.settings.tabs.basic'), value: 'basic' },
   { label: t('admin.settings.tabs.template'), value: 'template' },
+  { label: t('admin.settings.tabs.homeLanding'), value: 'home_landing' },
+  { label: t('admin.settings.tabs.storefrontMode'), value: 'storefront_mode' },
   { label: t('admin.settings.tabs.navigation'), value: 'navigation' },
   { label: t('admin.settings.tabs.about'), value: 'about' },
   { label: t('admin.settings.tabs.legal'), value: 'legal' },
@@ -107,6 +111,33 @@ const currencyOptions = computed(() => {
 })
 
 const createLocalizedField = () => ({ 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as Record<SupportedLanguage, string>)
+const createHomeLandingForm = () => ({
+  badge_primary: { 'zh-CN': '店铺精选', 'zh-TW': '店鋪精選', 'en-US': 'Selected for you' },
+  badge_secondary: { 'zh-CN': '商品库存实时展示', 'zh-TW': '商品庫存即時展示', 'en-US': 'Live product availability' },
+  title: { 'zh-CN': '选择适合你的服务', 'zh-TW': '選擇適合你的服務', 'en-US': 'Find a service that fits' },
+  accent_title: { 'zh-CN': '从这里开始', 'zh-TW': '從這裡開始', 'en-US': 'Start here' },
+  description: {
+    'zh-CN': '浏览店铺当前可购买的商品，查看价格与库存后再下单。',
+    'zh-TW': '瀏覽店鋪目前可購買的商品，確認價格與庫存後再下單。',
+    'en-US': 'Browse available products and review their price and stock before ordering.',
+  },
+  primary_label: { 'zh-CN': '查看商品套餐', 'zh-TW': '查看商品方案', 'en-US': 'Browse products' },
+  primary_url: '#products',
+  secondary_label: { 'zh-CN': '登录或注册', 'zh-TW': '登入或註冊', 'en-US': 'Sign in or register' },
+  secondary_url: '/login?returnTo=%2Fproducts',
+  highlights: [
+    { 'zh-CN': '商品信息清晰', 'zh-TW': '商品資訊清晰', 'en-US': 'Clear product details' },
+    { 'zh-CN': '实时查看库存', 'zh-TW': '即時查看庫存', 'en-US': 'Live stock status' },
+    { 'zh-CN': '订单进度可查', 'zh-TW': '訂單進度可查', 'en-US': 'Track order progress' },
+  ],
+  support_label: { 'zh-CN': '在线咨询', 'zh-TW': '線上諮詢', 'en-US': 'Contact support' },
+  support_url: '',
+})
+const createStorefrontSamplingLabels = () => [
+  { 'zh-CN': '老板睡觉中', 'zh-TW': '老闆睡覺中', 'en-US': 'Owner is asleep' },
+  { 'zh-CN': '老板在摸鱼', 'zh-TW': '老闆在摸魚', 'en-US': 'Owner is away' },
+  { 'zh-CN': '今日暂停营业', 'zh-TW': '今日暫停營業', 'en-US': 'Temporarily closed' },
+]
 const createSiteScriptItem = (): SiteScriptItem => ({
   name: '',
   enabled: true,
@@ -218,6 +249,9 @@ const form = reactive({
   },
   scripts: [] as SiteScriptItem[],
   footer_links: [] as FooterLinkItem[],
+  home_landing: createHomeLandingForm(),
+  storefront_mode: 'open' as 'open' | 'sampling',
+  storefront_sampling_labels: createStorefrontSamplingLabels(),
   storefront_template: 'classic' as 'classic' | 'vault',
   template_mode: 'card' as 'card' | 'list',
 })
@@ -453,6 +487,31 @@ const fetchSettings = async () => {
       const footerLinks = normalizeFooterLinks(data.footer_links)
       form.footer_links.splice(0, form.footer_links.length, ...footerLinks)
 
+      const landing = data.home_landing as Record<string, unknown> | undefined
+      if (landing) {
+        const localizedFields = ['badge_primary', 'badge_secondary', 'title', 'accent_title', 'description', 'primary_label', 'secondary_label', 'support_label'] as const
+        localizedFields.forEach((field) => {
+          Object.assign(form.home_landing[field], normalizeLocalizedField(landing[field]))
+        })
+        form.home_landing.primary_url = String(landing.primary_url || '')
+        form.home_landing.secondary_url = String(landing.secondary_url || '')
+        form.home_landing.support_url = String(landing.support_url || '')
+        const highlights = Array.isArray(landing.highlights) ? landing.highlights : []
+        form.home_landing.highlights.splice(
+          0,
+          form.home_landing.highlights.length,
+          ...Array.from({ length: 3 }, (_, index) => normalizeLocalizedField(highlights[index])),
+        )
+      }
+
+      form.storefront_mode = String(data.storefront_mode || '').trim().toLowerCase() === 'sampling' ? 'sampling' : 'open'
+      const samplingLabels = Array.isArray(data.storefront_sampling_labels) ? data.storefront_sampling_labels : []
+      form.storefront_sampling_labels.splice(
+        0,
+        form.storefront_sampling_labels.length,
+        ...Array.from({ length: 3 }, (_, index) => normalizeLocalizedField(samplingLabels[index] ?? createStorefrontSamplingLabels()[index])),
+      )
+
       const rawTemplateMode = String(data.template_mode || 'card').trim()
       form.template_mode = rawTemplateMode === 'list' ? 'list' : 'card'
 
@@ -616,6 +675,9 @@ const saveSiteSettings = async () => {
       legal: form.legal,
       scripts: form.scripts,
       footer_links: form.footer_links,
+      home_landing: form.home_landing,
+      storefront_mode: form.storefront_mode,
+      storefront_sampling_labels: form.storefront_sampling_labels,
       storefront_template: form.storefront_template,
       template_mode: form.template_mode,
     },
@@ -792,6 +854,8 @@ const saveSettings = async () => {
       await saveGoogleAuthSettings()
     } else if (currentTab.value === 'dashboard') {
       await saveDashboardSettings()
+    } else if (currentTab.value === 'home_landing' || currentTab.value === 'storefront_mode') {
+      await saveSiteSettings()
     } else {
       await saveRegistrationSettings()
       await saveOrderSettings()
@@ -1375,6 +1439,19 @@ onMounted(() => {
 
       <TabsContent value="home_announcement" :forceMount="true" v-show="currentTab === 'home_announcement'" class="mt-0">
         <SettingsHomeAnnouncementTab ref="homeAnnouncementTabRef" :current-lang="currentLang" @saved="fetchSettings" />
+      </TabsContent>
+
+      <TabsContent value="home_landing" :forceMount="true" v-show="currentTab === 'home_landing'" class="mt-0">
+        <SettingsHomeLandingTab v-model="form.home_landing" :current-lang="currentLang" />
+      </TabsContent>
+
+      <TabsContent value="storefront_mode" :forceMount="true" v-show="currentTab === 'storefront_mode'" class="mt-0">
+        <SettingsStorefrontModeTab
+          v-model="form.storefront_sampling_labels"
+          :mode="form.storefront_mode"
+          :current-lang="currentLang"
+          @mode-changed="form.storefront_mode = $event"
+        />
       </TabsContent>
 
       <TabsContent value="smtp" :forceMount="true" v-show="currentTab === 'smtp'" class="mt-0">

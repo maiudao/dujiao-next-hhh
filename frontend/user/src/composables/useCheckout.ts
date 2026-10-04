@@ -17,6 +17,7 @@ import { saveGuestOrderAuth } from '../utils/guestOrderAuth'
 import ImageCaptcha from '../components/captcha/ImageCaptcha.vue'
 import TurnstileCaptcha from '../components/captcha/TurnstileCaptcha.vue'
 import { useLocalized, useProductLabels } from './useProduct'
+import { useStorefrontMode } from './useStorefrontMode'
 
 interface ManualFormField {
   key: string
@@ -51,6 +52,7 @@ export function useCheckout() {
   const appStore = useAppStore()
   const userAuthStore = useUserAuthStore()
   const { t } = useI18n()
+  const { samplingMode, samplingNotice } = useStorefrontMode()
 
   const { getLocalizedText, siteCurrency, formatPrice } = useLocalized()
   const { resolveWholesalePriceAmount } = useProductLabels()
@@ -579,6 +581,7 @@ export function useCheckout() {
   }
 
   const canSubmit = computed(() => {
+    if (samplingMode.value) return false
     if (syncingStock.value) return false
     if (submitting.value) return false
     if (cartItems.value.length === 0) return false
@@ -602,6 +605,7 @@ export function useCheckout() {
   })
 
   const submitBlockedReason = computed(() => {
+    if (samplingMode.value) return samplingNotice.value
     if (syncingStock.value) return t('checkout.stockSyncing')
     if (cartItems.value.length === 0) return t('checkout.errors.emptyCart')
     if (!manualFormValidation.value.valid) {
@@ -1133,6 +1137,8 @@ export function useCheckout() {
     // coupon
     couponCode,
     isResellerTenant,
+    samplingMode,
+    samplingNotice,
     // mode select / guest
     checkoutMode,
     guestEmail,

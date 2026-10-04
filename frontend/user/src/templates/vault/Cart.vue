@@ -12,6 +12,7 @@
     </header>
 
     <VaultCheckoutSteps current="cart" />
+    <p v-if="samplingMode" role="status" class="my-5 rounded-md border bg-muted px-3 py-2.5 text-sm text-muted-foreground">{{ samplingNotice }}</p>
 
     <!-- 空购物车 -->
     <div v-if="cartItems.length === 0" class="my-8 flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center text-muted-foreground">
@@ -24,15 +25,19 @@
       <!-- 商品列表 -->
       <div class="grid gap-4">
         <article v-for="item in cartItems" :key="cartItemKey(item)" class="flex gap-4 rounded-xl border bg-card p-4">
-          <RouterLink :to="`/products/${item.slug}`" class="relative grid h-[88px] w-[88px] flex-none place-items-center overflow-hidden rounded-md bg-secondary">
-            <img v-if="cartItemImage(item)" :src="cartItemImage(item)" :alt="getLocalizedText(item.title)" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
-            <Package v-else class="h-10 w-10 text-muted-foreground" />
+          <RouterLink :to="`/products/${item.slug}`" custom v-slot="{ href, navigate }">
+            <component :is="samplingMode ? 'div' : 'a'" :href="samplingMode ? undefined : href" class="relative grid h-[88px] w-[88px] flex-none place-items-center overflow-hidden rounded-md bg-secondary" @click="samplingMode ? undefined : navigate($event)">
+              <img v-if="cartItemImage(item)" :src="cartItemImage(item)" :alt="getLocalizedText(item.title)" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
+              <Package v-else class="h-10 w-10 text-muted-foreground" />
+            </component>
           </RouterLink>
 
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <RouterLink :to="`/products/${item.slug}`" class="block truncate font-bold hover:text-primary">{{ getLocalizedText(item.title) }}</RouterLink>
+                <RouterLink :to="`/products/${item.slug}`" custom v-slot="{ href, navigate }">
+                  <component :is="samplingMode ? 'span' : 'a'" :href="samplingMode ? undefined : href" class="block truncate font-bold hover:text-primary" @click="samplingMode ? undefined : navigate($event)">{{ getLocalizedText(item.title) }}</component>
+                </RouterLink>
                 <p class="mt-1 text-[13px] text-muted-foreground">{{ t('cart.priceLabel') }}：{{ formatPrice(item.priceAmount, totalCurrency) }}</p>
                 <p v-if="itemSkuDisplay(item)" class="mt-1 text-[13px] text-muted-foreground">{{ t('cart.skuLabel') }}：{{ itemSkuDisplay(item) }}</p>
                 <p v-if="itemStockHint(item)" class="mt-1 text-[13px] text-muted-foreground">{{ itemStockHint(item) }}</p>
@@ -84,7 +89,8 @@
           </div>
         </div>
         <p class="my-4 rounded-sm border bg-secondary px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">{{ t('cart.disclaimer') }}</p>
-        <Button as-child class="h-11 w-full rounded-full font-bold"><RouterLink to="/checkout">{{ t('cart.checkout') }} <ArrowRight /></RouterLink></Button>
+        <Button v-if="!samplingMode" as-child class="h-11 w-full rounded-full font-bold"><RouterLink to="/checkout">{{ t('cart.checkout') }} <ArrowRight /></RouterLink></Button>
+        <Button v-else class="h-11 w-full rounded-full font-bold" disabled>{{ t('cart.checkout') }}</Button>
         <Button as-child variant="outline" class="mt-2.5 h-11 w-full rounded-full font-bold"><RouterLink to="/products">{{ t('cart.emptyAction') }}</RouterLink></Button>
       </aside>
     </div>
@@ -98,8 +104,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import VaultCheckoutSteps from './components/VaultCheckoutSteps.vue'
 import { useCart } from '../../composables/useCart'
+import { useStorefrontMode } from '../../composables/useStorefrontMode'
 
 const { t } = useI18n()
+const { samplingMode, samplingNotice } = useStorefrontMode()
 
 const {
   getLocalizedText, formatPrice, totalCurrency,

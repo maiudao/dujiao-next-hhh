@@ -31,6 +31,9 @@
     "retry": "Retry",
     "defaultMessage": "Something went wrong. Please try again."
   },
+  "storefront": {
+    "samplingNotice": "The store is in sampling mode and is not accepting new orders. Existing orders can still be paid and processed."
+  },
   "formValidation": {
     "required": "This field is required",
     "emailInvalid": "Please enter a valid email address",
@@ -162,10 +165,10 @@
     "saveAmount": "Save",
     "stockStatus": {
       "unlimited": "Unlimited stock",
-      "inStock": "In stock",
+      "inStock": "Plenty in stock",
       "lowStock": "Low stock",
       "lowStockCount": "Low stock ({count} left)",
-      "outOfStock": "Sold out"
+      "outOfStock": "Out of stock"
     },
     "fulfillmentType": {
       "manual": "Manual delivery",

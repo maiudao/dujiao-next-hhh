@@ -290,7 +290,7 @@
 
               <!-- Purchase Actions (Desktop + original position) -->
               <div ref="purchaseActionsRef" class="mt-auto space-y-6">
-                <Alert v-if="cannotPurchaseReason" variant="destructive">
+                <Alert v-if="cannotPurchaseReason" :variant="samplingMode ? 'default' : 'destructive'">
                   <AlertDescription class="font-semibold">{{ cannotPurchaseReason }}</AlertDescription>
                 </Alert>
                 <Alert v-if="purchaseWarning" class="border-warning/40 text-warning">
@@ -298,7 +298,7 @@
                 </Alert>
 
                 <div class="space-y-3">
-                  <Button v-if="requiresLogin" class="w-full h-12 font-bold" @click="goLogin">
+                  <Button v-if="requiresLogin && !samplingMode" class="w-full h-12 font-bold" @click="goLogin">
                     {{ t('productDetail.loginToBuy') }}
                   </Button>
                   <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -372,7 +372,7 @@
         <!-- Mobile Fixed Purchase Bar -->
         <ProductMobileBar
           :visible="showMobileBar && !!product && !loading"
-          :requires-login="requiresLogin"
+          :requires-login="requiresLogin && !samplingMode"
           :can-purchase="canPurchase"
           :show-member-price="mobileBarShowMemberPrice"
           :member-price-display="mobileBarMemberPriceDisplay"
@@ -464,7 +464,7 @@ const {
   showSelectedSkuMemberBadge,
   isSkuPurchasable, skuDisplayText, skuStockText, skuStockBadgeClass,
   quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
-  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
+  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason, samplingMode,
   categoryName, images,
   addToCart, buyNow, goLogin, loadProduct,
   mobileBarShowMemberPrice, mobileBarMemberPriceDisplay,

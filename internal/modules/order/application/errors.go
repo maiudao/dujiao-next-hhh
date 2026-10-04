@@ -17,6 +17,7 @@ var (
 	ErrOrderCreateFailed          = errors.New("order create failed")
 	ErrOrderFetchFailed           = errors.New("order fetch failed")
 	ErrProductNotAvailable        = errors.New("product not available")
+	ErrStorefrontPaused           = errors.New("storefront paused")
 	ErrProductPurchaseNotAllowed  = errors.New("product purchase not allowed")
 	ErrProductMaxPurchaseExceeded = productdomain.ErrMaxPurchaseExceeded
 	ErrProductMinPurchaseNotMet   = productdomain.ErrMinPurchaseNotMet

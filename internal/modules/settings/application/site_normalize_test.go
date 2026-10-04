@@ -3,6 +3,7 @@ package settingsapp
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/dujiao-next/internal/config"
@@ -710,5 +711,66 @@ func TestUpdateTelegramAuthSettingNormalized(t *testing.T) {
 	}
 	if result["replay_ttl_seconds"] != 60 {
 		t.Fatalf("unexpected replay_ttl_seconds: %v", result["replay_ttl_seconds"])
+	}
+}
+
+func TestNormalizeSiteLandingPageBoundsTextAndLinks(t *testing.T) {
+	got := normalizeSiteLandingPage(map[string]interface{}{
+		"title": map[string]interface{}{
+			"zh-CN": strings.Repeat("字", settingSiteLandingTitleMaxRuneSize+20),
+		},
+		"primary_url":   "javascript:alert(1)",
+		"secondary_url": "//example.invalid/path",
+		"support_url":   "https://support.example.com/chat",
+		"highlights": []interface{}{
+			map[string]interface{}{"zh-CN": "  商品信息  "},
+		},
+	})
+
+	title := got["title"].(map[string]interface{})["zh-CN"].(string)
+	if len([]rune(title)) != settingSiteLandingTitleMaxRuneSize {
+		t.Fatalf("title rune count = %d, want %d", len([]rune(title)), settingSiteLandingTitleMaxRuneSize)
+	}
+	if got["primary_url"] != "" || got["secondary_url"] != "" {
+		t.Fatalf("unsafe URLs were retained: primary=%v secondary=%v", got["primary_url"], got["secondary_url"])
+	}
+	if got["support_url"] != "https://support.example.com/chat" {
+		t.Fatalf("safe support URL was rejected: %v", got["support_url"])
+	}
+	highlights := got["highlights"].([]interface{})
+	if len(highlights) != settingSiteLandingHighlightMaxCount {
+		t.Fatalf("highlight count = %d, want %d", len(highlights), settingSiteLandingHighlightMaxCount)
+	}
+	firstHighlight := highlights[0].(map[string]interface{})["zh-CN"]
+	if firstHighlight != "商品信息" {
+		t.Fatalf("highlight was not trimmed: %v", firstHighlight)
+	}
+}
+
+func TestNormalizeSiteStorefrontModeAndSamplingLabels(t *testing.T) {
+	got := normalizeSiteSetting(map[string]interface{}{
+		"storefront_mode": " SAMPLING ",
+		"storefront_sampling_labels": []interface{}{
+			map[string]interface{}{"zh-CN": "  老板午休中  "},
+		},
+	})
+
+	if got["storefront_mode"] != "sampling" {
+		t.Fatalf("storefront_mode = %v, want sampling", got["storefront_mode"])
+	}
+	labels := got["storefront_sampling_labels"].([]interface{})
+	if len(labels) != settingSiteSamplingLabelMaxCount {
+		t.Fatalf("sampling label count = %d, want %d", len(labels), settingSiteSamplingLabelMaxCount)
+	}
+	first := labels[0].(map[string]interface{})
+	if first["zh-CN"] != "老板午休中" {
+		t.Fatalf("first zh-CN label = %v", first["zh-CN"])
+	}
+	if first["en-US"] == "" || labels[1].(map[string]interface{})["zh-CN"] == "" {
+		t.Fatal("missing locale or default sampling labels were not filled")
+	}
+
+	if mode := normalizeSiteStorefrontMode("unknown"); mode != "open" {
+		t.Fatalf("invalid storefront_mode = %q, want open", mode)
 	}
 }

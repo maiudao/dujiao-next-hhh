@@ -1,22 +1,25 @@
 <template>
   <Card
     class="group relative overflow-hidden flex flex-col h-full rounded-2xl transition-all theme-slide-up"
-    :class="isSoldOut(product)
+    :aria-disabled="samplingMode"
+    :class="samplingMode
+      ? 'cursor-not-allowed opacity-75 grayscale border-border'
+      : isSoldOut(product)
       ? 'cursor-default opacity-85 grayscale-[0.25] saturate-50 border-destructive/30'
       : 'cursor-pointer hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg'"
     :style="{ animationDelay: `${index * animationStep}ms` }"
-    @click="$emit('click', product.slug)">
+    @click="handleCardClick">
     <!-- Image Area -->
     <div class="aspect-[4/3] overflow-hidden bg-muted relative shrink-0">
       <div
         class="absolute inset-0 z-10 transition-colors duration-300"
-        :class="isSoldOut(product) ? 'bg-black/15' : 'bg-black/15 group-hover:bg-black/5'"
+        :class="samplingMode || isSoldOut(product) ? 'bg-black/25' : 'bg-black/15 group-hover:bg-black/5'"
       ></div>
       <img v-if="displayImageSrc && !imageErrored" :src="displayImageSrc"
         :alt="getLocalizedText(product.title)" loading="lazy" decoding="async"
         class="w-full h-full object-cover transform transition-transform duration-700 ease-out"
         :class="[
-          isSoldOut(product) ? 'grayscale brightness-75' : 'group-hover:scale-105',
+          samplingMode || isSoldOut(product) ? 'grayscale brightness-75' : 'group-hover:scale-105',
         ]"
         @error="handleImageError" />
       <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground" role="img"
@@ -24,9 +27,17 @@
         <ImageIcon class="w-8 h-8 md:w-12 md:h-12" :stroke-width="1.5" aria-hidden="true" />
       </div>
 
-      <div v-if="isSoldOut(product)" class="absolute inset-0 z-20 bg-black/45"></div>
+      <div v-if="isSoldOut(product) || samplingMode" class="absolute inset-0 z-20 bg-black/25"></div>
       <Badge
-        v-if="isSoldOut(product)"
+        v-if="samplingMode"
+        variant="neutral"
+        size="xs"
+        class="absolute left-2 top-2 md:left-4 md:top-4 z-30 bg-muted text-muted-foreground"
+      >
+        {{ samplingLabelFor(product) }}
+      </Badge>
+      <Badge
+        v-else-if="isSoldOut(product)"
         variant="destructive"
         size="xs"
         class="absolute left-2 top-2 md:left-4 md:top-4 z-30 tracking-wider shadow-sm"
@@ -35,7 +46,7 @@
       </Badge>
 
       <!-- Tags -->
-      <div v-if="!isSoldOut(product) && product.tags && product.tags.length > 0"
+      <div v-if="!samplingMode && !isSoldOut(product) && product.tags && product.tags.length > 0"
         class="absolute top-2 right-2 md:top-4 md:right-4 z-20 flex flex-wrap gap-1 md:gap-2 justify-end">
         <span v-for="(tag, tagIndex) in product.tags.slice(0, maxTags)" :key="tagIndex"
           class="inline-flex items-center rounded-md border border-white/25 bg-black/55 px-2 md:px-3 py-0.5 md:py-1 text-xs font-medium text-white backdrop-blur-sm">
@@ -85,7 +96,10 @@
           {{ getFulfillmentTypeLabel(product.fulfillment_type) }}
         </Badge>
 
-        <Badge class="hidden md:inline-flex" size="xs" :variant="getStockBadgeVariant(product.stock_status)">
+        <Badge v-if="samplingMode" class="hidden md:inline-flex bg-muted text-muted-foreground" size="xs" variant="neutral">
+          {{ samplingLabelFor(product) }}
+        </Badge>
+        <Badge v-else class="hidden md:inline-flex" size="xs" :variant="getStockBadgeVariant(product.stock_status)">
           {{ getStockStatusLabel(product) }}
         </Badge>
       </div>
@@ -140,7 +154,7 @@
             size="icon"
             class="w-8 h-8 md:w-9 md:h-9"
             :aria-label="t('products.quickBuyAria')"
-            :disabled="isSoldOut(product)"
+            :disabled="isSoldOut(product) || samplingMode"
             @click.stop="$emit('quickBuy', product)"
           >
             <ShoppingCart class="h-4 w-4" />
@@ -167,6 +181,7 @@ import { computed, ref, watch } from 'vue'
 import { ArrowRight, ChevronRight, Image as ImageIcon, Lock, Pencil, ShoppingCart, UserPlus, Zap } from 'lucide-vue-next'
 import { getFirstImageUrl, getImageUrl } from '../utils/image'
 import { useLocalized, useProductLabels } from '../composables/useProduct'
+import { useStorefrontMode } from '../composables/useStorefrontMode'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -182,12 +197,13 @@ const props = withDefaults(defineProps<{
   animationStep: 50,
 })
 
-defineEmits<{
+const emit = defineEmits<{
   click: [slug: string]
   quickBuy: [product: any]
 }>()
 
 const { t } = useI18n()
+const { samplingMode, samplingLabelFor } = useStorefrontMode()
 const { getLocalizedText, siteCurrency, formatPrice } = useLocalized()
 const { getPurchaseTypeLabel, getFulfillmentTypeLabel, getStockBadgeVariant, getStockStatusLabel, isSoldOut, hasPromotionPrice, getPromotionPriceAmount, hasPromotionRules, hasWholesalePrices } = useProductLabels()
 
@@ -219,5 +235,10 @@ const handleImageError = () => {
   } else {
     imageErrored.value = true
   }
+}
+
+const handleCardClick = () => {
+  if (samplingMode.value) return
+  emit('click', props.product.slug)
 }
 </script>

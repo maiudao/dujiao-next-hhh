@@ -115,7 +115,8 @@ const router = createRouter({
         {
             path: '/',
             name: 'home',
-            component: templateView('Home', homeViewLoader),
+            component: () => import('../views/LandingPage.vue'),
+            meta: { landingPage: true },
         },
         {
             path: '/products',

@@ -171,6 +171,9 @@
             <p v-if="productDescription" class="mb-4 text-xs leading-relaxed text-muted-foreground line-clamp-3">
               {{ productDescription }}
             </p>
+            <p v-if="samplingMode" role="status" class="mb-4 rounded-lg border bg-muted px-3 py-2 text-xs text-muted-foreground">
+              {{ samplingNotice }}
+            </p>
 
             <!-- Promotion rules -->
             <div v-if="selectedSkuWholesaleRules.length" class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50/50 px-3 py-2 dark:border-emerald-800/50 dark:bg-emerald-950/20">
@@ -286,7 +289,14 @@
           <!-- Actions (sticky bottom) -->
           <div class="shrink-0 px-4 md:px-5 pt-3 pb-3 md:pb-5 border-t theme-safe-bottom">
             <Button
-              v-if="requiresLogin"
+              v-if="samplingMode"
+              class="w-full py-3 h-auto min-h-[44px] rounded-xl bg-muted text-sm font-semibold text-muted-foreground"
+              disabled
+            >
+              {{ samplingLabelFor(product) }}
+            </Button>
+            <Button
+              v-else-if="requiresLogin"
               class="w-full py-3 h-auto min-h-[44px] rounded-xl text-sm font-semibold"
               @click="goLogin"
             >
@@ -336,6 +346,7 @@ import { useCartStore } from '../stores/cart'
 import { useBuyNowStore } from '../stores/buyNow'
 import { useUserAuthStore } from '../stores/userAuth'
 import { useUserProfileStore } from '../stores/userProfile'
+import { useStorefrontMode } from '../composables/useStorefrontMode'
 import { getFirstImageUrl, getImageUrl } from '../utils/image'
 import { normalizeSkuId, buildSkuDisplayText } from '../utils/sku'
 import { resolveSkuAvailableStock, resolveSkuStockDisplay, type PublicStockDisplay } from '../utils/publicStock'
@@ -358,6 +369,7 @@ const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const appStore = useAppStore()
+const { samplingMode, samplingLabelFor, samplingNotice } = useStorefrontMode()
 const cartStore = useCartStore()
 const buyNowStore = useBuyNowStore()
 const userAuthStore = useUserAuthStore()
@@ -662,6 +674,7 @@ const stockBelowMinPurchase = computed(() => {
   return limit < effectiveMin.value
 })
 const canPurchase = computed(() => {
+  if (samplingMode.value) return false
   if (!props.product) return false
   if (activeSkus.value.length === 0) return false
   if (props.product.is_sold_out) return false
@@ -826,6 +839,7 @@ const goLogin = () => {
 }
 
 const goToDetail = () => {
+  if (samplingMode.value) return
   close()
   router.push(`/products/${props.product?.slug}`)
 }

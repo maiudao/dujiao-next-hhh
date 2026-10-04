@@ -166,12 +166,12 @@
           </div>
 
           <!-- 提示 -->
-          <div v-if="cannotPurchaseReason" class="my-3.5 rounded-sm bg-destructive/10 px-3.5 py-2.5 text-sm font-semibold text-destructive">{{ cannotPurchaseReason }}</div>
+          <div v-if="cannotPurchaseReason" class="my-3.5 rounded-sm px-3.5 py-2.5 text-sm font-semibold" :class="samplingMode ? 'border bg-muted text-muted-foreground' : 'bg-destructive/10 text-destructive'">{{ cannotPurchaseReason }}</div>
           <div v-if="purchaseWarning" class="my-3.5 rounded-sm bg-warning/10 px-3.5 py-2.5 text-sm font-semibold text-warning">{{ purchaseWarning }}</div>
 
           <!-- 操作 -->
           <div ref="purchaseActionsRef" class="mt-[18px] flex flex-wrap gap-3">
-            <Button v-if="requiresLogin" class="h-12 w-full rounded-full text-[17px] font-bold" @click="goLogin">{{ t('productDetail.loginToBuy') }}</Button>
+            <Button v-if="requiresLogin && !samplingMode" class="h-12 w-full rounded-full text-[17px] font-bold" @click="goLogin">{{ t('productDetail.loginToBuy') }}</Button>
             <template v-else>
               <Button class="h-12 flex-1 rounded-full text-[17px] font-bold" :disabled="!canPurchase" @click="buyNow"><Zap /> {{ t('productDetail.buyNow') }}</Button>
               <Button variant="outline" class="h-12 rounded-full text-[17px] font-bold" :disabled="!canPurchase" @click="addToCart"><ShoppingCart /> {{ t('productDetail.addToCart') }}</Button>
@@ -216,7 +216,7 @@
       <!-- 移动端固定购买条 -->
       <VaultProductMobileBar
         :visible="showMobileBar && !!product && !loading"
-        :requires-login="requiresLogin"
+        :requires-login="requiresLogin && !samplingMode"
         :can-purchase="canPurchase"
         :show-member-price="mobileBarShowMemberPrice"
         :member-price-display="mobileBarMemberPriceDisplay"
@@ -293,7 +293,7 @@ const {
   showSelectedSkuMemberBadge,
   isSkuPurchasable, skuDisplayText, skuStockText,
   quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
-  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
+  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason, samplingMode,
   categoryName, images,
   addToCart, buyNow, goLogin, loadProduct,
   mobileBarShowMemberPrice, mobileBarMemberPriceDisplay,

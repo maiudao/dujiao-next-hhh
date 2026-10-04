@@ -510,6 +510,7 @@ func mapOrderTransportError(err error) error {
 		{orderapp.ErrManualStockInsufficient, ordertransport.ErrManualStockInsufficient},
 		{orderapp.ErrOrderCurrencyMismatch, ordertransport.ErrOrderCurrencyMismatch},
 		{orderapp.ErrProductNotAvailable, ordertransport.ErrProductNotAvailable},
+		{orderapp.ErrStorefrontPaused, ordertransport.ErrProductNotAvailable},
 		{orderapp.ErrResellerCouponNotAllowed, ordertransport.ErrResellerCouponNotAllowed},
 		{orderapp.ErrQueueUnavailable, ordertransport.ErrQueueUnavailable},
 		{orderriskcontract.ErrIPBlacklisted, ordertransport.ErrRiskIPBlacklisted},

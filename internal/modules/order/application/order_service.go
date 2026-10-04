@@ -341,6 +341,9 @@ func (s *OrderService) PreviewOrder(input CreateOrderInput) (*OrderPreview, erro
 	if input.UserID == 0 {
 		return nil, ErrInvalidOrderItem
 	}
+	if err := s.ensureStorefrontOpen(input.Tenant); err != nil {
+		return nil, err
+	}
 	params := orderCreateParams{
 		UserID:              input.UserID,
 		Tenant:              input.Tenant,
@@ -360,6 +363,9 @@ func (s *OrderService) PreviewOrder(input CreateOrderInput) (*OrderPreview, erro
 
 // PreviewGuestOrder 游客订单金额预览
 func (s *OrderService) PreviewGuestOrder(input CreateGuestOrderInput) (*OrderPreview, error) {
+	if err := s.ensureStorefrontOpen(input.Tenant); err != nil {
+		return nil, err
+	}
 	params := orderCreateParams{
 		GuestEmail:          input.Email,
 		GuestPassword:       input.OrderPassword,
@@ -426,6 +432,9 @@ func (s *OrderService) previewOrder(input orderCreateParams) (*OrderPreview, err
 }
 
 func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order, error) {
+	if err := s.ensureStorefrontOpen(input.Tenant); err != nil {
+		return nil, err
+	}
 	if s.queueClient == nil || !s.queueClient.Enabled() {
 		return nil, ErrQueueUnavailable
 	}
@@ -750,6 +759,21 @@ func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order,
 	}
 	FillOrderItemsFromChildren(order)
 	return order, nil
+}
+
+func (s *OrderService) ensureStorefrontOpen(tenant resellercontract.TenantContext) error {
+	if s == nil || s.settingService == nil || tenant.ResellerID != nil {
+		return nil
+	}
+	setting, err := s.settingService.GetByKey(constants.SettingKeySiteConfig)
+	if err != nil {
+		return err
+	}
+	mode, _ := setting["storefront_mode"].(string)
+	if strings.EqualFold(strings.TrimSpace(mode), "sampling") {
+		return ErrStorefrontPaused
+	}
+	return nil
 }
 
 func (s *OrderService) checkOrderRisk(input *orderCreateParams, consumeRateLimit bool) error {
