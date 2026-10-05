@@ -124,26 +124,6 @@ const memberLevelOptions = computed(() =>
   }))
 )
 
-const resetForm = () => {
-  form.code = ''
-  form.type = 'percent'
-  form.value = 0
-  form.min_amount = 0
-  form.max_discount = 0
-  form.usage_limit = 0
-  form.per_user_limit = 0
-  form.disabled_wholesale_price = false
-  form.per_item_discount = false
-  form.payment_roles = []
-  form.member_levels = []
-  form.starts_at = ''
-  form.ends_at = ''
-  form.is_active = true
-  selectedScopeIDs.value = []
-  editingId.value = null
-  isEditing.value = false
-}
-
 const toISO = (raw: string) => {
   if (!raw) return ''
   const date = new Date(raw)
