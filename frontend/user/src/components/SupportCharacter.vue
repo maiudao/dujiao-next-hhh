@@ -85,6 +85,7 @@ function resized() {
   else if (position.value) constrain(position.value.x, position.value.y)
 }
 watch(state, randomize, { deep: true })
+watch(message, async () => { await nextTick(); resized() })
 onMounted(() => { randomize(); window.addEventListener('resize', resized) })
 onUnmounted(() => { clearTimeout(animationTimer); window.removeEventListener('resize', resized) })
 </script>

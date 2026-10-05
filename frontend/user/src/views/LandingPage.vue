@@ -140,7 +140,6 @@
           </p>
         </section>
 
-        <SupportCharacter />
       </main>
     </div>
 
@@ -183,7 +182,6 @@ import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { useAnnouncement, type HomeAnnouncement } from '../composables/useAnnouncement'
 import { useStorefrontMode } from '../composables/useStorefrontMode'
 import AnnouncementModal from '../components/AnnouncementModal.vue'
-import SupportCharacter from '../components/SupportCharacter.vue'
 import { useAppStore } from '../stores/app'
 import { useUserAuthStore } from '../stores/userAuth'
 import { useTheme } from '../utils/theme'

@@ -28,6 +28,7 @@
       <MobileBottomNav v-if="!isResellerConsole" />
     </template>
 
+    <SupportCharacter />
     <Loading :loading="appStore.loading" />
     <Toast />
     <ConfirmDialog />
@@ -47,6 +48,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue'
 import ErrorBoundary from './components/ErrorBoundary.vue'
 import BackToTop from './components/BackToTop.vue'
 import MobileBottomNav from './components/MobileBottomNav.vue'
+import SupportCharacter from './components/SupportCharacter.vue'
 
 // vault 外壳按需加载，classic 用户不会拉取其 chunk/样式
 const VaultLayout = defineAsyncComponent(() => import('./templates/vault/layout/VaultLayout.vue'))
