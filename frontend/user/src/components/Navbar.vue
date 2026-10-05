@@ -80,7 +80,7 @@
         </Button>
 
         <!-- Language Switcher (Desktop) -->
-        <Popover v-model:open="langOpen">
+        <Popover v-if="languages.length > 1" v-model:open="langOpen">
           <PopoverTrigger as-child>
             <Button variant="ghost" size="sm" class="hidden lg:inline-flex gap-2 text-muted-foreground">
               <Languages class="w-4 h-4" />
@@ -171,7 +171,7 @@
           </Button>
 
           <!-- Language Switcher -->
-          <div class="mt-4 pt-4 border-t">
+          <div v-if="languages.length > 1" class="mt-4 pt-4 border-t">
             <span class="text-xs text-muted-foreground font-semibold uppercase tracking-wider px-4">{{ t('navbar.selectLanguage') }}</span>
             <div class="mt-2 space-y-1">
               <button v-for="lang in languages" :key="lang.code" @click="changeLanguage(lang.code)"
@@ -224,14 +224,14 @@ const menuItems = primaryNavItems
 // Mobile drawer only shows items NOT in the bottom nav (Home, Products, Cart, Me are in bottom nav)
 const mobileDrawerItems = secondaryNavItems
 
-const languages = [
+const languages = computed(() => [
   { code: 'zh-CN', name: '简体中文' },
   { code: 'zh-TW', name: '繁體中文' },
   { code: 'en-US', name: 'English' },
-]
+].filter(lang => (appStore.config?.languages || ['zh-CN']).includes(lang.code)))
 
 const currentLocale = computed(() => {
-  const lang = languages.find(l => l.code === appStore.locale)
+  const lang = languages.value.find(l => l.code === appStore.locale)
   if (!lang) return 'CN'
   return lang.code === 'en-US' ? 'EN' : (lang.code === 'zh-CN' ? '简' : '繁')
 })

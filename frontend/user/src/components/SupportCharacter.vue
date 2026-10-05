@@ -90,6 +90,7 @@ onUnmounted(() => { clearTimeout(animationTimer); window.removeEventListener('re
 </script>
 
 <template>
+  <Teleport to="body">
   <aside ref="root" class="shop-character" :class="{ 'shop-character-pressed': pressed, 'shop-character-closed': samplingMode }"
     :style="position ? { left: position.x + 'px', top: position.y + 'px', right: 'auto', bottom: 'auto' } : undefined"
     aria-label="店铺客服提示">
@@ -104,44 +105,45 @@ onUnmounted(() => { clearTimeout(animationTimer); window.removeEventListener('re
         @error="failedImage = image" />
     </button>
   </aside>
+  </Teleport>
 </template>
 
 <style scoped>
 .shop-character {
-  position: fixed; z-index: 45; width: 238px; pointer-events: none;
-  right: max(12px, calc((100% - 1132px) / 2 - 75px));
+  position: fixed; z-index: 45; width: 200px; pointer-events: none;
+  right: max(12px, calc((100% - 1132px) / 2 - 62.5px));
   bottom: max(34px, env(safe-area-inset-bottom));
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 .shop-character-bubble {
-  position: relative; width: 100%; padding: 15px 18px 17px; pointer-events: auto;
+  position: relative; width: 100%; padding: 12px 14px 14px; pointer-events: auto;
   text-align: left; background: var(--panel-bg, var(--ui-bg-elevated)); color: var(--ink, var(--ui-text-primary));
   border: 1.5px solid var(--line, var(--ui-border)); border-radius: 24px 26px 22px 28px;
   box-shadow: 0 8px 22px rgb(24 48 85 / 12%); cursor: pointer;
 }
 .shop-character-bubble::before, .shop-character-bubble::after {
-  content: ''; position: absolute; right: 68px; width: 14px; height: 14px;
+  content: ''; position: absolute; right: 55px; width: 12px; height: 12px;
   border-radius: 0 0 4px 0; transform: rotate(45deg);
 }
 .shop-character-bubble::before { bottom: -8px; background: var(--line, var(--ui-border)); }
 .shop-character-bubble::after { bottom: -6px; background: var(--panel-bg, var(--ui-bg-elevated)); }
-.shop-character-title { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--blue, var(--primary)); font-size: 15px; font-weight: 800; }
+.shop-character-title { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--ui-accent); font-size: 14px; font-weight: 800; }
 .shop-character-title i { width: 7px; height: 7px; border-radius: 50%; background: var(--green, #07835f); }
 .shop-character-closed .shop-character-title i { background: var(--amber, #a56a00); }
-.shop-character-message { display: block; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
-.shop-character-handle { align-self: flex-end; width: 150px; height: 155px; padding: 0; background: transparent; border: 0; pointer-events: auto; touch-action: none; cursor: grab; }
+.shop-character-message { display: block; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.shop-character-handle { align-self: flex-end; width: 125px; height: 130px; padding: 0; background: transparent; border: 0; pointer-events: auto; touch-action: none; cursor: grab; }
 .shop-character-handle:active { cursor: grabbing; }
 .shop-character-handle img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; user-select: none; filter: drop-shadow(0 6px 7px rgb(24 48 85 / 12%)); }
 .shop-character-pressed img { animation: character-squish 240ms ease-out; transform-origin: center bottom; }
-.shop-character button:focus-visible { outline: 2px solid var(--blue, var(--primary)); outline-offset: 4px; }
+.shop-character button:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 4px; }
 @keyframes character-squish { 45% { transform: scale(1.07, .88); } }
 @media (max-width: 900px) {
-  .shop-character { width: 190px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); gap: 10px; }
-  .shop-character-bubble { padding: 11px 14px 13px; border-radius: 20px 23px 19px 24px; }
-  .shop-character-title { font-size: 13px; margin-bottom: 3px; }
-  .shop-character-message { font-size: 12px; line-height: 1.6; }
-  .shop-character-handle { width: 104px; height: 108px; }
-  .shop-character-bubble::before, .shop-character-bubble::after { right: 45px; }
+  .shop-character { width: 160px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); gap: 8px; }
+  .shop-character-bubble { padding: 10px 12px 12px; border-radius: 20px 23px 19px 24px; }
+  .shop-character-title { font-size: 12px; margin-bottom: 3px; }
+  .shop-character-message { font-size: 11px; line-height: 1.6; }
+  .shop-character-handle { width: 88px; height: 92px; }
+  .shop-character-bubble::before, .shop-character-bubble::after { right: 38px; }
 }
 @media (prefers-reduced-motion: reduce) { .shop-character-pressed img { animation: none; } }
 </style>

@@ -80,6 +80,10 @@ export const useAppStore = defineStore('app', () => {
             const requestTime = Date.now()
             const response = await configAPI.get()
             config.value = response.data.data
+            const enabledLanguages = config.value?.languages
+            if (Array.isArray(enabledLanguages) && enabledLanguages.length && !enabledLanguages.includes(locale.value)) {
+                setLocale(enabledLanguages[0])
+            }
             // 计算服务器与客户端的时间偏移量
             if (config.value?.server_time) {
                 const responseTime = Date.now()
