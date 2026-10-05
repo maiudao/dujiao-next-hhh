@@ -392,14 +392,6 @@ const changePageSize = (size: number) => {
   fetchCoupons(1)
 }
 
-const openCreateModal = () => {
-  error.value = ''
-  clearErrors()
-  resetForm()
-  showModal.value = true
-  void loadProductOptions()
-}
-
 const openEditModal = (coupon: AdminCoupon) => {
   error.value = ''
   isEditing.value = true
