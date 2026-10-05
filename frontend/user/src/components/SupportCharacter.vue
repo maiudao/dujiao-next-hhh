@@ -3,6 +3,9 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAppStore } from '../stores/app'
 import { useStorefrontMode } from '../composables/useStorefrontMode'
 import { clampCharacterAnchor, differentIndex, readSupportState } from '../utils/supportCharacter'
+import { createSupportAudio } from '../utils/supportAudio'
+import downSoundData from '../assets/support-sounds/Ya1.mp3?inline'
+import upSoundData from '../assets/support-sounds/Ya2.mp3?inline'
 import { X } from 'lucide-vue-next'
 
 const appStore = useAppStore()
@@ -33,45 +36,9 @@ let gesture: { id: number; x: number; y: number; left: number; top: number; drag
 let animationTimer: ReturnType<typeof setTimeout> | undefined
 let selectionSignature = ''
 let bubbleObserver: ResizeObserver | undefined
-const downAudio = ref<HTMLAudioElement | null>(null)
-const upAudio = ref<HTMLAudioElement | null>(null)
-let soundTimer: ReturnType<typeof setTimeout> | undefined
-let soundStarted = 0
-let releaseRequested = false
-let firstSoundFinished = true
-function stopSounds() {
-  clearTimeout(soundTimer)
-  releaseRequested = false
-  firstSoundFinished = true
-  ;[downAudio.value, upAudio.value].forEach(sound => sound?.pause())
-}
-function scheduleReleaseSound() {
-  firstSoundFinished = true
-  if (!releaseRequested) return
-  clearTimeout(soundTimer)
-  soundTimer = setTimeout(() => {
-    releaseRequested = false
-    const sound = upAudio.value
-    if (!sound) return
-    sound.volume = .45; sound.currentTime = 0
-    void sound.play().catch(() => {})
-  }, Math.max(160, 420 - (performance.now() - soundStarted)))
-}
-function playSound(phase: 'down' | 'up') {
-  if (phase === 'up') {
-    releaseRequested = true
-    if (firstSoundFinished) scheduleReleaseSound()
-    return
-  }
-  stopSounds()
-  soundStarted = performance.now()
-  const sound = downAudio.value
-  if (!sound) return
-  firstSoundFinished = false
-  sound.volume = .45
-  sound.currentTime = 0
-  void sound.play().catch(() => scheduleReleaseSound())
-}
+const supportAudio = createSupportAudio(downSoundData, upSoundData)
+const playSound = supportAudio.play
+const stopSounds = supportAudio.stop
 
 function pick(key: string, length: number) {
   let previous = -1
@@ -159,14 +126,12 @@ watch([message, bubbleOpen], async () => { await nextTick(); resized() })
 onMounted(() => { randomize(); window.addEventListener('resize', resized) })
 onUnmounted(() => {
   clearTimeout(animationTimer); bubbleObserver?.disconnect(); window.removeEventListener('resize', resized)
-  stopSounds()
+  supportAudio.dispose()
 })
 </script>
 
 <template>
   <Teleport to="body">
-  <audio ref="downAudio" src="/storefront/sounds/Ya1.mp3" preload="none" @ended="scheduleReleaseSound" hidden></audio>
-  <audio ref="upAudio" src="/storefront/sounds/Ya2.mp3" preload="none" hidden></audio>
   <aside ref="root" class="shop-character" :class="{ 'shop-character-pressed': pressed, 'shop-character-closed': samplingMode }"
     :style="position ? { left: position.x + 'px', top: position.y + 'px', right: 'auto', bottom: 'auto' } : undefined"
     aria-label="店铺客服提示">

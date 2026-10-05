@@ -386,8 +386,8 @@ onMounted(async () => {
 .landing-page {
   --page-bg: #f5f8fd;
   --panel-bg: #ffffff;
-  --product-bg: #ffffff;
-  --product-line: #dce5f1;
+  --product-bg: #edf3fc;
+  --product-line: #c4d4e9;
   --surface-soft: #f6f9fd;
   --ink: #101827;
   --muted: #65758e;
