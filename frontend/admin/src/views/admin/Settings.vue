@@ -210,6 +210,7 @@ const isLocalizedFieldNotEmpty = (value: Record<SupportedLanguage, string>) => {
 }
 
 const form = reactive({
+  languages: ['zh-CN'] as SupportedLanguage[],
   brand: {
     site_name: '',
     site_url: '',
@@ -421,6 +422,10 @@ const fetchSettings = async () => {
 
     if (siteRes.data && siteRes.data.data) {
       const data = siteRes.data.data as Record<string, unknown>
+      const enabledLanguages = Array.isArray(data.languages)
+        ? data.languages.filter((item): item is SupportedLanguage => item === 'zh-CN' || item === 'zh-TW' || item === 'en-US')
+        : []
+      form.languages = enabledLanguages.length ? enabledLanguages : ['zh-CN']
       const brand = data.brand as Record<string, unknown> | undefined
       if (brand) {
         form.brand.site_name = String(brand.site_name || '')
@@ -670,6 +675,7 @@ const saveSiteSettings = async () => {
   const payload = {
     key: 'site_config',
     value: {
+      languages: form.languages,
       brand: form.brand,
       currency: String(form.currency || 'CNY').trim().toUpperCase(),
       contact: form.contact,
