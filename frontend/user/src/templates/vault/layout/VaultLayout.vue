@@ -2,7 +2,7 @@
   <div class="vault-scope">
     <!-- 顶栏 -->
     <header class="sticky top-0 z-50 border-b bg-[color:var(--bg)]">
-      <div class="mx-auto flex h-[70px] w-full max-w-[1180px] items-center gap-3 px-4 sm:gap-5 sm:px-6">
+      <div class="mx-auto flex h-[70px] w-full max-w-[1180px] items-center gap-3 px-4 sm:gap-5 sm:px-6 max-[400px]:gap-1.5 max-[400px]:px-3">
         <RouterLink class="inline-flex min-w-0 items-center gap-2.5 text-foreground" to="/" :title="brandName">
           <img :src="brandLogo || '/dj.svg'" :alt="brandName" class="h-8 max-w-[120px] object-contain sm:max-w-[160px]" />
           <span class="flex min-w-0 flex-col justify-center leading-tight">
@@ -10,6 +10,7 @@
             <span class="mt-0.5 whitespace-nowrap text-[10px] font-medium text-muted-foreground">{{ brandDescription }}</span>
           </span>
         </RouterLink>
+        <button type="button" class="mobile-contact-entry hidden max-[900px]:inline-flex" @click="contactOpen = true">联系方式</button>
 
         <nav class="flex gap-0.5 max-[900px]:hidden">
           <button type="button" class="order-1 whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground" @click="contactOpen = true">联系方式</button>
@@ -69,7 +70,6 @@
               <X v-else class="pointer-events-none h-[18px] w-[18px]" />
             </button>
             <div v-if="moreOpen" class="absolute right-0 top-[calc(100%+8px)] z-[60] flex min-w-[168px] flex-col gap-0.5 rounded-md border bg-card p-2 shadow-[var(--shadow-lg)]" @click.stop>
-              <button type="button" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground" @click="moreOpen = false; contactOpen = true">联系方式</button>
               <template v-for="item in menuItems" :key="`m-${item.key}`">
                 <RouterLink v-if="item.type === 'route'" :to="item.path" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</RouterLink>
                 <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</a>
@@ -227,6 +227,13 @@ onUnmounted(() => {
   document.body.classList.remove('vault-tokens')
 })
 </script>
+
+<style scoped>
+.mobile-contact-entry { flex: none; align-items: center; justify-content: center; min-height: 30px; padding: 0 9px; border: 1px solid var(--ui-accent-soft); border-radius: 9px; background: var(--ui-accent-soft); color: var(--ui-accent); font-size: 10px; font-weight: 700; white-space: nowrap; transition: background-color 140ms; }
+.mobile-contact-entry:hover { background: var(--ui-bg-soft); }
+.mobile-contact-entry:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 3px; }
+@media (max-width: 360px) { .vault-toolbar { gap: 3px; } .vault-toolbar > a, .vault-toolbar > button, .vault-toolbar button[aria-haspopup='menu'] { width: 32px; height: 34px; } .mobile-contact-entry { padding-inline: 6px; font-size: 9px; } }
+</style>
 
 <style scoped>
 @media (max-width: 900px) {

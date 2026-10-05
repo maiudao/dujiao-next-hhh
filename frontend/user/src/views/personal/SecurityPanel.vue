@@ -16,6 +16,7 @@
       </Alert>
 
       <TelegramBindingSection
+        v-if="personalFeatures.externalIdentity"
         :telegram-enabled="telegramEnabled"
         :telegram-bound="telegramBound"
         :loading-telegram-binding="userProfileStore.loadingTelegramBinding"
@@ -39,6 +40,7 @@
       />
 
       <GoogleBindingSection
+        v-if="personalFeatures.externalIdentity"
         :google-enabled="googleAuthorizationEnabled"
         :google-bound="googleBound"
         :loading-google-binding="userProfileStore.loadingGoogleBinding"
@@ -127,6 +129,7 @@ import EmailChangeForm from '../../components/security/EmailChangeForm.vue'
 import LoginHistorySection from '../../components/security/LoginHistorySection.vue'
 import PasswordChangeForm from '../../components/security/PasswordChangeForm.vue'
 import TwoFactorSection from '../../components/security/TwoFactorSection.vue'
+import { personalFeatures } from '../../utils/personalFeatures'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -433,6 +436,7 @@ const renderTelegramWidget = () => {
 }
 
 const refreshExternalIdentityBindings = async (): Promise<boolean> => {
+  if (!personalFeatures.externalIdentity) return true
   const [telegramLoaded, googleLoaded] = await Promise.all([
     userProfileStore.loadTelegramBinding(),
     userProfileStore.loadGoogleBinding(),
@@ -618,12 +622,13 @@ onMounted(async () => {
   await Promise.all([
     appStore.loadConfig(),
     userProfileStore.loadRecentLoginLogs(10),
-    userProfileStore.loadTelegramBinding(),
-    userProfileStore.loadGoogleBinding(),
+    ...(personalFeatures.externalIdentity ? [userProfileStore.loadTelegramBinding(), userProfileStore.loadGoogleBinding()] : []),
   ])
   const win = window as Window & Record<string, any>
-  win[telegramCallbackName] = handleTelegramBind
-  renderTelegramWidget()
+  if (personalFeatures.externalIdentity) {
+    win[telegramCallbackName] = handleTelegramBind
+    renderTelegramWidget()
+  }
 
   if (route.query.tgBound === '1') {
     await finishExternalIdentityMutation(t('personalCenter.security.telegramBoundOk'))
@@ -649,6 +654,6 @@ onUnmounted(() => {
 })
 
 watch([showTelegramWidget, telegramBotUsername], () => {
-  renderTelegramWidget()
+  if (personalFeatures.externalIdentity) renderTelegramWidget()
 })
 </script>

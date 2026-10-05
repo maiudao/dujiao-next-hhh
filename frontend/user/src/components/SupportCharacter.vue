@@ -12,8 +12,17 @@ const state = computed(() => readSupportState(appStore.config?.storefront_suppor
 const imageIndex = ref(0)
 const messageIndex = ref(0)
 const pressed = ref(false)
-const bubbleOpen = ref(true)
+const bubbleOpen = ref(false)
 const bubble = ref<HTMLElement | null>(null)
+const bubbleSize = ref({ width: 200, height: 100 })
+const statusTitle = computed(() => samplingMode.value ? '打烊中' : '正在营业')
+// Pixel coordinates preserve circular shoulders even when the message height changes.
+const bubblePath = computed(() => {
+  const w = bubbleSize.value.width, h = bubbleSize.value.height
+  // Concentric with the 17px close disk; allow 2px clearance past the outline's half-stroke.
+  const closeX = w - 11, radius = 11.125, notchX = closeX - radius, notchY = 11 + radius
+  return `M 25 1 H ${notchX - 9} C ${notchX - 4} 1 ${notchX} 5 ${notchX} 11 A ${radius} ${radius} 0 0 0 ${closeX} ${notchY} C ${w - 5} ${notchY} ${w - 1} ${notchY + 4} ${w - 1} ${notchY + 10} V ${h - 25} Q ${w - 1} ${h - 1} ${w - 25} ${h - 1} H ${w - 43} Q ${w - 46} ${h - 1} ${w - 48} ${h + 1} L ${w - 60} ${h + 11} Q ${w - 63} ${h + 13} ${w - 65} ${h + 10} L ${w - 75} ${h + 1} Q ${w - 77} ${h - 1} ${w - 80} ${h - 1} H 25 Q 1 ${h - 1} 1 ${h - 25} V 25 Q 1 1 25 1 Z`
+})
 const failedImage = ref('')
 const root = ref<HTMLElement | null>(null)
 const position = ref<{ x: number; y: number } | null>(null)
@@ -24,6 +33,46 @@ const message = computed(() => state.value.messages[messageIndex.value % state.v
 let gesture: { id: number; x: number; y: number; left: number; top: number; dragged: boolean } | null = null
 let animationTimer: ReturnType<typeof setTimeout> | undefined
 let selectionSignature = ''
+let bubbleObserver: ResizeObserver | undefined
+const downAudio = ref<HTMLAudioElement | null>(null)
+const upAudio = ref<HTMLAudioElement | null>(null)
+let soundTimer: ReturnType<typeof setTimeout> | undefined
+let soundStarted = 0
+let releaseRequested = false
+let firstSoundFinished = true
+function stopSounds() {
+  clearTimeout(soundTimer)
+  releaseRequested = false
+  firstSoundFinished = true
+  ;[downAudio.value, upAudio.value].forEach(sound => sound?.pause())
+}
+function scheduleReleaseSound() {
+  firstSoundFinished = true
+  if (!releaseRequested) return
+  clearTimeout(soundTimer)
+  soundTimer = setTimeout(() => {
+    releaseRequested = false
+    const sound = upAudio.value
+    if (!sound) return
+    sound.volume = .45; sound.currentTime = 0
+    void sound.play().catch(() => {})
+  }, Math.max(160, 420 - (performance.now() - soundStarted)))
+}
+function playSound(phase: 'down' | 'up') {
+  if (phase === 'up') {
+    releaseRequested = true
+    if (firstSoundFinished) scheduleReleaseSound()
+    return
+  }
+  stopSounds()
+  soundStarted = performance.now()
+  const sound = downAudio.value
+  if (!sound) return
+  firstSoundFinished = false
+  sound.volume = .45
+  sound.currentTime = 0
+  void sound.play().catch(() => scheduleReleaseSound())
+}
 
 function pick(key: string, length: number) {
   let previous = -1
@@ -72,6 +121,7 @@ function startDrag(event: PointerEvent) {
   if (event.button !== 0) return
   const box = root.value?.getBoundingClientRect()
   if (!box) return
+  playSound('down')
   gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, left: box.left, top: box.top, dragged: false }
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
 }
@@ -87,6 +137,8 @@ function drag(event: PointerEvent) {
 }
 function endDrag(event: PointerEvent) {
   if (!gesture || event.pointerId !== gesture.id) return
+  if (event.type !== 'pointercancel') playSound('up')
+  else stopSounds()
   // Pointer clicks are handled here so a drag never switches the message.
   if (!gesture.dragged && event.type !== 'pointercancel') activateCharacter()
   gesture = null
@@ -96,35 +148,55 @@ function resized() {
   else if (position.value) constrain(position.value.x, position.value.y)
 }
 watch(state, randomize, { deep: true })
+watch(bubble, element => {
+  bubbleObserver?.disconnect()
+  if (!element) return
+  const measure = () => { bubbleSize.value = { width: element.offsetWidth, height: element.offsetHeight } }
+  measure()
+  bubbleObserver = new ResizeObserver(measure)
+  bubbleObserver.observe(element)
+})
 watch([message, bubbleOpen], async () => { await nextTick(); resized() })
 onMounted(() => { randomize(); window.addEventListener('resize', resized) })
-onUnmounted(() => { clearTimeout(animationTimer); window.removeEventListener('resize', resized) })
+onUnmounted(() => {
+  clearTimeout(animationTimer); bubbleObserver?.disconnect(); window.removeEventListener('resize', resized)
+  stopSounds()
+})
 </script>
 
 <template>
   <Teleport to="body">
+  <audio ref="downAudio" src="/storefront/sounds/Ya1.mp3" preload="none" @ended="scheduleReleaseSound" hidden></audio>
+  <audio ref="upAudio" src="/storefront/sounds/Ya2.mp3" preload="none" hidden></audio>
   <aside ref="root" class="shop-character" :class="{ 'shop-character-pressed': pressed, 'shop-character-closed': samplingMode }"
     :style="position ? { left: position.x + 'px', top: position.y + 'px', right: 'auto', bottom: 'auto' } : undefined"
     aria-label="店铺客服提示">
     <div class="shop-character-reaction">
       <Transition name="support-bubble">
         <div v-if="bubbleOpen" ref="bubble" class="shop-character-bubble" id="shop-support-bubble">
-          <button type="button" class="shop-character-copy" aria-label="切换客服提示" @click="cycle">
-            <span class="shop-character-title"><i aria-hidden="true"></i>{{ samplingMode ? '打烊中' : '营业中' }}</span>
+          <svg class="shop-character-outline" :viewBox="`0 0 ${bubbleSize.width} ${bubbleSize.height}`" preserveAspectRatio="none" aria-hidden="true"><path :d="bubblePath" /></svg>
+          <button type="button" class="shop-character-copy" aria-label="切换客服提示" @click="cycle"
+            @pointerdown="playSound('down')" @pointerup="playSound('up')" @pointercancel="stopSounds"
+            @keydown="(['Enter', ' '].includes($event.key) && !$event.repeat) && playSound('down')"
+            @keyup="['Enter', ' '].includes($event.key) && playSound('up')">
+            <span class="shop-character-title"><i aria-hidden="true"></i>{{ statusTitle }}<span class="status-dots" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></span>
             <span class="shop-character-message" aria-live="polite">{{ message }}</span>
           </button>
-          <button type="button" class="shop-character-close" aria-label="收起客服气泡" @click="bubbleOpen = false"><X :size="13" /></button>
+          <button type="button" class="shop-character-close" aria-label="收起客服气泡" @click="bubbleOpen = false"><X :size="10" /></button>
         </div>
       </Transition>
     </div>
     <Transition name="support-tag">
       <button v-if="!bubbleOpen" type="button" class="shop-character-status" @click="activateCharacter" aria-label="展开客服气泡">
-        <i aria-hidden="true"></i><span>{{ samplingMode ? '打烊中' : '营业中' }}</span>
+        <svg class="status-ribbon" viewBox="0 0 114 34" preserveAspectRatio="none" aria-hidden="true"><path d="M18 1H97Q101 1 104 5L113 17L104 29Q101 33 97 33H18A16 16 0 0 1 18 1Z" /></svg>
+        <i aria-hidden="true"></i><span>{{ statusTitle }}<span class="status-dots" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></span>
       </button>
     </Transition>
     <button type="button" class="shop-character-handle" :aria-label="bubbleOpen ? '客服角色：点击切换提示，拖动调整位置' : '客服角色：点击展开气泡，拖动调整位置'"
       :aria-expanded="bubbleOpen" aria-controls="shop-support-bubble"
       @pointerdown="startDrag" @pointermove="drag" @pointerup="endDrag" @pointercancel="endDrag"
+      @keydown="(['Enter', ' '].includes($event.key) && !$event.repeat) && playSound('down')"
+      @keyup="['Enter', ' '].includes($event.key) && playSound('up')"
       @click="($event.detail === 0) && activateCharacter()">
       <img :src="failedImage === image ? fallbackImage : image" alt="店铺客服角色" draggable="false"
         @error="failedImage = image" />
@@ -136,36 +208,40 @@ onUnmounted(() => { clearTimeout(animationTimer); window.removeEventListener('re
 <style scoped>
 .shop-character {
   --character-width: 125px; --character-height: 130px; --squish-distance: 15.6px;
-  position: fixed; z-index: 45; width: 200px; pointer-events: none;
+  position: fixed; z-index: 45; width: 234px; pointer-events: none;
   height: var(--character-height);
   right: max(12px, calc((100% - 1132px) / 2 - 62.5px));
   bottom: max(34px, env(safe-area-inset-bottom));
   display: flex; justify-content: flex-end;
 }
-.shop-character-reaction { position: absolute; inset: auto 0 calc(100% + 10px); z-index: 3; }
+.shop-character-reaction { position: absolute; right: 0; bottom: calc(100% + 10px); width: 200px; z-index: 3; }
 .shop-character-bubble {
   position: relative; width: 100%; pointer-events: auto;
-  text-align: left; background: var(--panel-bg, var(--ui-bg-elevated)); color: var(--ink, var(--ui-text-primary));
-  border: 1.5px solid var(--line, var(--ui-border)); border-radius: 24px 26px 22px 28px;
-  box-shadow: 0 8px 22px rgb(24 48 85 / 12%); cursor: pointer;
+  text-align: left; color: #29334b; cursor: pointer;
+  filter: drop-shadow(0 7px 11px rgb(24 48 85 / 14%));
 }
-.shop-character-copy { display: block; width: 100%; max-height: max(80px, min(240px, calc(100dvh - var(--character-height) - 116px))); overflow-y: auto; padding: 12px 14px 14px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; border-radius: inherit; }
-.shop-character-close { position: absolute; top: 7px; right: 7px; display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; color: #a52a3a; background: #ffe2e6; cursor: pointer; transition: background-color 140ms, color 140ms; }
-.shop-character-close:hover { background: #cf3b50; color: #fff; }
-:global(.dark) .shop-character-close { background: #512735; color: #ffb9c5; }
-:global(.dark) .shop-character-close:hover { background: #ba344c; color: #fff; }
-.shop-character-status { position: absolute; right: calc(var(--character-width) - 32px); bottom: 14px; z-index: 0; width: 100px; height: 32px; display: flex; align-items: center; gap: 5px; padding: 0 25px 0 10px; border: 1px solid #9ecbbf; border-radius: 16px 5px 5px 16px; color: #155d4d; background: #e4f3ed; box-shadow: 0 4px 12px rgb(24 48 85 / 10%); pointer-events: auto; cursor: pointer; font-size: 12px; font-weight: 800; white-space: nowrap; }
-.shop-character-status i { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
-.shop-character-closed .shop-character-status { color: #805110; background: #fff1d9; border-color: #dfc599; }
-:global(.dark) .shop-character-status { color: #a5e1cf; background: #203d36; border-color: #3c6b5b; }
-:global(.dark) .shop-character-closed .shop-character-status { color: #f4d39a; background: #443522; border-color: #746043; }
-.shop-character-bubble::before, .shop-character-bubble::after {
-  content: ''; position: absolute; right: 55px; width: 12px; height: 12px;
-  border-radius: 0 0 4px 0; transform: rotate(45deg);
-}
-.shop-character-bubble::before { bottom: -8px; background: var(--line, var(--ui-border)); }
-.shop-character-bubble::after { bottom: -6px; background: var(--panel-bg, var(--ui-bg-elevated)); }
-.shop-character-title { display: flex; align-items: center; gap: 7px; padding-right: 18px; margin-bottom: 5px; color: var(--ui-accent); font-size: 14px; font-weight: 800; }
+.shop-character-outline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.shop-character-outline path { fill: #fff; stroke: #d8deeb; stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.shop-character-copy { position: relative; display: block; width: 100%; min-height: 86px; max-height: max(86px, min(240px, calc(100dvh - var(--character-height) - 116px))); overflow-y: auto; padding: 14px 16px 18px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; border-radius: 24px; }
+.shop-character-close { position: absolute; top: -3px; right: -3px; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; color: #a52a3a; background: transparent; cursor: pointer; }
+.shop-character-close::before { content: ''; position: absolute; width: 17px; height: 17px; box-sizing: border-box; border: 1.25px solid #cb8e98; border-radius: 50%; background: #ffe2e6; transition: background-color 140ms, border-color 140ms; }
+.shop-character-close svg { position: relative; }
+.shop-character-close:hover { color: #fff; }
+.shop-character-close:hover::before { background: #cf3b50; border-color: #a52a3a; }
+.shop-character-status { position: absolute; right: calc(var(--character-width) - 38px); bottom: 13px; z-index: 0; width: 114px; height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 0 0 12px; border: 0; color: #205b47; background: transparent; filter: drop-shadow(0 4px 5px rgb(24 48 85 / 12%)); pointer-events: auto; cursor: pointer; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.status-ribbon { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; overflow: visible; }
+.status-ribbon path { fill: #f0faf3; stroke: #a4cebc; stroke-width: 1; }
+.shop-character-status i { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px rgb(40 130 90 / 9%); }
+.shop-character-closed .shop-character-status { color: #815212; }
+.shop-character-closed .status-ribbon path { fill: #fff4e1; stroke: #dfc599; }
+.status-dots { display: inline-flex; width: 14px; margin-left: 1px; vertical-align: baseline; }
+.status-dots b { font-weight: inherit; }
+.status-dots b:nth-child(2) { animation: status-dot-two 1.8s steps(1, end) infinite; }
+.status-dots b:nth-child(3) { animation: status-dot-three 1.8s steps(1, end) infinite; }
+@keyframes status-dot-two { 0%, 100% { opacity: 0; } 33.33%, 99.99% { opacity: 1; } }
+@keyframes status-dot-three { 0%, 100% { opacity: 0; } 66.66%, 99.99% { opacity: 1; } }
+.shop-character-title { display: flex; align-items: center; gap: 6px; padding-right: 24px; margin-bottom: 7px; color: #215fc6; font-size: 13px; font-weight: 800; }
+.shop-character-title .status-dots { margin-left: -5px; }
 .shop-character-title i { width: 7px; height: 7px; border-radius: 50%; background: var(--green, #07835f); }
 .shop-character-closed .shop-character-title i { background: var(--amber, #a56a00); }
 .shop-character-message { display: block; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
@@ -181,20 +257,21 @@ onUnmounted(() => { clearTimeout(animationTimer); window.removeEventListener('re
 .support-bubble-leave-active { transition: transform 160ms ease-in, opacity 140ms; }
 .support-bubble-enter-from, .support-bubble-leave-to { opacity: 0; transform: translateY(9px) scale(.9); }
 .shop-character-bubble { transform-origin: 80% bottom; }
-.support-tag-enter-active { transition: transform 250ms cubic-bezier(.16,1,.3,1) 70ms, opacity 130ms 70ms; }
+.support-tag-enter-active { transition: transform 320ms cubic-bezier(.16,1,.3,1) 70ms, opacity 130ms 70ms; }
 .support-tag-leave-active { transition: transform 160ms ease-in, opacity 120ms; }
 .support-tag-enter-from, .support-tag-leave-to { transform: translateX(62px); opacity: 0; }
 @media (max-width: 900px) {
-  .shop-character { --character-width: 88px; --character-height: 92px; --squish-distance: 11.04px; width: 160px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); }
-  .shop-character-reaction { bottom: calc(100% + 8px); }
+  .shop-character { --character-width: 88px; --character-height: 92px; --squish-distance: 11.04px; width: 188px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .shop-character-reaction { bottom: calc(100% + 8px); width: 160px; }
   .shop-character-bubble { border-radius: 20px 23px 19px 24px; }
-  .shop-character-copy { padding: 10px 12px 12px; }
+  .shop-character-copy { padding: 12px 13px 16px; }
   .shop-character-title { font-size: 12px; margin-bottom: 3px; }
   .shop-character-message { font-size: 11px; line-height: 1.6; }
-  .shop-character-bubble::before, .shop-character-bubble::after { right: 38px; }
+  .shop-character-status { height: 32px; font-size: 10px; padding-left: 12px; gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .shop-character-pressed img, .shop-character-pressed .shop-character-reaction { animation: none; }
+  .status-dots b { animation: none; opacity: 1; }
   .support-bubble-enter-active, .support-bubble-leave-active, .support-tag-enter-active, .support-tag-leave-active { transition: opacity 100ms; }
   .support-bubble-enter-from, .support-bubble-leave-to, .support-tag-enter-from, .support-tag-leave-to { transform: none; }
 }

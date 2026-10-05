@@ -6,6 +6,7 @@ import { getImageUrl } from '../utils/image'
 import { getLocalizedText } from '../utils/resellerSiteConfig'
 import { detectLocale, setI18nLocale } from '../i18n'
 import { useHead } from '@unhead/vue'
+import { personalFeatures } from '../utils/personalFeatures'
 
 export const useAppStore = defineStore('app', () => {
     // 与 vue-i18n 复用同一套语言检测逻辑，避免首次访问时
@@ -22,7 +23,7 @@ export const useAppStore = defineStore('app', () => {
     const isResellerTenant = computed(() => {
         return String(config.value?.tenant?.mode || '').trim().toLowerCase() === 'reseller'
     })
-    const canAccessResellerConsole = computed(() => !!config.value && !isResellerTenant.value)
+    const canAccessResellerConsole = computed(() => personalFeatures.reseller && !!config.value && !isResellerTenant.value)
 
     // 设置语言：同时驱动 vue-i18n（内部按需加载语言包）
     const setLocale = (newLocale: string) => {

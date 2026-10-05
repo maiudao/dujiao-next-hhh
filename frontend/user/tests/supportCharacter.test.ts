@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { clampCharacterAnchor, clampCharacterPosition, differentIndex, readSupportState, safeSupportImage } from '../src/utils/supportCharacter.ts'
 import { visibleStorefrontContacts } from '../src/utils/storefrontContacts.ts'
+import { personalRouteEnabled, personalSectionEnabled } from '../src/utils/personalFeatures.ts'
 
 test('character assets stay on the shop and invalid lists fall back', () => {
   for (const image of ['https://other.test/a.png', '//other.test/a.png', '/uploads/../a.png', '/uploads/%2e%2e/a.png', '/uploads/a.svg']) {
@@ -41,4 +42,10 @@ test('contacts show only enabled, nonempty entries and explicit configuration di
   assert.deepEqual(rows.map(row => row.key), ['telegram'])
   assert.equal(visibleStorefrontContacts({}, 'https://t.me/legacy').length, 0)
   assert.equal(visibleStorefrontContacts(undefined, 'https://t.me/legacy').length, 1)
+})
+
+test('paused account features hide their routes including nested reseller pages, while core pages remain usable', () => {
+  for (const path of ['/me/affiliate', '/me/gift-cards', '/me/api', '/me/reseller', '/reseller', '/reseller/orders/123']) assert.equal(personalRouteEnabled(path), false)
+  for (const path of ['/me', '/me/orders', '/me/wallet', '/me/security', '/me/profile', '/pay', '/products', '/me/apiary']) assert.equal(personalRouteEnabled(path), true)
+  assert.equal(personalSectionEnabled('externalIdentity'), false)
 })

@@ -148,11 +148,11 @@ const setMode = async (mode: 'open' | 'sampling') => {
     </section>
     <section class="rounded-xl border border-border bg-card p-6">
       <h2 class="text-lg font-semibold">客服角色与提示语</h2>
-      <p class="mt-2 text-sm text-muted-foreground">分别配置两个营业状态。刷新随机展示，点击角色或气泡切换提示；标题固定为“营业中”或“打烊中”。编辑完成后点击页面的保存按钮。</p>
+      <p class="mt-2 text-sm text-muted-foreground">分别配置两个营业状态。刷新默认收起气泡，点击角色展开并切换提示；标题固定为“正在营业”或“打烊中”。编辑完成后点击页面的保存按钮。</p>
       <div class="mt-6 grid gap-8 xl:grid-cols-2">
         <div v-for="stateMode in supportModes" :key="stateMode" class="space-y-5">
           <div class="border-b pb-3">
-            <h3 class="font-bold">{{ stateMode === 'open' ? '营业中' : '打烊中' }}</h3>
+            <h3 class="font-bold">{{ stateMode === 'open' ? '正在营业' : '打烊中' }}</h3>
           </div>
           <div>
             <Label>角色图片（最多 20 张）</Label>

@@ -7,6 +7,7 @@ import type { PageAlert } from '../utils/alerts'
 import { useAppStore } from '../stores/app'
 import { useUserProfileStore } from '../stores/userProfile'
 import type { PublicMemberLevel } from '../api'
+import { personalSectionEnabled } from '../utils/personalFeatures'
 
 export type PersonalSection = 'overview' | 'profile' | 'security' | 'orders' | 'wallet' | 'giftCard' | 'affiliate' | 'reseller' | 'api'
 
@@ -51,10 +52,10 @@ export function usePersonalCenter(sectionGetter: () => PersonalSection) {
 
   const canAccessResellerConsole = computed(() => appStore.canAccessResellerConsole)
   const visibleSectionItems = computed(() => {
-    return sectionItems.filter((item) => item.key !== 'reseller' || canAccessResellerConsole.value)
+    return sectionItems.filter((item) => personalSectionEnabled(item.key) && (item.key !== 'reseller' || canAccessResellerConsole.value))
   })
   const currentSection = computed<PersonalSection>(() => {
-    if (sectionGetter() === 'reseller' && !canAccessResellerConsole.value) {
+    if (!personalSectionEnabled(sectionGetter()) || (sectionGetter() === 'reseller' && !canAccessResellerConsole.value)) {
       return 'overview'
     }
     return sectionGetter()

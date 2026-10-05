@@ -16,6 +16,7 @@
           <span class="theme-wordmark-description">{{ brandDescription }}</span>
         </span>
       </router-link>
+      <button type="button" class="lg:hidden shrink-0 rounded-lg bg-primary/10 px-2 py-2 text-[10px] font-bold text-primary" @click="contactOpen = true">联系方式</button>
 
       <!-- Desktop Menu -->
       <div class="hidden lg:flex items-center space-x-1 min-w-0 overflow-x-auto scrollbar-hide">
@@ -145,7 +146,6 @@
           </div>
 
           <!-- Navigation items not in bottom nav -->
-          <Button variant="ghost" class="w-full justify-start h-auto py-3 rounded-xl text-sm text-muted-foreground" @click="showMobileMenu = false; contactOpen = true">联系方式</Button>
           <template v-for="item in mobileDrawerItems" :key="item.key">
             <Button v-if="item.type === 'route'" as-child variant="ghost"
               class="w-full justify-start gap-3 h-auto py-3 rounded-xl text-sm text-muted-foreground [&_svg]:size-5">

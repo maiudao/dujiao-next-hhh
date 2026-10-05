@@ -3,6 +3,7 @@ import { useUserAuthStore } from '../stores/userAuth'
 import { useAppStore } from '../stores/app'
 import { useTelegramMiniAppStore } from '../stores/telegramMiniApp'
 import { captureAffiliateFromRoute } from '../utils/affiliate'
+import { personalRouteEnabled } from '../utils/personalFeatures'
 import { templateView } from '../templates/registry'
 import { GOOGLE_REDIRECT_FRONTEND_CALLBACK_PATH } from '../utils/googleRedirect'
 
@@ -333,6 +334,10 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
     const userAuthStore = useUserAuthStore()
     const appStore = useAppStore()
+    if (!personalRouteEnabled(to.path)) {
+        next({ path: '/me', replace: true })
+        return
+    }
     void captureAffiliateFromRoute(to)
 
     // Ensure config is loaded before checking template mode
