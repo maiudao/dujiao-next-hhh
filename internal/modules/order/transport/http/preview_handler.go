@@ -10,6 +10,7 @@ import (
 	"github.com/dujiao-next/internal/i18n"
 	captchahttp "github.com/dujiao-next/internal/modules/captcha/transport/http"
 	cardsecretapp "github.com/dujiao-next/internal/modules/cardsecret/application"
+	orderapp "github.com/dujiao-next/internal/modules/order/application"
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
 	"github.com/dujiao-next/internal/modules/catalog/product/manualform"
 	couponcontract "github.com/dujiao-next/internal/modules/coupon/contract"
@@ -332,6 +333,7 @@ var guestOrderCreateExtraErrorRules = []mappedError{
 }
 
 var userOrderCommonErrorRules = []mappedError{
+	{target: orderapp.ErrCouponsDisabled, code: response.CodeBadRequest, key: "error.coupons_disabled"},
 	{target: ErrProductSKURequired, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: productcontract.ErrProductSKUInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: productdomain.ErrPurchaseQuantityInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
@@ -376,6 +378,7 @@ var userOrderPreviewExtraErrorRules = []mappedError{
 }
 
 var guestOrderCommonErrorRules = []mappedError{
+	{target: orderapp.ErrCouponsDisabled, code: response.CodeBadRequest, key: "error.coupons_disabled"},
 	{target: ErrProductSKURequired, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: productcontract.ErrProductSKUInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: ErrGuestEmailRequired, code: response.CodeBadRequest, key: "error.guest_email_required"},

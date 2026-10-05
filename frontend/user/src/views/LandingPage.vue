@@ -65,10 +65,6 @@
             </div>
           </div>
 
-          <aside class="support-character" :class="{ 'support-character-sampling': samplingMode }" aria-live="polite">
-            <p class="support-character-message">{{ characterMessage }}</p>
-            <img class="support-character-image" :src="characterImage" alt="店铺客服角色" loading="lazy" decoding="async" />
-          </aside>
         </section>
 
         <section id="products" class="product-panel" aria-labelledby="products-title">
@@ -144,6 +140,20 @@
             {{ samplingMode ? samplingNotice : copy.orderCheckNote }}
           </p>
         </section>
+
+        <aside
+          class="support-character"
+          :class="{ 'support-character-sampling': samplingMode, 'support-character-pressed': characterPressed }"
+          aria-live="polite"
+        >
+          <button type="button" class="support-character-bubble" @click="cycleCharacterMessage">
+            <span v-if="characterMessageLead" class="support-character-lead">{{ characterMessageLead }}</span>
+            <span>{{ characterMessageBody }}</span>
+          </button>
+          <button type="button" class="support-character-image-button" aria-label="切换客服提示" @click="cycleCharacterMessage">
+            <img class="support-character-image" :src="characterImage" alt="店铺客服角色" loading="lazy" decoding="async" />
+          </button>
+        </aside>
       </main>
     </div>
 
@@ -168,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowRight,
@@ -299,12 +309,33 @@ const content = computed(() => {
   }
 })
 
-const characterMessage = computed(() => samplingMode.value
-  ? '打样了，明天再来吧，营业时间是每天9：00到12：00'
-  : '营业中，购买前后有什么不清楚的，都可以和客服保持联系哦 (*^_^*)')
+const characterPressed = ref(false)
+const characterMessageIndex = ref(0)
+const characterMessages = computed(() => samplingMode.value
+  ? [
+      { lead: '打样了', body: '明天再来吧，营业时间是每天9：00到12：00' },
+      { lead: '现在休息中', body: '商品暂时不能购买，营业后会恢复上架。' },
+      { lead: '先收藏店铺', body: '有新商品和营业消息时，再回来看看吧。' },
+    ]
+  : [
+      { lead: '营业中', body: '购买前后有什么不清楚的，都可以和客服保持联系哦 (^_^)' },
+      { lead: '需要帮助', body: '商品、库存或下单问题，都可以先来问问客服。' },
+      { lead: '放心下单', body: '付款后请留意订单状态，售后也可以联系店主。' },
+    ])
+const characterMessage = computed(() => characterMessages.value[characterMessageIndex.value % characterMessages.value.length])
+const characterMessageLead = computed(() => characterMessage.value?.lead || '')
+const characterMessageBody = computed(() => characterMessage.value?.body || '')
 const characterImage = computed(() => samplingMode.value
   ? '/storefront/evelyn-02.webp'
   : '/storefront/evelyn-01.webp')
+
+const cycleCharacterMessage = () => {
+  characterMessageIndex.value = (characterMessageIndex.value + 1) % characterMessages.value.length
+  characterPressed.value = true
+  window.setTimeout(() => { characterPressed.value = false }, 220)
+}
+
+watch(samplingMode, () => { characterMessageIndex.value = 0 })
 
 const visibleHighlights = computed(() => content.value.highlights.slice(0, 3))
 const availableCount = computed(() => products.value.filter((product) => !isSoldOut(product)).length)
@@ -512,6 +543,7 @@ onMounted(async () => {
 }
 
 .landing-layout {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   align-items: stretch;
@@ -658,17 +690,16 @@ onMounted(async () => {
 }
 
 .support-character {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 156px;
-  align-items: end;
-  gap: 10px;
-  min-height: 156px;
-  margin-top: 24px;
-  padding: 12px 10px 0 16px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--panel-bg) 86%, var(--blue-soft));
-  border: 1px solid var(--line);
-  border-radius: 18px;
+  position: relative;
+  z-index: 3;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  justify-self: start;
+  width: min(370px, 42%);
+  min-height: 178px;
+  margin: -145px 0 0 39%;
+  pointer-events: none;
 }
 
 .vault-scope .landing-page {
@@ -676,24 +707,82 @@ onMounted(async () => {
 }
 
 .support-character-message {
-  align-self: center;
   max-width: 30ch;
   color: var(--ink);
   font-size: 14px;
   line-height: 1.65;
 }
 
+.support-character-bubble {
+  position: relative;
+  z-index: 2;
+  max-width: 245px;
+  margin: 0 0 92px -22px;
+  padding: 14px 17px;
+  color: var(--ink);
+  text-align: left;
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: 18px 18px 18px 6px;
+  box-shadow: 0 12px 24px rgb(31 63 108 / 12%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.support-character-bubble::after {
+  position: absolute;
+  right: 24px;
+  bottom: -9px;
+  width: 16px;
+  height: 16px;
+  content: '';
+  background: var(--panel-bg);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+
+.support-character-lead {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--blue);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.support-character-image-button {
+  position: relative;
+  z-index: 1;
+  width: 170px;
+  height: 178px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .support-character-image {
   align-self: end;
-  width: 156px;
-  height: 156px;
+  width: 170px;
+  height: 178px;
   object-fit: contain;
   object-position: bottom center;
   filter: drop-shadow(0 8px 8px rgb(31 63 108 / 14%));
 }
 
 .support-character-sampling {
-  background: color-mix(in srgb, var(--panel-bg) 88%, var(--surface-soft));
+  filter: saturate(0.72);
+}
+
+.support-character-pressed .support-character-image {
+  animation: support-character-squish 220ms ease-out;
+}
+
+@keyframes support-character-squish {
+  0% { transform: scale(1, 1); }
+  45% { transform: scale(1.08, 0.88); }
+  100% { transform: scale(1, 1); }
 }
 
 .highlight-item {
@@ -716,6 +805,7 @@ onMounted(async () => {
 
 .product-panel {
   min-width: 0;
+  margin-top: 54px;
   padding: 28px;
   background: var(--panel-bg);
   border: 1px solid var(--line);
@@ -1065,28 +1155,23 @@ onMounted(async () => {
   }
 
   .support-character {
-    grid-template-columns: 1fr;
-    min-height: 220px;
-    margin-top: 18px;
-    padding: 24px 12px 0;
-    overflow: visible;
+    grid-row: 2;
+    width: min(100%, 360px);
+    min-height: 190px;
+    margin: -72px auto 0;
+    justify-self: center;
   }
 
-  .support-character-message {
-    order: 2;
-    max-width: none;
-    padding: 0 4px 14px;
+  .support-character-bubble {
+    max-width: 220px;
+    margin: 0 0 92px -10px;
     font-size: 13px;
-    text-align: center;
   }
 
+  .support-character-image-button,
   .support-character-image {
-    order: 1;
-    width: 180px;
-    height: 180px;
-    margin: -52px auto 0;
-    position: relative;
-    z-index: 1;
+    width: 158px;
+    height: 166px;
   }
 
   .story-highlights {
@@ -1094,6 +1179,8 @@ onMounted(async () => {
   }
 
   .product-panel {
+    grid-row: 3;
+    margin-top: 0;
     padding: 20px;
   }
 }

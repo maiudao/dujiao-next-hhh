@@ -70,7 +70,7 @@
           class="hidden lg:inline-flex gap-1.5 text-muted-foreground whitespace-nowrap">
           <router-link to="/me">
             <User class="w-4 h-4 shrink-0 opacity-70" />
-            {{ t('navbar.personalCenter') }}
+            已登录
           </router-link>
         </Button>
         <!-- Theme Switcher -->
@@ -244,13 +244,6 @@ const brandSiteName = computed(() => {
 })
 
 const brandDescription = computed(() => {
-  const description = appStore.config?.brand?.site_description
-  if (description && typeof description === 'object') {
-    const localized = (description as Record<string, string>)[appStore.locale]
-      || (description as Record<string, string>)['zh-CN']
-      || ''
-    if (localized.trim()) return localized.trim()
-  }
   return '有售后保障'
 })
 

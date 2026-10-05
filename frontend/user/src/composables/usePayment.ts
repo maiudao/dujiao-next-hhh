@@ -177,6 +177,13 @@ export function usePayment() {
 
   const resultChannelName = computed(() => resolveChannelName(resultChannel.value, paymentResult.value?.channel_type, paymentResult.value?.channel_name))
 
+  const selectDefaultChannel = () => {
+    if (selectedChannelId.value || !requiresOnlineChannel.value) return
+    const available = channels.value.find((channel: any) => !isChannelDisabledForAmount(channel))
+    const alipay = channels.value.find((channel: any) => String(channel?.channel_type || '').toLowerCase() === 'alipay' && !isChannelDisabledForAmount(channel))
+    if (alipay || available) selectedChannelId.value = Number((alipay || available)?.id) || null
+  }
+
   const currentPaymentID = () => {
     const paymentID = Number(paymentResult.value?.payment_id || paymentResult.value?.id || 0)
     return Number.isFinite(paymentID) && paymentID > 0 ? paymentID : 0
@@ -1199,11 +1206,14 @@ export function usePayment() {
   }
 
   const resolveChannelName = (channel?: any, fallbackChannelType?: unknown, apiChannelName?: unknown) => {
+    const channelType = String(channel?.channel_type || fallbackChannelType || '').trim().toLowerCase()
+    const rawChannelName = String(channel?.name || apiChannelName || '').trim()
+    if (channelType === 'alipay' || /支付宝/i.test(rawChannelName)) return '支付宝'
     if (channel?.name) return channel.name
     const name = String(apiChannelName || '').trim()
     if (name) return name
-    const channelType = String(fallbackChannelType || '').trim()
-    if (channelType) return channelTypeLabel(channelType)
+    const fallbackType = String(fallbackChannelType || '').trim()
+    if (fallbackType) return channelTypeLabel(fallbackType)
     return '-'
   }
 
@@ -1276,10 +1286,12 @@ export function usePayment() {
   watch(
     () => [channels.value, expectedOnlinePayCents.value, requiresOnlineChannel.value],
     () => {
+      selectDefaultChannel()
       if (!selectedChannelId.value) return
       const selected = findChannelByID(selectedChannelId.value)
       if (!selected || isChannelDisabledForAmount(selected)) {
         selectedChannelId.value = null
+        selectDefaultChannel()
       }
     },
     { deep: true }

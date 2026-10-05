@@ -217,10 +217,10 @@
               <div class="text-xs text-muted-foreground mt-2">{{ t('orderDetail.createdAtLabel') }}：{{
                   formatDate(order.created_at) }}</div>
             </div>
-            <div class="w-full md:w-auto md:min-w-[280px] bg-secondary border rounded-2xl p-4">
+            <div class="w-full md:w-auto md:min-w-[280px] bg-secondary border rounded-2xl p-3">
               <div class="text-xs uppercase tracking-wider text-muted-foreground md:text-right">{{ t('payment.payableAmountLabel') }}</div>
               <div class="mt-1 text-2xl font-bold text-foreground md:text-right">{{ payableAmountDisplay }}</div>
-              <div class="mt-4 space-y-2 text-xs">
+              <div class="mt-2 space-y-1 text-[11px]">
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-muted-foreground">{{ t('orderDetail.amountTotal') }}</span>
                   <span class="font-semibold text-foreground">{{ formatMoney(order.total_amount, order.currency) }}</span>
@@ -247,30 +247,6 @@
                 <div class="text-xs text-muted-foreground">{{ t('orderDetail.amountOriginal') }}</div>
                 <div class="text-foreground font-mono mt-1">{{ formatMoney(order.original_amount,
                   order.currency) }}</div>
-              </div>
-              <div class="bg-secondary border rounded-xl p-3">
-                <div class="text-xs text-muted-foreground">{{ t('orderDetail.amountDiscount') }}</div>
-                <div
-                  class="font-mono mt-1"
-                  :class="hasDiscountAmount(order.discount_amount) ? 'text-rose-600 dark:text-rose-300' : 'text-foreground'"
-                >
-                  {{ formatDiscountMoney(order.discount_amount, order.currency) }}
-                </div>
-              </div>
-              <div class="bg-secondary border rounded-xl p-3">
-                <div class="text-xs text-muted-foreground">{{ t('orderDetail.promotionDiscountLabel') }}</div>
-                <div
-                  class="font-mono mt-1"
-                  :class="hasDiscountAmount(order.promotion_discount_amount) ? 'text-rose-600 dark:text-rose-300' : 'text-foreground'"
-                >
-                  {{ formatDiscountMoney(order.promotion_discount_amount, order.currency) }}
-                </div>
-              </div>
-              <div v-if="hasDiscountAmount(order.wholesale_discount_amount)" class="border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/30 rounded-xl p-3">
-                <div class="text-xs text-emerald-700 dark:text-emerald-400">{{ t('orderDetail.amountWholesaleDiscount') }}</div>
-                <div class="text-emerald-700 dark:text-emerald-400 font-mono mt-1">
-                  {{ formatDiscountMoney(order.wholesale_discount_amount, order.currency) }}
-                </div>
               </div>
             </div>
             <div class="mt-3 text-sm text-muted-foreground">
@@ -318,24 +294,24 @@
             <template v-else>
               <div
                 v-if="showBalanceOption"
-                class="mb-4 rounded-xl border p-4 bg-secondary"
+                class="mb-3 rounded-xl border p-2.5 bg-secondary"
               >
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <div class="text-xs text-muted-foreground">{{ t('payment.walletBalanceLabel') }}</div>
-                    <div class="mt-1 text-sm font-semibold text-foreground">
+                    <div class="mt-0.5 text-xs font-semibold text-foreground">
                       {{ walletLoading ? t('common.loading') : walletBalanceDisplay }}
                     </div>
                   </div>
-                  <label class="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                    <input v-model="useBalance" type="checkbox" class="h-4 w-4 accent-primary" :disabled="walletOnlyPayment" />
+                  <label class="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <input v-model="useBalance" type="checkbox" class="h-3.5 w-3.5 accent-primary" :disabled="walletOnlyPayment" />
                     <span>{{ t('payment.useBalance') }}</span>
                   </label>
                 </div>
-                <div v-if="walletOnlyPayment" class="mt-3 text-xs text-warning">
+                <div v-if="walletOnlyPayment" class="mt-2 text-[11px] text-warning">
                   {{ t('payment.walletOnlyHint') }}
                 </div>
-                <div v-if="useBalance" class="mt-3 space-y-1 text-xs text-muted-foreground">
+                <div v-if="useBalance" class="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
                   <div>{{ t('payment.walletDeductLabel') }}：{{ expectedWalletPaidDisplay }}</div>
                   <div v-if="!walletOnlyPayment">{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
                   <div v-if="walletOnlyPayment && expectedOnlinePayCents > 0" class="text-warning">

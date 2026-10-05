@@ -67,12 +67,6 @@
           :manual-field-error="manualFieldError"
         />
 
-        <!-- 优惠码 -->
-        <section v-if="!isResellerTenant" class="rounded-xl border bg-card p-5">
-          <h2 class="mb-3.5 text-lg font-bold">{{ t('checkout.couponTitle') }}</h2>
-          <Input v-model="couponCode" type="text" class="h-11" :placeholder="t('checkout.couponPlaceholder')" />
-        </section>
-
         <!-- 下单方式 -->
         <section v-if="!userAuthStore.isAuthenticated" class="rounded-xl border bg-card p-5">
           <h2 class="mb-3.5 text-lg font-bold">{{ t('checkout.modeTitle') }}</h2>
@@ -124,16 +118,11 @@
         <div class="grid gap-2.5">
           <div class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('cart.itemsCount') }}</span><span class="font-semibold text-foreground">{{ totalItems }}</span></div>
           <div class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewOriginal') }}</span><span class="font-semibold text-foreground">{{ formatPrice(previewOriginal, previewCurrency) }}</span></div>
-          <template v-if="!isResellerTenant">
-            <div class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewCoupon') }}</span><span class="font-semibold" :class="hasPositiveAmount(previewCoupon) ? 'text-primary' : 'text-foreground'">{{ formatDiscountPrice(previewCoupon, previewCurrency) }}</span></div>
-            <div class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewPromotion') }}</span><span class="font-semibold" :class="hasPositiveAmount(previewPromotion) ? 'text-primary' : 'text-foreground'">{{ formatDiscountPrice(previewPromotion, previewCurrency) }}</span></div>
-            <div class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewWholesale') }}</span><span class="font-semibold" :class="hasPositiveAmount(previewWholesale) ? 'text-[color:var(--teal-strong)]' : 'text-foreground'">{{ formatDiscountPrice(previewWholesale, previewCurrency) }}</span></div>
-          </template>
           <div v-if="Number(previewMemberDiscount) > 0" class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewMemberDiscount') }}</span><span class="font-semibold text-[color:var(--gold-strong)]">-{{ formatPrice(previewMemberDiscount, previewCurrency) }}</span></div>
           <div class="mt-1 flex items-center justify-between border-t pt-3 font-bold text-foreground"><span>{{ t('checkout.previewTotal') }}</span><span class="text-[22px] text-primary tabular-nums">{{ formatPrice(previewTotal, previewCurrency) }}</span></div>
         </div>
 
-        <div v-if="previewLoading || couponRefreshing" class="mt-3 text-xs text-muted-foreground">{{ previewStatusText }}</div>
+        <div v-if="previewLoading" class="mt-3 text-xs text-muted-foreground">{{ previewStatusText }}</div>
         <div v-if="checkoutAlert" class="mt-3.5 rounded-sm px-3 py-2.5 text-[13px] font-semibold" :class="checkoutAlert.level === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'">{{ checkoutAlert.message }}</div>
 
         <!-- 支付方式 -->
@@ -175,8 +164,8 @@
                 @click="handleSelectChannel(channel)"
               >
                 <div class="flex items-center gap-2">
-                  <img v-if="channel.icon" :src="getImageUrl(channel.icon)" loading="lazy" class="h-5 w-5 flex-none rounded-[4px] object-contain" />
-                  <span class="truncate font-semibold text-foreground">{{ channel.name }}</span>
+                  <img v-if="paymentChannelIcon(channel)" :src="paymentChannelIcon(channel)" loading="lazy" class="h-5 w-5 flex-none rounded-[4px] object-contain" />
+                  <span class="truncate font-semibold text-foreground">{{ paymentChannelLabel(channel) }}</span>
                 </div>
                 <div v-if="channel.fee_policy === 'customer_surcharge'" class="mt-1.5 grid gap-0.5 text-[11.5px] text-warning">
                   <div>{{ t('payment.feeLabel') }}：{{ formatChannelFeeRate(channel) }}</div>
@@ -212,21 +201,20 @@ import { useCheckout } from '../../composables/useCheckout'
 const { t } = useI18n()
 
 const {
-  userAuthStore, getLocalizedText, formatPrice, getImageUrl,
+  userAuthStore, getLocalizedText, formatPrice,
   isBuyNowMode, cartItems, totalItems, cartItemKey, checkoutItemImage, itemSkuDisplay,
   itemStockExceeded, itemStockHint,
   checkoutItemCurrency, checkoutItemPriceParts, checkoutItemOriginalPriceParts, checkoutItemHasPriceDiscount,
   manualFormProducts, manualFormData, submitAttempted, getManualFieldLabel, getManualFieldPlaceholder, manualFieldError,
-  couponCode, isResellerTenant,
   checkoutMode, guestEmail, guestPassword, guestEmailValid,
   guestCaptchaEnabled, captchaProvider, guestCaptchaPayload, guestTurnstileToken, guestTurnstileSiteKey,
   guestImageCaptchaRef, guestTurnstileRef, handleGuestCaptchaConfigStale,
-  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal,
-  previewLoading, couponRefreshing, previewStatusText, hasPositiveAmount, formatDiscountPrice, checkoutAlert,
+  previewCurrency, previewOriginal, previewMemberDiscount, previewTotal,
+  previewLoading, previewStatusText, checkoutAlert,
   showBalanceOption, walletLoading, walletBalance, useBalance, walletOnlyPayment,
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents,
   requiresOnlineChannel, paymentChannels, selectedChannelId, isChannelDisabledForAmount, channelAmountLimitHint,
-  handleSelectChannel, formatChannelFeeRate, formatChannelFixedFee,
+  handleSelectChannel, paymentChannelLabel, paymentChannelIcon, formatChannelFeeRate, formatChannelFixedFee,
   submitting, canSubmit, handleSubmit,
 } = useCheckout()
 

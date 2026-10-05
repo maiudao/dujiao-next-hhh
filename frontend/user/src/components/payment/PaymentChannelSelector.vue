@@ -8,8 +8,8 @@
       :class="props.modelValue === channel.id && !isDisabled(channel) ? 'border-primary/45 bg-primary/10' : 'bg-card hover:border-foreground/25'">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
-          <img v-if="channel.icon" :src="getImageUrl(channel.icon)" loading="lazy" class="h-5 w-5 rounded object-contain shrink-0" />
-          <div class="text-foreground font-medium">{{ channel.name }}</div>
+          <img v-if="channelIcon(channel)" :src="channelIcon(channel)" loading="lazy" class="h-5 w-5 rounded object-contain shrink-0" />
+          <div class="text-foreground font-medium">{{ channelLabel(channel) }}</div>
         </div>
         <Badge v-if="props.modelValue === channel.id && !isDisabled(channel)" variant="accent" size="xs">
           {{ t('payment.selected') }}
@@ -58,6 +58,18 @@ const isDisabled = (channel?: any) => {
 const channelHint = (channel?: any) => {
   if (!props.channelAmountLimitHint) return ''
   return String(props.channelAmountLimitHint(channel) || '')
+}
+
+const channelLabel = (channel?: any) => {
+  const raw = String(channel?.name || '').trim()
+  const type = String(channel?.channel_type || '').trim().toLowerCase()
+  return type === 'alipay' || /支付宝/i.test(raw) ? '支付宝' : raw
+}
+
+const channelIcon = (channel?: any) => {
+  const type = String(channel?.channel_type || '').trim().toLowerCase()
+  if (type === 'alipay') return '/storefront/alipay.svg'
+  return channel?.icon ? getImageUrl(channel.icon) : ''
 }
 
 const customerFeeDescription = (channel?: any) => {

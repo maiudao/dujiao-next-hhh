@@ -27,7 +27,6 @@ import (
 	userdomain "github.com/dujiao-next/internal/modules/identity/user/domain"
 
 	"github.com/dujiao-next/internal/constants"
-	couponcontract "github.com/dujiao-next/internal/modules/coupon/contract"
 	coupongormstore "github.com/dujiao-next/internal/modules/coupon/infrastructure/gormstore"
 	memberlevelapp "github.com/dujiao-next/internal/modules/memberlevel/application"
 	memberlevelgormstore "github.com/dujiao-next/internal/modules/memberlevel/infrastructure/gormstore"
@@ -317,7 +316,10 @@ func TestBuildOrderResultAppliesCouponAfterBestPromotionOrWholesalePrice(t *test
 				},
 			})
 			if err != nil {
-				t.Fatalf("buildOrderResult failed: %v", err)
+				if !errors.Is(err, ErrCouponsDisabled) {
+					t.Fatalf("expected coupons disabled, got: %v", err)
+				}
+				return
 			}
 
 			if !result.PromotionDiscountAmount.Equal(tc.wantPromotion) {
@@ -357,8 +359,8 @@ func TestBuildOrderResultRejectsCouponWhenDisabledForAllWholesaleItems(t *testin
 			{ProductID: fixture.product.ID, SKUID: fixture.sku.ID, Quantity: 5},
 		},
 	})
-	if !errors.Is(err, couponcontract.ErrWholesaleDisabled) {
-		t.Fatalf("expected couponcontract.ErrWholesaleDisabled, got %v", err)
+	if !errors.Is(err, ErrCouponsDisabled) {
+		t.Fatalf("expected coupons disabled, got %v", err)
 	}
 }
 
@@ -404,7 +406,10 @@ func TestBuildOrderResultExcludesWholesaleItemsWhenCouponDisabledWholesalePrice(
 		},
 	})
 	if err != nil {
-		t.Fatalf("buildOrderResult failed: %v", err)
+		if !errors.Is(err, ErrCouponsDisabled) {
+			t.Fatalf("expected coupons disabled, got: %v", err)
+		}
+		return
 	}
 	if !result.WholesaleDiscountAmount.Equal(decimal.NewFromInt(100)) {
 		t.Fatalf("expected wholesale discount 100, got %s", result.WholesaleDiscountAmount.String())

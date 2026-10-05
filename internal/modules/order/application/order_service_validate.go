@@ -37,8 +37,8 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 		}
 	}
 	resellerOrder := isResellerOrderContext(input.Tenant)
-	if resellerOrder && strings.TrimSpace(input.CouponCode) != "" {
-		return nil, ErrResellerCouponNotAllowed
+	if strings.TrimSpace(input.CouponCode) != "" {
+		return nil, ErrCouponsDisabled
 	}
 
 	mergedItems, err := mergeCreateOrderItems(input.Items)

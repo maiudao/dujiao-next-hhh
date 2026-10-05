@@ -95,16 +95,6 @@
             :manual-field-error="manualFieldError"
           />
 
-          <div v-if="!isResellerTenant" class="rounded-2xl border bg-card text-card-foreground p-6">
-            <h2 class="mb-4 text-lg font-bold text-foreground">{{ t('checkout.couponTitle') }}</h2>
-            <Input
-              v-model="couponCode"
-              type="text"
-              class="h-11"
-              :placeholder="t('checkout.couponPlaceholder')"
-            />
-          </div>
-
           <div
             v-if="!userAuthStore.isAuthenticated"
             class="space-y-4 rounded-2xl border bg-card text-card-foreground p-6"
@@ -184,35 +174,6 @@
               <span>{{ t('checkout.previewOriginal') }}</span>
               <span class="font-mono text-foreground">{{ formatPrice(previewOriginal, previewCurrency) }}</span>
             </div>
-            <template v-if="!isResellerTenant">
-              <div class="flex items-center justify-between">
-                <span>{{ t('checkout.previewCoupon') }}</span>
-                <span
-                  class="font-mono"
-                  :class="hasPositiveAmount(previewCoupon) ? 'text-rose-600 dark:text-rose-300' : 'text-foreground'"
-                >
-                  {{ formatDiscountPrice(previewCoupon, previewCurrency) }}
-                </span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span>{{ t('checkout.previewPromotion') }}</span>
-                <span
-                  class="font-mono"
-                  :class="hasPositiveAmount(previewPromotion) ? 'text-rose-600 dark:text-rose-300' : 'text-foreground'"
-                >
-                  {{ formatDiscountPrice(previewPromotion, previewCurrency) }}
-                </span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span>{{ t('checkout.previewWholesale') }}</span>
-                <span
-                  class="font-mono"
-                  :class="hasPositiveAmount(previewWholesale) ? 'text-emerald-600 dark:text-emerald-300' : 'text-foreground'"
-                >
-                  {{ formatDiscountPrice(previewWholesale, previewCurrency) }}
-                </span>
-              </div>
-            </template>
             <div v-if="Number(previewMemberDiscount) > 0" class="flex items-center justify-between">
               <span>{{ t('checkout.previewMemberDiscount') }}</span>
               <span class="font-mono text-amber-600 dark:text-amber-300">-{{ formatPrice(previewMemberDiscount, previewCurrency) }}</span>
@@ -223,7 +184,7 @@
             </div>
           </div>
 
-          <div v-if="previewLoading || couponRefreshing" class="mb-3 text-xs text-muted-foreground">
+          <div v-if="previewLoading" class="mb-3 text-xs text-muted-foreground">
             {{ previewStatusText }}
           </div>
           <Alert
@@ -275,8 +236,8 @@
                   class="text-left border rounded-lg p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   :class="selectedChannelId === channel.id && !isChannelDisabledForAmount(channel) ? 'border-primary/45 bg-primary/10' : 'bg-card hover:border-foreground/25'">
                   <div class="flex items-center gap-2">
-                    <img v-if="channel.icon" :src="getImageUrl(channel.icon)" loading="lazy" class="h-5 w-5 rounded object-contain shrink-0" />
-                    <div class="text-sm text-foreground font-medium truncate">{{ channel.name }}</div>
+                    <img v-if="paymentChannelIcon(channel)" :src="paymentChannelIcon(channel)" loading="lazy" class="h-5 w-5 rounded object-contain shrink-0" />
+                    <div class="text-sm text-foreground font-medium truncate">{{ paymentChannelLabel(channel) }}</div>
                   </div>
                   <div v-if="channel.fee_policy === 'customer_surcharge'" class="mt-1 space-y-0.5 text-xs text-warning">
                     <div>{{ t('payment.feeLabel') }}：{{ formatChannelFeeRate(channel) }}</div>
@@ -327,21 +288,20 @@ import { useCheckout } from '../composables/useCheckout'
 const { t } = useI18n()
 
 const {
-  userAuthStore, getLocalizedText, formatPrice, getImageUrl,
+  userAuthStore, getLocalizedText, formatPrice,
   isBuyNowMode, cartItems, totalItems, cartItemKey, checkoutItemImage, itemSkuDisplay,
   itemStockExceeded, itemStockHint,
   checkoutItemCurrency, checkoutItemPriceParts, checkoutItemOriginalPriceParts, checkoutItemHasPriceDiscount,
   manualFormProducts, manualFormData, submitAttempted, getManualFieldLabel, getManualFieldPlaceholder, manualFieldError,
-  couponCode, isResellerTenant,
   checkoutMode, guestEmail, guestPassword, guestEmailValid,
   guestCaptchaEnabled, captchaProvider, guestCaptchaPayload, guestTurnstileToken, guestTurnstileSiteKey,
   guestImageCaptchaRef, guestTurnstileRef, handleGuestCaptchaConfigStale,
-  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal,
-  previewLoading, couponRefreshing, previewStatusText, hasPositiveAmount, formatDiscountPrice, checkoutAlert,
+  previewCurrency, previewOriginal, previewMemberDiscount, previewTotal,
+  previewLoading, previewStatusText, checkoutAlert,
   showBalanceOption, walletLoading, walletBalance, useBalance, walletOnlyPayment,
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents,
   requiresOnlineChannel, paymentChannels, selectedChannelId, isChannelDisabledForAmount, channelAmountLimitHint,
-  handleSelectChannel, formatChannelFeeRate, formatChannelFixedFee,
+  handleSelectChannel, paymentChannelLabel, paymentChannelIcon, formatChannelFeeRate, formatChannelFixedFee,
   submitting, canSubmit, handleSubmit,
 } = useCheckout()
 

@@ -7,18 +7,6 @@
         <span class="text-muted-foreground">{{ t('orderDetail.amountTotal') }}</span>
         <span class="font-semibold text-foreground">{{ formatMoney(order.total_amount, order.currency) }}</span>
       </div>
-      <div v-if="hasDiscountAmount(order.discount_amount)" class="flex items-center justify-between gap-4">
-        <span class="text-muted-foreground">{{ t('orderDetail.amountDiscount') }}</span>
-        <span class="font-medium text-destructive">{{ formatDiscountMoney(order.discount_amount, order.currency) }}</span>
-      </div>
-      <div v-if="hasDiscountAmount(order.promotion_discount_amount)" class="flex items-center justify-between gap-4">
-        <span class="text-muted-foreground">{{ t('orderDetail.promotionDiscountLabel') }}</span>
-        <span class="font-medium text-destructive">{{ formatDiscountMoney(order.promotion_discount_amount, order.currency) }}</span>
-      </div>
-      <div v-if="hasDiscountAmount(order.wholesale_discount_amount)" class="flex items-center justify-between gap-4">
-        <span class="text-muted-foreground">{{ t('orderDetail.amountWholesaleDiscount') }}</span>
-        <span class="font-medium text-success">{{ formatDiscountMoney(order.wholesale_discount_amount, order.currency) }}</span>
-      </div>
       <div v-if="hasDiscountAmount(order.member_discount_amount)" class="flex items-center justify-between gap-4">
         <span class="text-muted-foreground">{{ t('orderDetail.amountMemberDiscount') }}</span>
         <span class="font-medium text-warning">{{ formatDiscountMoney(order.member_discount_amount, order.currency) }}</span>

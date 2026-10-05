@@ -65,15 +65,12 @@ export function useCheckout() {
     return cartStore.items
   })
   const totalItems = computed(() => cartItems.value.reduce((sum, item) => sum + item.quantity, 0))
-  const couponCode = ref('')
-  const normalizedCouponCode = computed(() => couponCode.value.trim())
   const submitting = ref(false)
   const error = ref('')
   const preview = ref<any>(null)
   const previewLoading = ref(false)
   const previewError = ref('')
   const previewRequestId = ref(0)
-  const couponRefreshing = ref(false)
   const syncingStock = ref(false)
   const orderPaymentChannels = ref<any[]>([])
   const orderPaymentChannelsRequestId = ref(0)
@@ -201,6 +198,25 @@ export function useCheckout() {
     selectedChannelId.value = Number(channel.id) || null
   }
 
+  const selectDefaultChannel = () => {
+    if (selectedChannelId.value || !requiresOnlineChannel.value) return
+    const available = paymentChannels.value.find((channel: any) => !isChannelDisabledForAmount(channel))
+    const alipay = paymentChannels.value.find((channel: any) => String(channel?.channel_type || '').toLowerCase() === 'alipay' && !isChannelDisabledForAmount(channel))
+    if (alipay || available) selectedChannelId.value = Number((alipay || available)?.id) || null
+  }
+
+  const paymentChannelLabel = (channel?: any) => {
+    const raw = String(channel?.name || '').trim()
+    const type = String(channel?.channel_type || '').trim().toLowerCase()
+    return type === 'alipay' || /支付宝/i.test(raw) ? '支付宝' : raw
+  }
+
+  const paymentChannelIcon = (channel?: any) => {
+    const type = String(channel?.channel_type || '').trim().toLowerCase()
+    if (type === 'alipay') return '/storefront/alipay.svg'
+    return channel?.icon ? getImageUrl(channel.icon) : ''
+  }
+
   const selectedChannelAmountHint = computed(() => {
     const channel = paymentChannels.value.find((item: any) => Number(item?.id) === Number(selectedChannelId.value))
     if (!channel) return ''
@@ -236,9 +252,6 @@ export function useCheckout() {
 
   const previewCurrency = computed(() => preview.value?.currency || totalCurrency.value)
   const previewOriginal = computed(() => preview.value?.original_amount ?? totalAmount.value)
-  const previewCoupon = computed(() => preview.value?.discount_amount ?? '0')
-  const previewPromotion = computed(() => preview.value?.promotion_discount_amount ?? '0')
-  const previewWholesale = computed(() => preview.value?.wholesale_discount_amount ?? '0')
   const previewMemberDiscount = computed(() => preview.value?.member_discount_amount ?? '0')
   const previewTotal = computed(() => preview.value?.total_amount ?? totalAmount.value)
   const checkoutItemCurrency = computed(() => previewCurrency.value)
@@ -262,15 +275,6 @@ export function useCheckout() {
     }
     return map
   })
-
-  const hasPositiveAmount = (amount: any) => {
-    const cents = amountToCents(amount)
-    return cents !== null && cents > 0
-  }
-
-  const formatDiscountPrice = (amount: any, currency?: any) => {
-    return hasPositiveAmount(amount) ? `-${formatPrice(amount, currency)}` : formatPrice(amount, currency)
-  }
 
   const checkoutMode = ref<'guest' | 'member'>('guest')
   const guestEmail = ref('')
@@ -638,9 +642,7 @@ export function useCheckout() {
     return ''
   })
 
-  const previewStatusText = computed(() => couponRefreshing.value
-    ? t('checkout.couponRefreshing')
-    : t('checkout.previewLoading'))
+  const previewStatusText = computed(() => t('checkout.previewLoading'))
 
   const checkoutAlert = computed<PageAlert | null>(() => {
     if (error.value) {
@@ -663,7 +665,6 @@ export function useCheckout() {
   }))
 
   const buildOrderPayload = () => ({
-    coupon_code: normalizedCouponCode.value || undefined,
     affiliate_code: getAffiliateCode() || undefined,
     affiliate_visitor_key: getAffiliateVisitorKey() || undefined,
     items: buildItemsPayload(),
@@ -717,21 +718,18 @@ export function useCheckout() {
       preview.value = null
       orderPaymentChannels.value = []
       previewError.value = ''
-      couponRefreshing.value = false
       return
     }
     if (cartItems.value.length === 0) {
       preview.value = null
       orderPaymentChannels.value = []
       previewError.value = ''
-      couponRefreshing.value = false
       return
     }
     if (isGuestCheckout.value && (!guestEmail.value.trim() || !guestPassword.value.trim() || !guestEmailValid.value)) {
       preview.value = null
       orderPaymentChannels.value = []
       previewError.value = ''
-      couponRefreshing.value = false
       return
     }
 
@@ -739,14 +737,12 @@ export function useCheckout() {
       preview.value = null
       orderPaymentChannels.value = []
       previewError.value = ''
-      couponRefreshing.value = false
       return
     }
     if (cartItems.value.some((item) => itemMinNotMet(item))) {
       preview.value = null
       orderPaymentChannels.value = []
       previewError.value = ''
-      couponRefreshing.value = false
       return
     }
 
@@ -783,7 +779,6 @@ export function useCheckout() {
     } finally {
       if (requestId === previewRequestId.value) {
         previewLoading.value = false
-        couponRefreshing.value = false
       }
     }
   }
@@ -872,7 +867,7 @@ export function useCheckout() {
   }
 
   watch(
-    () => [cartItems.value, manualFormFingerprint.value, normalizedCouponCode.value, checkoutMode.value, guestEmail.value, guestPassword.value, userAuthStore.isAuthenticated],
+    () => [cartItems.value, manualFormFingerprint.value, checkoutMode.value, guestEmail.value, guestPassword.value, userAuthStore.isAuthenticated],
     () => {
       debouncedLoadPreview()
     },
@@ -882,13 +877,6 @@ export function useCheckout() {
   watch(walletOnlyPayment, (v) => {
     if (v) useBalance.value = true
   }, { immediate: true })
-
-  watch(normalizedCouponCode, (value, previous) => {
-    if (value === previous) return
-    couponRefreshing.value = true
-    error.value = ''
-    previewError.value = ''
-  })
 
   watch(
     () => [userAuthStore.isAuthenticated, requiresOnlineChannel.value, expectedOnlinePayCents.value, preview.value?.total_amount],
@@ -900,10 +888,12 @@ export function useCheckout() {
   watch(
     () => [paymentChannels.value, expectedOnlinePayCents.value, requiresOnlineChannel.value],
     () => {
+      selectDefaultChannel()
       if (!selectedChannelId.value) return
       const selected = paymentChannels.value.find((item: any) => Number(item?.id) === Number(selectedChannelId.value))
       if (!selected || isChannelDisabledForAmount(selected)) {
         selectedChannelId.value = null
+        selectDefaultChannel()
       }
     },
     { deep: true }
@@ -1134,8 +1124,6 @@ export function useCheckout() {
     getManualFieldLabel,
     getManualFieldPlaceholder,
     manualFieldError,
-    // coupon
-    couponCode,
     isResellerTenant,
     samplingMode,
     samplingNotice,
@@ -1155,16 +1143,10 @@ export function useCheckout() {
     // preview amounts
     previewCurrency,
     previewOriginal,
-    previewCoupon,
-    previewPromotion,
-    previewWholesale,
     previewMemberDiscount,
     previewTotal,
     previewLoading,
-    couponRefreshing,
     previewStatusText,
-    hasPositiveAmount,
-    formatDiscountPrice,
     checkoutAlert,
     // wallet / balance
     showBalanceOption,
@@ -1182,6 +1164,8 @@ export function useCheckout() {
     isChannelDisabledForAmount,
     channelAmountLimitHint,
     handleSelectChannel,
+    paymentChannelLabel,
+    paymentChannelIcon,
     formatChannelFeeRate,
     formatChannelFixedFee,
     // submit

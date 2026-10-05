@@ -705,7 +705,7 @@ func TestBuildOrderResultRejectsZeroTotalAmountAfterCoupon(t *testing.T) {
 			},
 		},
 	})
-	if !errors.Is(err, ErrInvalidOrderAmount) {
-		t.Fatalf("expected invalid order amount, got: %v", err)
+	if !errors.Is(err, ErrCouponsDisabled) {
+		t.Fatalf("expected coupons disabled, got: %v", err)
 	}
 }

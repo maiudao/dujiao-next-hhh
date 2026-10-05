@@ -151,9 +151,6 @@
           </div>
           <div class="mt-4 grid gap-3 sm:grid-cols-3">
             <div class="rounded-md border bg-secondary p-3.5"><div class="text-xs text-muted-foreground">{{ t('orderDetail.amountOriginal') }}</div><div class="mt-1 font-semibold text-foreground tabular-nums">{{ formatMoney(order.original_amount, order.currency) }}</div></div>
-            <div class="rounded-md border bg-secondary p-3.5"><div class="text-xs text-muted-foreground">{{ t('orderDetail.amountDiscount') }}</div><div class="mt-1 font-semibold tabular-nums" :class="hasDiscountAmount(order.discount_amount) ? 'text-destructive' : 'text-foreground'">{{ formatDiscountMoney(order.discount_amount, order.currency) }}</div></div>
-            <div class="rounded-md border bg-secondary p-3.5"><div class="text-xs text-muted-foreground">{{ t('orderDetail.promotionDiscountLabel') }}</div><div class="mt-1 font-semibold tabular-nums" :class="hasDiscountAmount(order.promotion_discount_amount) ? 'text-destructive' : 'text-foreground'">{{ formatDiscountMoney(order.promotion_discount_amount, order.currency) }}</div></div>
-            <div v-if="hasDiscountAmount(order.wholesale_discount_amount)" class="rounded-md border border-[color:var(--teal-strong)] bg-secondary p-3.5 text-[color:var(--teal-strong)]"><div class="text-xs">{{ t('orderDetail.amountWholesaleDiscount') }}</div><div class="mt-1 font-semibold tabular-nums">{{ formatDiscountMoney(order.wholesale_discount_amount, order.currency) }}</div></div>
           </div>
           <div v-if="order.expires_at" class="mt-3 text-[13px] text-muted-foreground">{{ t('payment.expiresAt') }}：{{ formatDate(order.expires_at) }}</div>
           <div v-if="showCountdown" class="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold" :class="countdownExpired ? 'bg-destructive/10 text-destructive' : 'bg-[color:var(--teal-soft)] text-[color:var(--teal-strong)]'">
@@ -182,16 +179,16 @@
           <h2 class="mb-3.5 text-lg font-bold">{{ t('payment.channelTitle') }}</h2>
           <div v-if="!configReady" class="text-[13px] text-muted-foreground">{{ t('common.loading') }}</div>
           <template v-else>
-            <div v-if="showBalanceOption" class="mb-3 rounded-sm border bg-secondary p-3.5">
+            <div v-if="showBalanceOption" class="mb-2 rounded-sm border bg-secondary p-2.5">
               <div class="flex items-start justify-between gap-2.5">
                 <div>
                   <div class="text-xs text-muted-foreground">{{ t('payment.walletBalanceLabel') }}</div>
-                  <div class="mt-0.5 font-bold text-foreground">{{ walletLoading ? t('common.loading') : walletBalanceDisplay }}</div>
+                  <div class="mt-0.5 text-xs font-bold text-foreground">{{ walletLoading ? t('common.loading') : walletBalanceDisplay }}</div>
                 </div>
-                <label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><input v-model="useBalance" type="checkbox" class="h-4 w-4 accent-[var(--ui-accent)]" :disabled="walletOnlyPayment" /><span>{{ t('payment.useBalance') }}</span></label>
+                <label class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><input v-model="useBalance" type="checkbox" class="h-3.5 w-3.5 accent-[var(--ui-accent)]" :disabled="walletOnlyPayment" /><span>{{ t('payment.useBalance') }}</span></label>
               </div>
-              <div v-if="walletOnlyPayment" class="mt-2 text-xs text-warning">{{ t('payment.walletOnlyHint') }}</div>
-              <div v-if="useBalance" class="mt-2.5 grid gap-0.5 text-xs text-muted-foreground">
+              <div v-if="walletOnlyPayment" class="mt-1.5 text-[11px] text-warning">{{ t('payment.walletOnlyHint') }}</div>
+              <div v-if="useBalance" class="mt-1.5 grid gap-0.5 text-[11px] text-muted-foreground">
                 <div>{{ t('payment.walletDeductLabel') }}：{{ expectedWalletPaidDisplay }}</div>
                 <div v-if="!walletOnlyPayment">{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
                 <div v-if="walletOnlyPayment && expectedOnlinePayCents > 0" class="text-warning">{{ t('payment.walletInsufficientHint') }}</div>

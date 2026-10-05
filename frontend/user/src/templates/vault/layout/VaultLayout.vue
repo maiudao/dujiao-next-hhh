@@ -168,11 +168,6 @@ const brandLogo = computed(() => {
   return raw ? getImageUrl(raw) : ''
 })
 const brandDescription = computed(() => {
-  const desc = appStore.config?.brand?.site_description
-  if (desc && typeof desc === 'object') {
-    const val = (desc as Record<string, string>)[appStore.locale] || (desc as Record<string, string>)['zh-CN'] || ''
-    return typeof val === 'string' && val.trim() ? val.trim() : '有售后保障'
-  }
   return '有售后保障'
 })
 
