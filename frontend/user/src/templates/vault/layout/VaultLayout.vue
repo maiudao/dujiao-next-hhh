@@ -7,7 +7,9 @@
           <img :src="brandLogo || '/dj.svg'" :alt="brandName" class="h-8 max-w-[120px] object-contain sm:max-w-[160px]" />
           <span class="flex min-w-0 flex-col justify-center leading-tight">
             <span class="whitespace-nowrap text-[19px] font-extrabold tracking-[-0.02em] max-[900px]:text-[15px]">{{ brandName }}</span>
-            <span class="mt-0.5 whitespace-nowrap text-[10px] font-medium text-muted-foreground">{{ brandDescription }}</span>
+            <span class="brand-description mt-0.5 whitespace-nowrap text-[10px] font-medium text-muted-foreground max-[400px]:whitespace-normal max-[400px]:text-[9px]">
+              <span v-for="(part, index) in brandDescription.split('，')" :key="index" class="inline-block">{{ part }}{{ index === 0 ? '，' : '' }}</span>
+            </span>
           </span>
         </RouterLink>
         <button type="button" class="mobile-contact-entry hidden max-[900px]:inline-flex" @click="contactOpen = true">联系方式</button>
@@ -165,7 +167,7 @@ const brandLogo = computed(() => {
   return raw ? getImageUrl(raw) : ''
 })
 const brandDescription = computed(() => {
-  return '有售后保障'
+  return '售后有保障，用着更放心'
 })
 
 const { isListMode, secondaryNavItems, noticeEnabled, blogEnabled } = useNavConfig()

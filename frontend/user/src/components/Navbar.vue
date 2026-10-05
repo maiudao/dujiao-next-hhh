@@ -13,7 +13,9 @@
         />
         <span class="theme-wordmark-copy">
           <span class="theme-wordmark-text">{{ brandSiteName }}</span>
-          <span class="theme-wordmark-description">{{ brandDescription }}</span>
+          <span class="theme-wordmark-description max-[400px]:!whitespace-normal max-[400px]:!text-[9px]">
+            <span v-for="(part, index) in brandDescription.split('，')" :key="index" class="inline-block">{{ part }}{{ index === 0 ? '，' : '' }}</span>
+          </span>
         </span>
       </router-link>
       <button type="button" class="lg:hidden shrink-0 rounded-lg bg-primary/10 px-2 py-2 text-[10px] font-bold text-primary" @click="contactOpen = true">联系方式</button>
@@ -249,7 +251,7 @@ const brandSiteName = computed(() => {
 })
 
 const brandDescription = computed(() => {
-  return '有售后保障'
+  return '售后有保障，用着更放心'
 })
 
 const brandLogo = computed(() => {

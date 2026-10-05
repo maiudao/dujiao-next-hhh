@@ -3,6 +3,7 @@
     <div class="landing-shell">
       <main class="landing-layout">
         <section class="landing-story" aria-labelledby="landing-title">
+          <div class="story-content">
           <div class="story-badges">
             <span v-if="content.badgePrimary" class="story-badge story-badge-primary">
               <Store :size="14" aria-hidden="true" />
@@ -63,7 +64,7 @@
               <span>{{ highlight }}</span>
             </div>
           </div>
-
+          </div>
         </section>
 
         <section id="products" class="product-panel" aria-labelledby="products-title">
@@ -102,7 +103,11 @@
             >
               <span class="product-option-top">
                 <span v-if="product.category?.name" class="product-category">
-                  {{ getLocalizedText(product.category.name) }}
+                  <img v-if="product.category.icon && !failedCategoryIcons[product.category.id]"
+                    :src="getImageUrl(product.category.icon)" alt="" class="product-category-icon"
+                    loading="lazy" @error="failedCategoryIcons[product.category.id] = true" />
+                  <Folder v-else class="product-category-icon" aria-hidden="true" />
+                  <span class="product-category-name">{{ getLocalizedText(product.category.name) }}</span>
                 </span>
                 <span
                   class="stock-badge"
@@ -169,6 +174,7 @@ import {
   ArrowRight,
   Boxes,
   ClipboardCheck,
+  Folder,
   MessageCircle,
   PackageCheck,
   PackageSearch,
@@ -185,6 +191,7 @@ import { useAppStore } from '../stores/app'
 import { useUserAuthStore } from '../stores/userAuth'
 import { useTheme } from '../utils/theme'
 import { loadAllPages } from '../utils/loadAllPages'
+import { getImageUrl } from '../utils/image'
 
 type LandingField = Record<string, string> | undefined
 
@@ -196,6 +203,7 @@ const { theme } = useTheme()
 const { getLocalizedText, formatPrice, siteCurrency } = useLocalized()
 const { isSoldOut, getStockStatusLabel, hasPromotionPrice, getPromotionPriceAmount } = useProductLabels()
 const products = ref<any[]>([])
+const failedCategoryIcons = ref<Record<number, boolean>>({})
 const loading = ref(true)
 const loadError = ref(false)
 const { shouldShow } = useAnnouncement()
@@ -378,6 +386,8 @@ onMounted(async () => {
 .landing-page {
   --page-bg: #f5f8fd;
   --panel-bg: #ffffff;
+  --product-bg: #ffffff;
+  --product-line: #dce5f1;
   --surface-soft: #f6f9fd;
   --ink: #101827;
   --muted: #65758e;
@@ -397,6 +407,8 @@ onMounted(async () => {
 .landing-page.landing-dark {
   --page-bg: #0b1220;
   --panel-bg: #131d2e;
+  --product-bg: #233149;
+  --product-line: #3b506e;
   --surface-soft: #192538;
   --ink: #edf3fc;
   --muted: #a0aec2;
@@ -502,7 +514,7 @@ onMounted(async () => {
 .landing-layout {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
   align-items: stretch;
   gap: 34px;
 }
@@ -513,6 +525,12 @@ onMounted(async () => {
   justify-content: center;
   min-width: 0;
   padding: 28px 6px 32px 0;
+}
+
+/* Scale the whole desktop composition, including SVG icons, spacing and controls. */
+.story-content {
+  min-width: 0;
+  zoom: 0.88;
 }
 
 .story-badges {
@@ -823,8 +841,8 @@ onMounted(async () => {
   padding: 16px;
   color: var(--ink);
   text-align: left;
-  background: var(--panel-bg);
-  border: 1px solid var(--line);
+  background: var(--product-bg);
+  border: 1px solid var(--product-line);
   border-radius: 16px;
   cursor: pointer;
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
@@ -838,19 +856,19 @@ onMounted(async () => {
 
 .product-option:disabled:hover {
   transform: none;
-  border-color: var(--line);
+  border-color: var(--product-line);
   box-shadow: none;
 }
 
 .product-option-sold-out {
-  background: var(--surface-soft);
+  background: color-mix(in srgb, var(--product-bg) 85%, var(--surface-soft));
 }
 
 .product-option-paused {
   cursor: not-allowed;
-  filter: grayscale(1);
-  opacity: 0.78;
 }
+
+.product-option-paused .product-action { color: var(--muted); }
 
 .product-option-top,
 .product-option-bottom {
@@ -859,12 +877,19 @@ onMounted(async () => {
 }
 
 .product-category {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
   overflow: hidden;
   color: var(--muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.product-category-icon { width: 16px; height: 16px; flex-shrink: 0; object-fit: contain; }
+.product-category-name { overflow: hidden; text-overflow: ellipsis; }
 
 .stock-badge {
   flex: none;
@@ -1056,7 +1081,7 @@ onMounted(async () => {
   }
 
   .landing-layout {
-    grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+    grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
     gap: 24px;
   }
 
@@ -1094,6 +1119,8 @@ onMounted(async () => {
   .landing-story {
     padding: 25px 0 16px;
   }
+
+  .story-content { zoom: 1; }
 
   .story-badges {
     margin-bottom: 17px;

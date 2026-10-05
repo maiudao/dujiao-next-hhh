@@ -16,12 +16,11 @@ const bubbleOpen = ref(false)
 const bubble = ref<HTMLElement | null>(null)
 const bubbleSize = ref({ width: 200, height: 100 })
 const statusTitle = computed(() => samplingMode.value ? '打烊中' : '正在营业')
-// Pixel coordinates preserve circular shoulders even when the message height changes.
+// Pixel coordinates keep the rounded corner stable when the message height changes.
 const bubblePath = computed(() => {
   const w = bubbleSize.value.width, h = bubbleSize.value.height
-  // Concentric with the 17px close disk; allow 2px clearance past the outline's half-stroke.
-  const closeX = w - 11, radius = 11.125, notchX = closeX - radius, notchY = 11 + radius
-  return `M 25 1 H ${notchX - 9} C ${notchX - 4} 1 ${notchX} 5 ${notchX} 11 A ${radius} ${radius} 0 0 0 ${closeX} ${notchY} C ${w - 5} ${notchY} ${w - 1} ${notchY + 4} ${w - 1} ${notchY + 10} V ${h - 25} Q ${w - 1} ${h - 1} ${w - 25} ${h - 1} H ${w - 43} Q ${w - 46} ${h - 1} ${w - 48} ${h + 1} L ${w - 60} ${h + 11} Q ${w - 63} ${h + 13} ${w - 65} ${h + 10} L ${w - 75} ${h + 1} Q ${w - 77} ${h - 1} ${w - 80} ${h - 1} H 25 Q 1 ${h - 1} 1 ${h - 25} V 25 Q 1 1 25 1 Z`
+  // A regular 24px corner; the close button sits midway along its outer arc.
+  return `M 25 1 H ${w - 25} A 24 24 0 0 1 ${w - 1} 25 V ${h - 25} Q ${w - 1} ${h - 1} ${w - 25} ${h - 1} H ${w - 43} Q ${w - 46} ${h - 1} ${w - 48} ${h + 1} L ${w - 60} ${h + 11} Q ${w - 63} ${h + 13} ${w - 65} ${h + 10} L ${w - 75} ${h + 1} Q ${w - 77} ${h - 1} ${w - 80} ${h - 1} H 25 Q 1 ${h - 1} 1 ${h - 25} V 25 Q 1 1 25 1 Z`
 })
 const failedImage = ref('')
 const root = ref<HTMLElement | null>(null)
@@ -223,7 +222,8 @@ onUnmounted(() => {
 .shop-character-outline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .shop-character-outline path { fill: #fff; stroke: #d8deeb; stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .shop-character-copy { position: relative; display: block; width: 100%; min-height: 86px; max-height: max(86px, min(240px, calc(100dvh - var(--character-height) - 116px))); overflow-y: auto; padding: 14px 16px 18px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; border-radius: 24px; }
-.shop-character-close { position: absolute; top: -3px; right: -3px; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; color: #a52a3a; background: transparent; cursor: pointer; }
+/* The 28px hit area centers at (width - 8, 8), the corner arc's 45-degree midpoint. */
+.shop-character-close { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; color: #a52a3a; background: transparent; cursor: pointer; }
 .shop-character-close::before { content: ''; position: absolute; width: 17px; height: 17px; box-sizing: border-box; border: 1.25px solid #cb8e98; border-radius: 50%; background: #ffe2e6; transition: background-color 140ms, border-color 140ms; }
 .shop-character-close svg { position: relative; }
 .shop-character-close:hover { color: #fff; }
