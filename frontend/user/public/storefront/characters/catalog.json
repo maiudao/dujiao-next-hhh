@@ -1,0 +1,81 @@
+{
+  "open": [
+    {
+      "path": "/storefront/characters/gpt-normal.webp",
+      "label": "Normal_挥手"
+    },
+    {
+      "path": "/storefront/characters/gpt-horizontal.webp",
+      "label": "Horizontal_开心比心"
+    },
+    {
+      "path": "/storefront/characters/gpt-link.webp",
+      "label": "Link_开心"
+    },
+    {
+      "path": "/storefront/characters/gpt-move.webp",
+      "label": "Move_张开双手"
+    },
+    {
+      "path": "/storefront/characters/gpt-vertical.webp",
+      "label": "Vertical_兴奋"
+    },
+    {
+      "path": "/storefront/characters/gpt-working.webp",
+      "label": "Working_使用电脑"
+    },
+    {
+      "path": "/storefront/characters/gpt-handwriting.webp",
+      "label": "HandWriting_写字"
+    },
+    {
+      "path": "/storefront/characters/gpt-precision.webp",
+      "label": "Precision_托着水晶"
+    },
+    {
+      "path": "/storefront/characters/gpt-diagonal1.webp",
+      "label": "Diagonal1_认真"
+    },
+    {
+      "path": "/storefront/characters/gpt-pin.webp",
+      "label": "Pin_思考"
+    },
+    {
+      "path": "/storefront/characters/gpt-help.webp",
+      "label": "Help_疑惑"
+    },
+    {
+      "path": "/storefront/characters/gpt-person.webp",
+      "label": "Person_害羞"
+    }
+  ],
+  "sampling": [
+    {
+      "path": "/storefront/characters/gpt-busy.webp",
+      "label": "Busy_闭眼休息"
+    },
+    {
+      "path": "/storefront/characters/gpt-text.webp",
+      "label": "Text_看书"
+    },
+    {
+      "path": "/storefront/characters/gpt-unavailable.webp",
+      "label": "Unavailable_抱臂"
+    },
+    {
+      "path": "/storefront/characters/gpt-alternate.webp",
+      "label": "Alternate_不开心"
+    },
+    {
+      "path": "/storefront/characters/gpt-diagonal2.webp",
+      "label": "Diagonal2_紧张"
+    }
+  ],
+  "reserve": [
+    {
+      "path": "/storefront/characters/gpt-expression-loop.webp",
+      "label": "角色表情循环",
+      "reason": "循环包含两种状态的表情，保留备用，不参与营业状态随机池。"
+    }
+  ]
+}

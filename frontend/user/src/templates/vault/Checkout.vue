@@ -129,32 +129,19 @@
         <div class="my-[18px] border-t pt-4">
           <h3 class="mb-3 text-sm font-bold">{{ t('checkout.paymentMethod') }}</h3>
 
-          <div v-if="showBalanceOption" class="mb-3 rounded-sm border bg-secondary p-3.5">
-            <div class="flex items-start justify-between gap-2.5">
-              <div>
-                <div class="text-xs text-muted-foreground">{{ t('payment.walletBalanceLabel') }}</div>
-                <div class="mt-0.5 font-bold text-foreground">{{ walletLoading ? t('common.loading') : formatPrice(walletBalance, previewCurrency) }}</div>
-              </div>
-              <label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <input v-model="useBalance" type="checkbox" class="h-4 w-4 accent-[var(--ui-accent)]" :disabled="walletOnlyPayment" />
-                <span>{{ t('payment.useBalance') }}</span>
-              </label>
-            </div>
-            <div v-if="walletOnlyPayment" class="mt-2 text-xs text-warning">{{ t('payment.walletOnlyHint') }}</div>
-            <div v-if="useBalance" class="mt-2.5 grid gap-0.5 text-xs text-muted-foreground">
-              <div>{{ t('payment.walletDeductLabel') }}：{{ expectedWalletPaidDisplay }}</div>
-              <div v-if="!walletOnlyPayment">{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
-              <div v-if="walletOnlyPayment && expectedOnlinePayCents > 0" class="text-warning">{{ t('payment.walletInsufficientHint') }}</div>
-            </div>
-          </div>
+          <WalletBalanceOption v-if="showBalanceOption" v-model="useBalance"
+            :balance="walletLoading ? t('common.loading') : formatPrice(walletBalance, previewCurrency)"
+            :wallet-only="walletOnlyPayment" :deduction="expectedWalletPaidDisplay"
+            :online="expectedOnlinePayDisplay" :insufficient="expectedOnlinePayCents > 0" />
 
           <template v-if="!walletOnlyPayment">
-            <div v-if="requiresOnlineChannel && paymentChannels.length > 0" class="grid gap-2.5 sm:grid-cols-2">
+            <div v-if="requiresOnlineChannel && paymentChannels.length > 0" class="grid gap-2.5">
               <button
                 v-for="channel in paymentChannels"
                 :key="channel.id"
                 type="button"
-                class="rounded-sm border-2 bg-card p-2.5 text-left"
+                class="min-h-12 rounded-xl border-2 bg-card px-3.5 py-3 text-left"
+                :aria-pressed="selectedChannelId === channel.id"
                 :class="[
                   selectedChannelId === channel.id && !isChannelDisabledForAmount(channel) ? 'border-primary bg-primary/10' : 'border-hairline-strong',
                   isChannelDisabledForAmount(channel) ? 'cursor-not-allowed opacity-55' : '',
@@ -188,6 +175,7 @@
 </template>
 
 <script setup lang="ts">
+import WalletBalanceOption from '../../components/payment/WalletBalanceOption.vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronRight, Package, ShoppingCart } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'

@@ -179,21 +179,10 @@
           <h2 class="mb-3.5 text-lg font-bold">{{ t('payment.channelTitle') }}</h2>
           <div v-if="!configReady" class="text-[13px] text-muted-foreground">{{ t('common.loading') }}</div>
           <template v-else>
-            <div v-if="showBalanceOption" class="mb-2 rounded-sm border bg-secondary p-2.5">
-              <div class="flex items-start justify-between gap-2.5">
-                <div>
-                  <div class="text-xs text-muted-foreground">{{ t('payment.walletBalanceLabel') }}</div>
-                  <div class="mt-0.5 text-xs font-bold text-foreground">{{ walletLoading ? t('common.loading') : walletBalanceDisplay }}</div>
-                </div>
-                <label class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><input v-model="useBalance" type="checkbox" class="h-3.5 w-3.5 accent-[var(--ui-accent)]" :disabled="walletOnlyPayment" /><span>{{ t('payment.useBalance') }}</span></label>
-              </div>
-              <div v-if="walletOnlyPayment" class="mt-1.5 text-[11px] text-warning">{{ t('payment.walletOnlyHint') }}</div>
-              <div v-if="useBalance" class="mt-1.5 grid gap-0.5 text-[11px] text-muted-foreground">
-                <div>{{ t('payment.walletDeductLabel') }}：{{ expectedWalletPaidDisplay }}</div>
-                <div v-if="!walletOnlyPayment">{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
-                <div v-if="walletOnlyPayment && expectedOnlinePayCents > 0" class="text-warning">{{ t('payment.walletInsufficientHint') }}</div>
-              </div>
-            </div>
+            <WalletBalanceOption v-if="showBalanceOption" v-model="useBalance"
+              :balance="walletLoading ? t('common.loading') : walletBalanceDisplay"
+              :wallet-only="walletOnlyPayment" :deduction="expectedWalletPaidDisplay"
+              :online="expectedOnlinePayDisplay" :insufficient="expectedOnlinePayCents > 0" />
             <div v-if="cachedPayment" class="mb-3 grid gap-1.5 rounded-sm border border-[color:var(--gold-strong)] bg-[color:var(--gold-soft)] p-3 text-[13px] text-[color:var(--gold-strong)]">
               <div class="font-bold">{{ t('payment.cachedTitle') }}</div>
               <div>{{ t('payment.cachedHint', { channel: cachedChannelName }) }}</div>
@@ -247,6 +236,7 @@
 </template>
 
 <script setup lang="ts">
+import WalletBalanceOption from '../../components/payment/WalletBalanceOption.vue'
 import { useI18n } from 'vue-i18n'
 import { AlertCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'

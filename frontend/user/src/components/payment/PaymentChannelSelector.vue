@@ -1,10 +1,11 @@
 <template>
-  <div v-if="props.channels.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div v-if="props.channels.length > 0" class="grid grid-cols-1 gap-2.5">
     <button v-for="channel in props.channels" :key="channel.id"
       :disabled="isDisabled(channel)"
       :title="isDisabled(channel) ? channelHint(channel) : ''"
       @click="handleSelect(channel)"
-      class="text-left border rounded-xl p-4 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      type="button" :aria-pressed="props.modelValue === channel.id"
+      class="min-h-12 text-left border-2 rounded-xl px-3.5 py-3 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
       :class="props.modelValue === channel.id && !isDisabled(channel) ? 'border-primary/45 bg-primary/10' : 'bg-card hover:border-foreground/25'">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">

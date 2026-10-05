@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { notifyError, notifySuccess } from '@/utils/notify'
+import MediaPicker from '@/components/admin/MediaPicker.vue'
+import { Textarea } from '@/components/ui/textarea'
+import type { StorefrontSupport, SupportMode } from '@/utils/storefrontSupport'
 
 type SupportedLanguage = 'zh-CN' | 'zh-TW' | 'en-US'
 type SamplingLabel = Record<SupportedLanguage, string>
@@ -15,15 +18,33 @@ const props = defineProps<{
   mode: 'open' | 'sampling'
   modelValue: SamplingLabel[]
   currentLang: SupportedLanguage
+  support: StorefrontSupport
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: SamplingLabel[]]
   'mode-changed': [mode: 'open' | 'sampling']
+  'update:support': [value: StorefrontSupport]
 }>()
 
 const { t } = useI18n()
 const submitting = ref(false)
+const supportModes: SupportMode[] = ['open', 'sampling']
+
+const updateSupport = (mode: SupportMode, field: 'images' | 'messages', values: string[]) => {
+  emit('update:support', { ...props.support, [mode]: { ...props.support[mode], [field]: values } })
+}
+const updateImages = (mode: SupportMode, values: string | string[]) => {
+  updateSupport(mode, 'images', (Array.isArray(values) ? values : [values]).filter(Boolean).slice(0, 20))
+}
+const editMessage = (mode: SupportMode, index: number, text: string | number) => {
+  const messages = [...props.support[mode].messages]
+  messages[index] = String(text)
+  updateSupport(mode, 'messages', messages)
+}
+const removeMessage = (mode: SupportMode, index: number) => {
+  updateSupport(mode, 'messages', props.support[mode].messages.filter((_, i) => i !== index))
+}
 
 const updateLabel = (index: number, value: string | number) => {
   const labels = Array.from({ length: 3 }, (_, itemIndex) => ({
@@ -96,6 +117,33 @@ const setMode = async (mode: 'open' | 'sampling') => {
               :maxlength="100"
               @update:model-value="updateLabel(index, $event)"
             />
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="rounded-xl border border-border bg-card p-6">
+      <h2 class="text-lg font-semibold">客服角色与提示语</h2>
+      <p class="mt-2 text-sm text-muted-foreground">分别配置两个营业状态。刷新随机展示，点击角色或气泡切换提示；标题固定为“营业中”或“打样了”。编辑完成后点击页面的保存按钮。</p>
+      <div class="mt-6 grid gap-8 xl:grid-cols-2">
+        <div v-for="stateMode in supportModes" :key="stateMode" class="space-y-5">
+          <div class="border-b pb-3">
+            <h3 class="font-bold">{{ stateMode === 'open' ? '营业中' : '打样中' }}</h3>
+          </div>
+          <div>
+            <Label>角色图片（最多 20 张）</Label>
+            <p class="mb-3 mt-1 text-xs text-muted-foreground">建议使用透明 PNG / WebP。可以上传、从图库添加或移除；移除仅取消当前配置，不删除图库原文件。</p>
+            <MediaPicker :model-value="support[stateMode].images" multiple @update:model-value="updateImages(stateMode, $event)" />
+          </div>
+          <div class="space-y-3">
+            <Label>对话正文（最多 30 条）</Label>
+            <div v-for="(message, index) in support[stateMode].messages" :key="index" class="flex items-start gap-2">
+              <Textarea :model-value="message" :maxlength="180" :rows="3" :aria-label="`${stateMode === 'open' ? '营业' : '打样'}提示 ${index + 1}`"
+                class="flex-1" @update:model-value="editMessage(stateMode, index, $event)" />
+              <Button type="button" variant="outline" :disabled="support[stateMode].messages.length <= 1" @click="removeMessage(stateMode, index)">删除</Button>
+            </div>
+            <Button type="button" variant="outline" :disabled="support[stateMode].messages.length >= 30"
+              @click="updateSupport(stateMode, 'messages', [...support[stateMode].messages, ''])">添加提示语</Button>
+            <p class="text-xs text-muted-foreground">正文为纯文字，不执行 HTML。至少保留一条；空白内容保存时会略过。</p>
           </div>
         </div>
       </div>

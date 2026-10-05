@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { createStorefrontSupport } from '@/utils/storefrontSupport'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
@@ -251,6 +252,7 @@ const form = reactive({
   footer_links: [] as FooterLinkItem[],
   home_landing: createHomeLandingForm(),
   storefront_mode: 'open' as 'open' | 'sampling',
+  storefront_support: createStorefrontSupport(),
   storefront_sampling_labels: createStorefrontSamplingLabels(),
   storefront_template: 'classic' as 'classic' | 'vault',
   template_mode: 'card' as 'card' | 'list',
@@ -505,6 +507,7 @@ const fetchSettings = async () => {
       }
 
       form.storefront_mode = String(data.storefront_mode || '').trim().toLowerCase() === 'sampling' ? 'sampling' : 'open'
+      form.storefront_support = createStorefrontSupport(data.storefront_support)
       const samplingLabels = Array.isArray(data.storefront_sampling_labels) ? data.storefront_sampling_labels : []
       form.storefront_sampling_labels.splice(
         0,
@@ -677,6 +680,7 @@ const saveSiteSettings = async () => {
       footer_links: form.footer_links,
       home_landing: form.home_landing,
       storefront_mode: form.storefront_mode,
+      storefront_support: form.storefront_support,
       storefront_sampling_labels: form.storefront_sampling_labels,
       storefront_template: form.storefront_template,
       template_mode: form.template_mode,
@@ -1450,6 +1454,7 @@ onMounted(() => {
           v-model="form.storefront_sampling_labels"
           :mode="form.storefront_mode"
           :current-lang="currentLang"
+          v-model:support="form.storefront_support"
           @mode-changed="form.storefront_mode = $event"
         />
       </TabsContent>

@@ -200,40 +200,21 @@
             <h3 class="mb-3 text-sm font-bold text-foreground">{{ t('checkout.paymentMethod') }}</h3>
 
             <!-- Wallet Balance -->
-            <div v-if="showBalanceOption" class="mb-3 rounded-lg border bg-secondary p-3">
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="text-xs text-muted-foreground">{{ t('payment.walletBalanceLabel') }}</div>
-                  <div class="mt-0.5 text-sm font-semibold text-foreground">
-                    {{ walletLoading ? t('common.loading') : formatPrice(walletBalance, previewCurrency) }}
-                  </div>
-                </div>
-                <label class="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <input v-model="useBalance" type="checkbox" class="h-4 w-4 accent-primary" :disabled="walletOnlyPayment" />
-                  <span>{{ t('payment.useBalance') }}</span>
-                </label>
-              </div>
-              <div v-if="walletOnlyPayment" class="mt-2 text-xs text-warning">
-                {{ t('payment.walletOnlyHint') }}
-              </div>
-              <div v-if="useBalance" class="mt-2 space-y-1 text-xs text-muted-foreground">
-                <div>{{ t('payment.walletDeductLabel') }}：{{ expectedWalletPaidDisplay }}</div>
-                <div v-if="!walletOnlyPayment">{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
-                <div v-if="walletOnlyPayment && expectedOnlinePayCents > 0" class="text-warning">
-                  {{ t('payment.walletInsufficientHint') }}
-                </div>
-              </div>
-            </div>
+            <WalletBalanceOption v-if="showBalanceOption" v-model="useBalance"
+              :balance="walletLoading ? t('common.loading') : formatPrice(walletBalance, previewCurrency)"
+              :wallet-only="walletOnlyPayment" :deduction="expectedWalletPaidDisplay"
+              :online="expectedOnlinePayDisplay" :insufficient="expectedOnlinePayCents > 0" />
 
             <!-- Channel Grid (hidden in wallet-only mode) -->
             <template v-if="!walletOnlyPayment">
-              <div v-if="requiresOnlineChannel && paymentChannels.length > 0" class="grid grid-cols-2 gap-2">
+              <div v-if="requiresOnlineChannel && paymentChannels.length > 0" class="grid gap-2">
                 <button v-for="channel in paymentChannels" :key="channel.id"
                   type="button"
                   :disabled="isChannelDisabledForAmount(channel)"
                   :title="isChannelDisabledForAmount(channel) ? channelAmountLimitHint(channel) : ''"
                   @click="handleSelectChannel(channel)"
-                  class="text-left border rounded-lg p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  :aria-pressed="selectedChannelId === channel.id"
+                  class="min-h-12 text-left border rounded-xl px-3.5 py-3 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   :class="selectedChannelId === channel.id && !isChannelDisabledForAmount(channel) ? 'border-primary/45 bg-primary/10' : 'bg-card hover:border-foreground/25'">
                   <div class="flex items-center gap-2">
                     <img v-if="paymentChannelIcon(channel)" :src="paymentChannelIcon(channel)" loading="lazy" class="h-5 w-5 rounded object-contain shrink-0" />
@@ -272,6 +253,7 @@
 </template>
 
 <script setup lang="ts">
+import WalletBalanceOption from '../components/payment/WalletBalanceOption.vue'
 import { useI18n } from 'vue-i18n'
 import { pageAlertVariant, pageAlertToneClass } from '../utils/alerts'
 import ImageCaptcha from '../components/captcha/ImageCaptcha.vue'

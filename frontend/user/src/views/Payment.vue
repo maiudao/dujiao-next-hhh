@@ -292,33 +292,10 @@
               {{ t('common.loading') }}
             </div>
             <template v-else>
-              <div
-                v-if="showBalanceOption"
-                class="mb-3 rounded-xl border p-2.5 bg-secondary"
-              >
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div class="text-xs text-muted-foreground">{{ t('payment.walletBalanceLabel') }}</div>
-                    <div class="mt-0.5 text-xs font-semibold text-foreground">
-                      {{ walletLoading ? t('common.loading') : walletBalanceDisplay }}
-                    </div>
-                  </div>
-                  <label class="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <input v-model="useBalance" type="checkbox" class="h-3.5 w-3.5 accent-primary" :disabled="walletOnlyPayment" />
-                    <span>{{ t('payment.useBalance') }}</span>
-                  </label>
-                </div>
-                <div v-if="walletOnlyPayment" class="mt-2 text-[11px] text-warning">
-                  {{ t('payment.walletOnlyHint') }}
-                </div>
-                <div v-if="useBalance" class="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
-                  <div>{{ t('payment.walletDeductLabel') }}：{{ expectedWalletPaidDisplay }}</div>
-                  <div v-if="!walletOnlyPayment">{{ t('payment.onlinePayLabel') }}：{{ expectedOnlinePayDisplay }}</div>
-                  <div v-if="walletOnlyPayment && expectedOnlinePayCents > 0" class="text-warning">
-                    {{ t('payment.walletInsufficientHint') }}
-                  </div>
-                </div>
-              </div>
+              <WalletBalanceOption v-if="showBalanceOption" v-model="useBalance"
+                :balance="walletLoading ? t('common.loading') : walletBalanceDisplay"
+                :wallet-only="walletOnlyPayment" :deduction="expectedWalletPaidDisplay"
+                :online="expectedOnlinePayDisplay" :insufficient="expectedOnlinePayCents > 0" />
               <div v-if="cachedPayment"
                 class="mb-4 rounded-xl border-warning/40 bg-warning/10 p-4 text-sm space-y-2 text-warning">
                 <div class="font-semibold">{{ t('payment.cachedTitle') }}</div>
@@ -465,6 +442,7 @@
 </template>
 
 <script setup lang="ts">
+import WalletBalanceOption from '../components/payment/WalletBalanceOption.vue'
 import { useI18n } from 'vue-i18n'
 import { Copy, ExternalLink } from 'lucide-vue-next'
 import { pageAlertVariant, pageAlertToneClass } from '../utils/alerts'

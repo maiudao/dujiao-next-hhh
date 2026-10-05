@@ -52,7 +52,7 @@
           </router-link>
         </Button>
 
-        <Button v-if="!userAuthStore.isAuthenticated" as-child variant="ghost" size="sm"
+        <Button v-if="appStore.config?.guest_orders_enabled && !userAuthStore.isAuthenticated" as-child variant="ghost" size="sm"
           class="hidden lg:inline-flex gap-1.5 text-muted-foreground whitespace-nowrap">
           <router-link to="/guest/orders">
             <ClipboardList class="w-4 h-4 shrink-0 opacity-70" />
@@ -60,17 +60,17 @@
           </router-link>
         </Button>
         <Button v-if="!userAuthStore.isAuthenticated" as-child variant="ghost" size="sm"
-          class="hidden lg:inline-flex gap-1.5 text-muted-foreground whitespace-nowrap">
+          class="hidden lg:inline-flex h-10 gap-1.5 text-muted-foreground whitespace-nowrap">
           <router-link to="/auth/login">
             <LogIn class="w-4 h-4 shrink-0 opacity-70" />
-            {{ t('navbar.login') }}
+            未登录
           </router-link>
         </Button>
         <Button v-if="userAuthStore.isAuthenticated" as-child variant="ghost" size="sm"
-          class="hidden lg:inline-flex gap-1.5 text-muted-foreground whitespace-nowrap">
+          class="hidden lg:inline-flex h-10 gap-1.5 text-muted-foreground whitespace-nowrap">
           <router-link to="/me">
             <User class="w-4 h-4 shrink-0 opacity-70" />
-            已登录
+            个人中心
           </router-link>
         </Button>
         <!-- Theme Switcher -->
@@ -162,7 +162,7 @@
           </template>
 
           <!-- Guest orders (not in bottom nav) -->
-          <Button v-if="!userAuthStore.isAuthenticated" as-child variant="ghost"
+          <Button v-if="appStore.config?.guest_orders_enabled && !userAuthStore.isAuthenticated" as-child variant="ghost"
             class="w-full justify-start gap-3 h-auto py-3 rounded-xl text-sm text-muted-foreground [&_svg]:size-5">
             <router-link to="/guest/orders" @click="showMobileMenu = false" active-class="!text-primary !bg-primary/10">
               <ClipboardList class="shrink-0 opacity-60" />

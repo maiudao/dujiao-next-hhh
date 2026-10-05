@@ -36,12 +36,12 @@
               <ArrowRight :size="17" aria-hidden="true" />
             </button>
             <button
-              v-if="content.secondaryLabel && content.secondaryUrl && !userAuthStore.isAuthenticated"
+              v-if="!userAuthStore.isAuthenticated"
               type="button"
               class="button-secondary"
               @click="followLink(content.secondaryUrl)"
             >
-              {{ content.secondaryLabel }}
+              {{ content.secondaryLabel || '登录或注册' }}
               <ArrowRight :size="16" aria-hidden="true" />
             </button>
             <button
@@ -74,7 +74,6 @@
               <h2 id="products-title">{{ copy.catalogTitle }}</h2>
               <p class="panel-description">{{ copy.catalogDescription }}</p>
             </div>
-            <span class="panel-icon"><PackageSearch :size="20" aria-hidden="true" /></span>
           </div>
 
           <div v-if="loading" class="catalog-state" role="status">
@@ -141,19 +140,7 @@
           </p>
         </section>
 
-        <aside
-          class="support-character"
-          :class="{ 'support-character-sampling': samplingMode, 'support-character-pressed': characterPressed }"
-          aria-live="polite"
-        >
-          <button type="button" class="support-character-bubble" @click="cycleCharacterMessage">
-            <span v-if="characterMessageLead" class="support-character-lead">{{ characterMessageLead }}</span>
-            <span>{{ characterMessageBody }}</span>
-          </button>
-          <button type="button" class="support-character-image-button" aria-label="切换客服提示" @click="cycleCharacterMessage">
-            <img class="support-character-image" :src="characterImage" alt="店铺客服角色" loading="lazy" decoding="async" />
-          </button>
-        </aside>
+        <SupportCharacter />
       </main>
     </div>
 
@@ -178,7 +165,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowRight,
@@ -196,6 +183,7 @@ import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { useAnnouncement, type HomeAnnouncement } from '../composables/useAnnouncement'
 import { useStorefrontMode } from '../composables/useStorefrontMode'
 import AnnouncementModal from '../components/AnnouncementModal.vue'
+import SupportCharacter from '../components/SupportCharacter.vue'
 import { useAppStore } from '../stores/app'
 import { useUserAuthStore } from '../stores/userAuth'
 import { useTheme } from '../utils/theme'
@@ -302,40 +290,12 @@ const content = computed(() => {
     primaryLabel: localizedValue(config.primary_label, defaults.primaryLabel),
     primaryUrl: '/products',
     secondaryLabel: localizedValue(config.secondary_label, defaults.secondaryLabel),
-     secondaryUrl: safeLink(config.secondary_url ?? '/auth/login?redirect=%2Fproducts'),
+    secondaryUrl: '/auth/login?redirect=%2Fproducts',
     supportLabel: localizedValue(config.support_label, defaults.supportLabel),
     supportUrl: safeLink(config.support_url),
     highlights: highlights.map((item: LandingField, index: number) => localizedValue(item, defaults.highlights[index] || '')).filter(Boolean),
   }
 })
-
-const characterPressed = ref(false)
-const characterMessageIndex = ref(0)
-const characterMessages = computed(() => samplingMode.value
-  ? [
-      { lead: '打样了', body: '明天再来吧，营业时间是每天9：00到12：00' },
-      { lead: '现在休息中', body: '商品暂时不能购买，营业后会恢复上架。' },
-      { lead: '先收藏店铺', body: '有新商品和营业消息时，再回来看看吧。' },
-    ]
-  : [
-      { lead: '营业中', body: '购买前后有什么不清楚的，都可以和客服保持联系哦 (^_^)' },
-      { lead: '需要帮助', body: '商品、库存或下单问题，都可以先来问问客服。' },
-      { lead: '放心下单', body: '付款后请留意订单状态，售后也可以联系店主。' },
-    ])
-const characterMessage = computed(() => characterMessages.value[characterMessageIndex.value % characterMessages.value.length])
-const characterMessageLead = computed(() => characterMessage.value?.lead || '')
-const characterMessageBody = computed(() => characterMessage.value?.body || '')
-const characterImage = computed(() => samplingMode.value
-  ? '/storefront/evelyn-02.webp'
-  : '/storefront/evelyn-01.webp')
-
-const cycleCharacterMessage = () => {
-  characterMessageIndex.value = (characterMessageIndex.value + 1) % characterMessages.value.length
-  characterPressed.value = true
-  window.setTimeout(() => { characterPressed.value = false }, 220)
-}
-
-watch(samplingMode, () => { characterMessageIndex.value = 0 })
 
 const visibleHighlights = computed(() => content.value.highlights.slice(0, 3))
 const availableCount = computed(() => products.value.filter((product) => !isSoldOut(product)).length)
@@ -790,7 +750,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   min-height: 48px;
-  padding: 0 13px;
+  padding: 0 18px 0 14px;
   color: var(--ink);
   background: var(--panel-bg);
   border: 1px solid var(--line);
@@ -801,6 +761,7 @@ onMounted(async () => {
 
 .highlight-item :deep(svg) {
   color: var(--blue);
+  flex-shrink: 0;
 }
 
 .product-panel {
@@ -1154,6 +1115,10 @@ onMounted(async () => {
     margin-top: 20px;
   }
 
+  .button-secondary-authenticated {
+    display: none;
+  }
+
   .support-character {
     grid-row: 2;
     width: min(100%, 360px);
@@ -1237,7 +1202,7 @@ onMounted(async () => {
 
   .highlight-item {
     min-height: 40px;
-    padding: 0 10px;
+    padding: 0 14px 0 11px;
     font-size: 11px;
   }
 
