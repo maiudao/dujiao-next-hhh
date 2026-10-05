@@ -86,6 +86,9 @@ func buildUpdateCouponInputFromRequest(req CreateCouponRequest) (couponapp.Updat
 
 // CreateCoupon 创建优惠券
 func (h *AdminHandler) CreateCoupon(c *gin.Context) {
+	ginutil.RespondError(c, response.CodeBadRequest, "error.coupons_disabled", nil)
+	return
+
 	var req CreateCouponRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		ginutil.RespondBindError(c, err)
@@ -116,6 +119,9 @@ func (h *AdminHandler) CreateCoupon(c *gin.Context) {
 
 // UpdateCoupon 更新优惠券
 func (h *AdminHandler) UpdateCoupon(c *gin.Context) {
+	ginutil.RespondError(c, response.CodeBadRequest, "error.coupons_disabled", nil)
+	return
+
 	couponID, err := ginutil.ParseParamUint(c, "id")
 	if err != nil {
 		ginutil.RespondError(c, response.CodeBadRequest, "error.bad_request", err)

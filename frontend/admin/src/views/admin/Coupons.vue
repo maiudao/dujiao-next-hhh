@@ -571,12 +571,6 @@ watch(
   <div class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <h1 class="text-2xl font-semibold">{{ t('admin.coupons.title') }}</h1>
-      <Button size="sm" class="w-full gap-2 sm:w-auto" @click="openCreateModal">
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        {{ t('admin.coupons.create') }}
-      </Button>
     </div>
 
     <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
@@ -692,7 +686,6 @@ watch(
             </TableCell>
             <TableCell class="min-w-[90px] px-6 py-4 text-right">
               <div class="flex items-center justify-end gap-2">
-                <Button size="sm" variant="outline" @click="openEditModal(coupon)">{{ t('admin.coupons.actions.edit') }}</Button>
                 <Button size="sm" variant="destructive" @click="handleDelete(coupon)">{{ t('admin.coupons.actions.delete') }}</Button>
               </div>
             </TableCell>
