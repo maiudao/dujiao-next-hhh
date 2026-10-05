@@ -951,6 +951,9 @@ onBeforeUnmount(() => {
             <div class="text-sm text-muted-foreground hidden sm:block">{{ t('admin.layout.workspace') }}</div>
           </div>
           <div class="flex items-center gap-2">
+            <Button v-if="authStore.hasPermission('GET:/admin/settings')" as-child variant="outline" size="sm" class="gap-2">
+              <RouterLink to="/settings?tab=storefront_mode"><ShoppingBag class="h-4 w-4" />营业状态 / 打烊</RouterLink>
+            </Button>
             <Select
               :model-value="locale"
               @update:modelValue="(value) => { if (value) applyLocale(String(value)) }"

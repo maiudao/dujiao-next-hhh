@@ -48,9 +48,8 @@
               v-else-if="userAuthStore.isAuthenticated"
               type="button"
               class="button-secondary button-secondary-authenticated"
-              disabled
               aria-label="已登录"
-              aria-disabled="true"
+              @click="router.push('/me')"
             >
               已登录
             </button>
@@ -1139,7 +1138,13 @@ onMounted(async () => {
 
   .story-highlights {
     margin-top: 19px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
+
+  .story-highlights .highlight-item { min-width: 0; justify-content: center; gap: 4px; min-height: 34px; padding: 0 6px; font-size: clamp(9px, 2.65vw, 11px); white-space: nowrap; }
+  .story-highlights .highlight-item svg { width: 13px; height: 13px; flex-shrink: 0; }
 
   .product-panel {
     grid-row: 3;

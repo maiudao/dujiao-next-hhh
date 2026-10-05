@@ -56,3 +56,11 @@ export function clampCharacterPosition(x: number, y: number, width: number, heig
     y: Math.max(82, Math.min(y, viewportHeight - height - 20)),
   }
 }
+
+// The handle is the anchor: changing or closing the bubble must not move the feet.
+export function clampCharacterAnchor(x: number, y: number, width: number, height: number, bubbleHeight: number, viewportWidth: number, viewportHeight: number) {
+  return {
+    x: Math.max(12, Math.min(x, viewportWidth - width - 12)),
+    y: Math.max(82 + bubbleHeight, Math.min(y, viewportHeight - height - 20)),
+  }
+}

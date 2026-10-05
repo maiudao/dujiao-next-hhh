@@ -256,7 +256,7 @@
               </div>
 
               <!-- Quantity Selector -->
-                <div class="mb-8">
+                <div v-if="Number(product.max_purchase_quantity) !== 1" class="mb-8">
                   <h2 class="mb-3 text-sm font-bold uppercase tracking-widest text-muted-foreground">
                     {{ t('productDetail.quantity') }}
                   </h2>

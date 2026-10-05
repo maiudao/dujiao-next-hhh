@@ -12,25 +12,26 @@
         </RouterLink>
 
         <nav class="flex gap-0.5 max-[900px]:hidden">
+          <button type="button" class="order-1 whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground" @click="contactOpen = true">联系方式</button>
           <template v-for="item in menuItems" :key="item.key">
             <RouterLink
               v-if="item.type === 'route'"
               :to="item.path"
               class="whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               active-class="!bg-primary/10 !text-primary"
+              :class="item.key === 'products' ? 'order-0' : 'order-2'"
             >{{ item.label }}</RouterLink>
             <a
               v-else
               :href="item.path"
               :target="item.target"
               rel="noopener noreferrer"
-              class="whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              class="order-2 whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >{{ item.label }}</a>
           </template>
         </nav>
 
         <div class="vault-toolbar ml-auto flex items-center gap-2 max-[900px]:gap-1.5">
-          <RouterLink class="grid h-10 w-10 flex-none place-items-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" to="/products" :aria-label="t('nav.products')"><Search class="h-[18px] w-[18px]" /></RouterLink>
           <RouterLink v-if="appStore.config?.guest_orders_enabled && !userAuthStore.isAuthenticated" class="grid h-10 w-10 flex-none place-items-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" to="/guest/orders" :aria-label="t('navbar.guestOrders')" :title="t('navbar.guestOrders')"><ClipboardList class="h-[18px] w-[18px]" /></RouterLink>
           <button class="grid h-10 w-10 flex-none place-items-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" type="button" :aria-label="t('resellerConsole.common.toggleTheme')" @click="toggleTheme">
             <Sun v-if="theme === 'dark'" class="h-[18px] w-[18px]" />
@@ -68,6 +69,7 @@
               <X v-else class="pointer-events-none h-[18px] w-[18px]" />
             </button>
             <div v-if="moreOpen" class="absolute right-0 top-[calc(100%+8px)] z-[60] flex min-w-[168px] flex-col gap-0.5 rounded-md border bg-card p-2 shadow-[var(--shadow-lg)]" @click.stop>
+              <button type="button" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground" @click="moreOpen = false; contactOpen = true">联系方式</button>
               <template v-for="item in menuItems" :key="`m-${item.key}`">
                 <RouterLink v-if="item.type === 'route'" :to="item.path" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</RouterLink>
                 <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</a>
@@ -93,7 +95,7 @@
 
     <!-- 页脚 -->
     <footer class="mt-[var(--gap-block)] border-t bg-[color:var(--bg-warm)]">
-      <div class="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-[30px] px-6 pb-9 pt-[52px] sm:grid-cols-2 lg:grid-cols-[1.7fr_repeat(3,1fr)]">
+      <div class="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-[30px] px-6 pb-9 pt-[52px] sm:grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr]">
         <div>
           <RouterLink class="inline-flex items-center gap-2.5 text-[19px] font-extrabold tracking-[-0.02em] text-foreground" to="/">
             <img :src="brandLogo || '/dj.svg'" :alt="brandName" class="h-8 max-w-[160px] object-contain" />
@@ -108,13 +110,6 @@
           <RouterLink to="/me" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary">{{ t('navbar.personalCenter') }}</RouterLink>
         </div>
         <div>
-          <h4 class="mb-3 text-sm font-bold">{{ t('vault.footer.support') }}</h4>
-          <RouterLink v-if="aboutEnabled" to="/about" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary"><Info class="h-4 w-4" /> {{ t('nav.about') }}</RouterLink>
-          <RouterLink v-if="appStore.config?.guest_orders_enabled && !userAuthStore.isAuthenticated" to="/guest/orders" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary"><ClipboardList class="h-4 w-4" /> {{ t('navbar.guestOrders') }}</RouterLink>
-          <a v-if="contact?.telegram" :href="contact.telegram" target="_blank" rel="noopener noreferrer" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary"><Send class="h-4 w-4" /> Telegram</a>
-          <a v-if="contact?.whatsapp" :href="contact.whatsapp" target="_blank" rel="noopener noreferrer" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary"><MessageCircle class="h-4 w-4" /> WhatsApp</a>
-        </div>
-        <div>
           <h4 class="mb-3 text-sm font-bold">{{ t('vault.footer.legal') }}</h4>
           <RouterLink to="/terms" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary">{{ t('footer.terms') }}</RouterLink>
           <RouterLink to="/privacy" class="flex items-center gap-[7px] py-[5px] text-[14.5px] text-muted-foreground hover:text-primary">{{ t('footer.privacy') }}</RouterLink>
@@ -122,6 +117,7 @@
         </div>
       </div>
     </footer>
+    <ContactDialog v-model:open="contactOpen" />
   </div>
 </template>
 
@@ -129,10 +125,10 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  Search, Moon, Sun, ShoppingCart, Languages, Menu, X, Info, ClipboardList,
-  LayoutGrid, Send, MessageCircle,
+  Moon, Sun, ShoppingCart, Languages, Menu, X, ClipboardList, LayoutGrid,
 } from 'lucide-vue-next'
 import { useAppStore } from '../../../stores/app'
+import ContactDialog from '../../../components/ContactDialog.vue'
 import { useCartStore } from '../../../stores/cart'
 import { useUserAuthStore } from '../../../stores/userAuth'
 import { useNavConfig, type NavItem } from '../../../composables/useNavConfig'
@@ -159,6 +155,7 @@ const { theme, toggleTheme } = useTheme()
 
 const langOpen = ref(false)
 const moreOpen = ref(false)
+const contactOpen = ref(false)
 const langEl = ref<HTMLElement | null>(null)
 const moreEl = ref<HTMLElement | null>(null)
 
@@ -171,7 +168,7 @@ const brandDescription = computed(() => {
   return '有售后保障'
 })
 
-const { isListMode, blogEnabled, noticeEnabled, aboutEnabled, secondaryNavItems } = useNavConfig()
+const { isListMode, secondaryNavItems, noticeEnabled, blogEnabled } = useNavConfig()
 
 const menuItems = computed<NavItem[]>(() => {
   const items: NavItem[] = []
@@ -196,7 +193,6 @@ const footerLinks = computed(() => {
     .filter((item) => item.name)
 })
 
-const contact = computed(() => appStore.config?.contact as { telegram?: string; whatsapp?: string } | undefined)
 
 const cartCount = computed(() => cartStore.totalItems)
 

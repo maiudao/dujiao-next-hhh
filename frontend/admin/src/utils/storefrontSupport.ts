@@ -4,6 +4,16 @@ export type SupportMode = 'open' | 'sampling'
 export interface SupportState { images: string[]; messages: string[] }
 export type StorefrontSupport = Record<SupportMode, SupportState>
 
+export type ContactKey = 'qq' | 'wechat' | 'telegram'
+export type StorefrontContacts = Record<ContactKey, { enabled: boolean; value: string }>
+export function createStorefrontContacts(raw?: any, legacyTelegram = ''): StorefrontContacts {
+  const entry = (key: ContactKey) => ({
+    enabled: raw ? raw[key]?.enabled === true : key === 'telegram' && !!legacyTelegram,
+    value: typeof raw?.[key]?.value === 'string' ? raw[key].value : (!raw && key === 'telegram' ? legacyTelegram : ''),
+  })
+  return { qq: entry('qq'), wechat: entry('wechat'), telegram: entry('telegram') }
+}
+
 export function createStorefrontSupport(raw?: any): StorefrontSupport {
   const normalize = (mode: SupportMode): SupportState => ({
     images: Array.isArray(raw?.[mode]?.images) && raw[mode].images.length

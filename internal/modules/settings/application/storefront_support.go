@@ -7,6 +7,24 @@ import (
 
 var supportImagePath = regexp.MustCompile(`(?i)^/(uploads|storefront)/[a-z0-9_./\-]+\.(png|jpe?g|webp|gif)$`)
 
+// Contact values stay private until the merchant explicitly enables their row.
+func normalizeStorefrontContacts(raw, legacy interface{}) map[string]interface{} {
+	config, configured := raw.(map[string]interface{})
+	contact, _ := legacy.(map[string]interface{})
+	result := make(map[string]interface{}, 3)
+	for _, key := range []string{"qq", "wechat", "telegram"} {
+		entry, _ := config[key].(map[string]interface{})
+		value := strings.TrimSpace(normalizeSettingTextWithRuneLimit(entry["value"], 180))
+		enabled, _ := entry["enabled"].(bool)
+		if !configured && key == "telegram" {
+			value = strings.TrimSpace(normalizeSettingTextWithRuneLimit(contact[key], 180))
+			enabled = value != ""
+		}
+		result[key] = map[string]interface{}{"value": value, "enabled": enabled}
+	}
+	return result
+}
+
 var defaultSupportImages = map[string][]interface{}{
 	"open":     {"/storefront/characters/gpt-normal.webp", "/storefront/characters/gpt-horizontal.webp", "/storefront/characters/gpt-link.webp", "/storefront/characters/gpt-move.webp", "/storefront/characters/gpt-vertical.webp", "/storefront/characters/gpt-working.webp", "/storefront/characters/gpt-handwriting.webp", "/storefront/characters/gpt-precision.webp", "/storefront/characters/gpt-diagonal1.webp", "/storefront/characters/gpt-pin.webp", "/storefront/characters/gpt-help.webp", "/storefront/characters/gpt-person.webp"},
 	"sampling": {"/storefront/characters/gpt-busy.webp", "/storefront/characters/gpt-text.webp", "/storefront/characters/gpt-unavailable.webp", "/storefront/characters/gpt-alternate.webp", "/storefront/characters/gpt-diagonal2.webp"},

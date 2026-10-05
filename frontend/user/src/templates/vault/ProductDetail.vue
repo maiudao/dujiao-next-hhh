@@ -156,7 +156,7 @@
           </div>
 
           <!-- 数量 -->
-          <div class="my-5">
+          <div v-if="Number(product.max_purchase_quantity) !== 1" class="my-5">
             <div class="mb-2.5 text-[13px] font-bold uppercase tracking-[0.04em] text-muted-foreground">{{ t('productDetail.quantity') }}</div>
             <div class="inline-flex items-center overflow-hidden rounded-full border-2 border-hairline-strong">
               <button type="button" class="grid h-11 w-[42px] place-items-center bg-card text-foreground disabled:opacity-35" :aria-label="t('productDetail.quantity')" :disabled="quantity <= quantityEffectiveMin" @click="quantity = Math.max(quantityEffectiveMin, quantity - 1)"><Minus class="h-[17px] w-[17px]" /></button>

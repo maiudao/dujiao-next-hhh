@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clampCharacterPosition, differentIndex, readSupportState, safeSupportImage } from '../src/utils/supportCharacter.ts'
+import { clampCharacterAnchor, clampCharacterPosition, differentIndex, readSupportState, safeSupportImage } from '../src/utils/supportCharacter.ts'
+import { visibleStorefrontContacts } from '../src/utils/storefrontContacts.ts'
 
 test('character assets stay on the shop and invalid lists fall back', () => {
   for (const image of ['https://other.test/a.png', '//other.test/a.png', '/uploads/../a.png', '/uploads/%2e%2e/a.png', '/uploads/a.svg']) {
@@ -27,4 +28,17 @@ test('each refresh can avoid the previous selection, including two assets', () =
 test('dragging keeps the whole character and bubble within the viewport', () => {
   assert.deepEqual(clampCharacterPosition(-100, -100, 190, 230, 390, 844), { x: 12, y: 82 })
   assert.deepEqual(clampCharacterPosition(1000, 1000, 190, 230, 390, 844), { x: 188, y: 594 })
+})
+
+test('character feet stay anchored when a fitting bubble opens or closes', () => {
+  assert.deepEqual(clampCharacterAnchor(204, 728, 160, 92, 120, 390, 844), { x: 204, y: 728 })
+  assert.deepEqual(clampCharacterAnchor(204, 728, 160, 92, 0, 390, 844), { x: 204, y: 728 })
+  assert.deepEqual(clampCharacterAnchor(-30, 20, 160, 92, 120, 390, 844), { x: 12, y: 202 })
+})
+
+test('contacts show only enabled, nonempty entries and explicit configuration disables legacy fallback', () => {
+  const rows = visibleStorefrontContacts({ qq: { enabled: false, value: 'private-number' }, wechat: { enabled: true, value: '' }, telegram: { enabled: true, value: 'https://t.me/example' } })
+  assert.deepEqual(rows.map(row => row.key), ['telegram'])
+  assert.equal(visibleStorefrontContacts({}, 'https://t.me/legacy').length, 0)
+  assert.equal(visibleStorefrontContacts(undefined, 'https://t.me/legacy').length, 1)
 })

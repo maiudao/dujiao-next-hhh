@@ -247,7 +247,7 @@
             </div>
 
             <!-- Quantity -->
-            <div class="mb-4 flex items-center gap-3">
+            <div v-if="Number(product.max_purchase_quantity) !== 1" class="mb-4 flex items-center gap-3">
               <span class="text-xs font-medium text-muted-foreground">{{ t('quickBuy.quantity') }}</span>
               <div class="flex items-center rounded-lg border overflow-hidden">
                 <button

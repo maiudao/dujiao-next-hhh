@@ -144,6 +144,7 @@ func (h *Handler) GetConfig(c *gin.Context) {
 
 	var cached map[string]interface{}
 	if hit, err := h.cache.GetJSON(c.Request.Context(), cacheKey, &cached); err == nil && hit {
+		redactStorefrontContacts(cached)
 		cached["server_time"] = time.Now().UnixMilli()
 		cached["app_version"] = version.Version
 		response.Success(c, cached)
@@ -241,6 +242,7 @@ func (h *Handler) GetConfig(c *gin.Context) {
 		data["tenant"] = map[string]interface{}{"mode": "main", "host": tenant.Host}
 	}
 
+	redactStorefrontContacts(data)
 	_ = h.cache.SetJSON(c.Request.Context(), cacheKey, data, publicConfigCacheTTL)
 	data["server_time"] = time.Now().UnixMilli()
 	data["app_version"] = version.Version

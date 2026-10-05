@@ -19,16 +19,17 @@
 
       <!-- Desktop Menu -->
       <div class="hidden lg:flex items-center space-x-1 min-w-0 overflow-x-auto scrollbar-hide">
+        <Button variant="ghost" size="sm" class="order-1 text-muted-foreground whitespace-nowrap shrink-0" @click="contactOpen = true">联系方式</Button>
         <template v-for="item in menuItems" :key="item.key">
           <Button v-if="item.type === 'route'" as-child variant="ghost" size="sm"
-            class="gap-1.5 text-muted-foreground whitespace-nowrap shrink-0">
+            class="gap-1.5 text-muted-foreground whitespace-nowrap shrink-0" :class="item.path === '/products' ? 'order-0' : 'order-2'">
             <router-link :to="item.path" active-class="!text-primary !bg-primary/10">
               <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-70" />
               <span>{{ item.label }}</span>
             </router-link>
           </Button>
           <Button v-else as-child variant="ghost" size="sm"
-            class="gap-1.5 text-muted-foreground whitespace-nowrap shrink-0">
+            class="order-2 gap-1.5 text-muted-foreground whitespace-nowrap shrink-0">
             <a :href="item.path" :target="item.target" rel="noopener noreferrer">
               <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-70" />
               <span>{{ item.label }}</span>
@@ -144,6 +145,7 @@
           </div>
 
           <!-- Navigation items not in bottom nav -->
+          <Button variant="ghost" class="w-full justify-start h-auto py-3 rounded-xl text-sm text-muted-foreground" @click="showMobileMenu = false; contactOpen = true">联系方式</Button>
           <template v-for="item in mobileDrawerItems" :key="item.key">
             <Button v-if="item.type === 'route'" as-child variant="ghost"
               class="w-full justify-start gap-3 h-auto py-3 rounded-xl text-sm text-muted-foreground [&_svg]:size-5">
@@ -189,12 +191,14 @@
       </div>
     </Transition>
   </Teleport>
+  <ContactDialog v-model:open="contactOpen" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '../stores/app'
+import ContactDialog from './ContactDialog.vue'
 import { useCartStore } from '../stores/cart'
 import { useUserAuthStore } from '../stores/userAuth'
 import { useTheme } from '../utils/theme'
@@ -215,6 +219,7 @@ const { theme, toggleTheme } = useTheme()
 const { primaryNavItems, secondaryNavItems } = useNavConfig()
 
 const showMobileMenu = ref(false)
+const contactOpen = ref(false)
 const langOpen = ref(false)
 const scrolled = ref(false)
 const cartBounce = ref(false)

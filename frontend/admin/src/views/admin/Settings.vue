@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { createStorefrontSupport } from '@/utils/storefrontSupport'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { createStorefrontSupport, createStorefrontContacts } from '@/utils/storefrontSupport'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
 import RichEditor from '@/components/RichEditor.vue'
@@ -65,7 +66,9 @@ const createFooterLinkItem = (): FooterLinkItem => ({
   url: '',
 })
 const currentLang = ref<SupportedLanguage>('zh-CN')
-const currentTab = ref('basic')
+const route = useRoute()
+const currentTab = ref(route.query.tab === 'storefront_mode' ? 'storefront_mode' : 'basic')
+watch(() => route.query.tab, value => { if (value === 'storefront_mode') currentTab.value = 'storefront_mode' })
 
 const languages = computed(() => [
   { code: 'zh-CN' as SupportedLanguage, name: t('admin.common.lang.zhCN') },
@@ -254,6 +257,7 @@ const form = reactive({
   home_landing: createHomeLandingForm(),
   storefront_mode: 'open' as 'open' | 'sampling',
   storefront_support: createStorefrontSupport(),
+  storefront_contacts: createStorefrontContacts(),
   storefront_sampling_labels: createStorefrontSamplingLabels(),
   storefront_template: 'classic' as 'classic' | 'vault',
   template_mode: 'card' as 'card' | 'list',
@@ -513,6 +517,7 @@ const fetchSettings = async () => {
 
       form.storefront_mode = String(data.storefront_mode || '').trim().toLowerCase() === 'sampling' ? 'sampling' : 'open'
       form.storefront_support = createStorefrontSupport(data.storefront_support)
+      form.storefront_contacts = createStorefrontContacts(data.storefront_contacts, form.contact.telegram)
       const samplingLabels = Array.isArray(data.storefront_sampling_labels) ? data.storefront_sampling_labels : []
       form.storefront_sampling_labels.splice(
         0,
@@ -687,6 +692,7 @@ const saveSiteSettings = async () => {
       home_landing: form.home_landing,
       storefront_mode: form.storefront_mode,
       storefront_support: form.storefront_support,
+      storefront_contacts: form.storefront_contacts,
       storefront_sampling_labels: form.storefront_sampling_labels,
       storefront_template: form.storefront_template,
       template_mode: form.template_mode,
@@ -1461,6 +1467,7 @@ onMounted(() => {
           :mode="form.storefront_mode"
           :current-lang="currentLang"
           v-model:support="form.storefront_support"
+          v-model:contacts="form.storefront_contacts"
           @mode-changed="form.storefront_mode = $event"
         />
       </TabsContent>

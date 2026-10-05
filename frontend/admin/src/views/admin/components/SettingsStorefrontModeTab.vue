@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label'
 import { notifyError, notifySuccess } from '@/utils/notify'
 import MediaPicker from '@/components/admin/MediaPicker.vue'
 import { Textarea } from '@/components/ui/textarea'
-import type { StorefrontSupport, SupportMode } from '@/utils/storefrontSupport'
+import type { StorefrontSupport, SupportMode, StorefrontContacts, ContactKey } from '@/utils/storefrontSupport'
+import { Switch } from '@/components/ui/switch'
 
 type SupportedLanguage = 'zh-CN' | 'zh-TW' | 'en-US'
 type SamplingLabel = Record<SupportedLanguage, string>
@@ -19,17 +20,27 @@ const props = defineProps<{
   modelValue: SamplingLabel[]
   currentLang: SupportedLanguage
   support: StorefrontSupport
+  contacts: StorefrontContacts
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: SamplingLabel[]]
   'mode-changed': [mode: 'open' | 'sampling']
   'update:support': [value: StorefrontSupport]
+  'update:contacts': [value: StorefrontContacts]
 }>()
 
 const { t } = useI18n()
 const submitting = ref(false)
 const supportModes: SupportMode[] = ['open', 'sampling']
+const contactTypes: { key: ContactKey; label: string; placeholder: string }[] = [
+  { key: 'qq', label: 'QQ', placeholder: '填写 QQ 号' },
+  { key: 'wechat', label: '微信', placeholder: '填写微信号' },
+  { key: 'telegram', label: 'Telegram', placeholder: '填写 Telegram 链接' },
+]
+function updateContact(key: ContactKey, field: 'value' | 'enabled', value: string | boolean | number) {
+  emit('update:contacts', { ...props.contacts, [key]: { ...props.contacts[key], [field]: value } })
+}
 
 const updateSupport = (mode: SupportMode, field: 'images' | 'messages', values: string[]) => {
   emit('update:support', { ...props.support, [mode]: { ...props.support[mode], [field]: values } })
@@ -122,12 +133,26 @@ const setMode = async (mode: 'open' | 'sampling') => {
       </div>
     </section>
     <section class="rounded-xl border border-border bg-card p-6">
+      <h2 class="text-lg font-semibold">联系方式</h2>
+      <p class="mt-2 text-sm text-muted-foreground">勾选“公开展示”后，访客可在顶部“联系方式”弹窗查看并复制。关闭展示会同时隐藏号码和链接；填写后记得保存更改。</p>
+      <div class="mt-5 grid gap-4">
+        <div v-for="item in contactTypes" :key="item.key" class="flex items-center gap-5">
+          <div class="w-24 shrink-0"><Label :for="`store-contact-${item.key}`">{{ item.label }}</Label></div>
+          <Input :id="`store-contact-${item.key}`" class="max-w-lg" :model-value="contacts[item.key].value" :placeholder="item.placeholder" :maxlength="180" @update:model-value="updateContact(item.key, 'value', $event)" />
+          <div class="flex items-center gap-2 whitespace-nowrap">
+            <Switch :id="`store-contact-visible-${item.key}`" :model-value="contacts[item.key].enabled" @update:model-value="updateContact(item.key, 'enabled', $event)" />
+            <Label :for="`store-contact-visible-${item.key}`">公开展示 {{ item.label }}</Label>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="rounded-xl border border-border bg-card p-6">
       <h2 class="text-lg font-semibold">客服角色与提示语</h2>
-      <p class="mt-2 text-sm text-muted-foreground">分别配置两个营业状态。刷新随机展示，点击角色或气泡切换提示；标题固定为“营业中”或“打样了”。编辑完成后点击页面的保存按钮。</p>
+      <p class="mt-2 text-sm text-muted-foreground">分别配置两个营业状态。刷新随机展示，点击角色或气泡切换提示；标题固定为“营业中”或“打烊中”。编辑完成后点击页面的保存按钮。</p>
       <div class="mt-6 grid gap-8 xl:grid-cols-2">
         <div v-for="stateMode in supportModes" :key="stateMode" class="space-y-5">
           <div class="border-b pb-3">
-            <h3 class="font-bold">{{ stateMode === 'open' ? '营业中' : '打样中' }}</h3>
+            <h3 class="font-bold">{{ stateMode === 'open' ? '营业中' : '打烊中' }}</h3>
           </div>
           <div>
             <Label>角色图片（最多 20 张）</Label>
@@ -137,7 +162,7 @@ const setMode = async (mode: 'open' | 'sampling') => {
           <div class="space-y-3">
             <Label>对话正文（最多 30 条）</Label>
             <div v-for="(message, index) in support[stateMode].messages" :key="index" class="flex items-start gap-2">
-              <Textarea :model-value="message" :maxlength="180" :rows="3" :aria-label="`${stateMode === 'open' ? '营业' : '打样'}提示 ${index + 1}`"
+              <Textarea :model-value="message" :maxlength="180" :rows="3" :aria-label="`${stateMode === 'open' ? '营业' : '打烊'}提示 ${index + 1}`"
                 class="flex-1" @update:model-value="editMessage(stateMode, index, $event)" />
               <Button type="button" variant="outline" :disabled="support[stateMode].messages.length <= 1" @click="removeMessage(stateMode, index)">删除</Button>
             </div>

@@ -32,7 +32,7 @@
     "defaultMessage": "頁面載入出錯，請重試"
   },
   "storefront": {
-    "samplingNotice": "店鋪目前處於打樣模式，暫不接受新訂單。已建立訂單的付款與處理不受影響。"
+    "samplingNotice": "店鋪目前處於打烊模式，暫不接受新訂單。已建立訂單的付款與處理不受影響。"
   },
   "formValidation": {
     "required": "此欄位為必填項",

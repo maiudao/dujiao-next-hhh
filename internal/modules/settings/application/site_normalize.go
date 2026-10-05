@@ -55,6 +55,7 @@ func normalizeSiteSetting(value map[string]interface{}) jsonmap.JSON {
 	normalized["home_landing"] = normalizeSiteLandingPage(value["home_landing"])
 	normalized["storefront_mode"] = normalizeSiteStorefrontMode(value["storefront_mode"])
 	normalized["storefront_support"] = normalizeStorefrontSupport(value["storefront_support"])
+	normalized["storefront_contacts"] = normalizeStorefrontContacts(value["storefront_contacts"], value["contact"])
 	normalized["storefront_sampling_labels"] = normalizeSiteStorefrontSamplingLabels(value["storefront_sampling_labels"])
 	normalized[constants.SettingFieldSiteCurrency] = normalizeSiteCurrency(value[constants.SettingFieldSiteCurrency])
 	normalized["template_mode"] = normalizeSiteTemplateMode(value["template_mode"])
