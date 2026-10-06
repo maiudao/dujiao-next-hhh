@@ -355,7 +355,7 @@ const loadProducts = async () => {
   loading.value = true
   loadError.value = false
   try {
-    const allProducts = await loadAllPages(async (page, pageSize) => {
+    const allProducts = await loadAllPages<{ sort_order?: number }>(async (page, pageSize) => {
       const response = await productAPI.list({ page, page_size: pageSize })
       const body = response.data
       return {
