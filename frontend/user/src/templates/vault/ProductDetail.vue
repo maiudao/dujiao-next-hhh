@@ -22,16 +22,16 @@
 
       <section class="grid gap-11 py-2.5 lg:grid-cols-2">
         <!-- 图区 -->
-        <div>
-          <div class="relative grid h-[380px] place-items-center overflow-hidden rounded-xl" :class="images.length ? '' : 'bg-[linear-gradient(135deg,#7b74f2,var(--red))]'">
+        <div class="product-detail-gallery flex min-w-0 flex-col gap-3.5 lg:min-h-0 lg:[contain:size]">
+          <div class="product-detail-main-image relative grid h-[380px] place-items-center overflow-hidden rounded-xl lg:h-auto lg:min-h-0 lg:flex-1" :class="images.length ? '' : 'bg-[linear-gradient(135deg,#7b74f2,var(--red))]'">
             <img v-if="currentImage" :src="currentImage" :alt="getLocalizedText(product.title)" class="absolute inset-0 h-full w-full object-cover" />
             <Package v-else class="h-[110px] w-[110px] text-white/95" />
           </div>
-          <div v-if="images.length > 1" class="mt-3.5 flex flex-wrap gap-3">
+          <div v-if="images.length > 1" class="product-detail-thumbnails flex shrink-0 flex-wrap gap-3 lg:flex-nowrap lg:overflow-x-auto">
             <button
               v-for="(img, idx) in images"
               :key="idx"
-              class="h-[60px] w-[74px] overflow-hidden rounded-md border-2 bg-secondary"
+              class="h-[60px] w-[74px] shrink-0 overflow-hidden rounded-md border-2 bg-secondary"
               :class="img === currentImage ? 'border-primary' : 'border-border'"
               @click="currentImage = img"
             >
@@ -41,7 +41,7 @@
         </div>
 
         <!-- 购买区 -->
-        <div>
+        <div class="product-detail-purchase min-w-0">
           <span v-if="categoryName" class="block truncate text-[13px] font-semibold text-muted-foreground">{{ categoryName }}</span>
           <h1 class="my-2 mb-3 text-[32px] font-extrabold">{{ getLocalizedText(product.title) }}</h1>
 

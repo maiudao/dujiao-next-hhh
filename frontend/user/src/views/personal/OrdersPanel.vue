@@ -41,8 +41,8 @@
       </div>
 
       <div class="rounded-2xl border bg-card p-4 shadow-sm">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
-          <div class="w-full lg:max-w-sm">
+        <div class="order-filter-row grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(9rem,12rem)_max-content] lg:items-end">
+          <div class="w-full min-w-0">
             <Label class="mb-1 block text-xs font-semibold text-muted-foreground">{{ t('orders.filters.keyword') }}</Label>
             <Input
               v-model="orderFilters.orderNo"
@@ -54,7 +54,7 @@
             />
           </div>
 
-          <div class="w-full lg:w-56">
+          <div class="w-full min-w-0">
             <Label class="mb-1 block text-xs font-semibold text-muted-foreground">{{ t('orders.filters.status') }}</Label>
             <Select v-model="orderStatusProxy">
               <SelectTrigger class="h-11 w-full"><SelectValue /></SelectTrigger>
@@ -66,7 +66,7 @@
             </Select>
           </div>
 
-          <div class="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+          <div class="order-filter-actions flex w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap">
             <Button type="button" class="h-11 font-bold" @click="applyOrderFilters">
               {{ t('orders.filters.search') }}
             </Button>
@@ -151,8 +151,8 @@
       </div>
 
       <div class="rounded-2xl border bg-card p-4 shadow-sm">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
-          <div class="w-full lg:max-w-sm">
+        <div class="order-filter-row grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(9rem,12rem)_max-content] lg:items-end">
+          <div class="w-full min-w-0">
             <Label class="mb-1 block text-xs font-semibold text-muted-foreground">{{ t('orders.rechargeFilters.keyword') }}</Label>
             <Input
               v-model="rechargeFilters.rechargeNo"
@@ -164,7 +164,7 @@
             />
           </div>
 
-          <div class="w-full lg:w-56">
+          <div class="w-full min-w-0">
             <Label class="mb-1 block text-xs font-semibold text-muted-foreground">{{ t('orders.filters.status') }}</Label>
             <Select v-model="rechargeStatusProxy">
               <SelectTrigger class="h-11 w-full"><SelectValue /></SelectTrigger>
@@ -176,7 +176,7 @@
             </Select>
           </div>
 
-          <div class="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+          <div class="order-filter-actions flex w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap">
             <Button type="button" class="h-11 font-bold" @click="applyRechargeFilters">
               {{ t('orders.filters.search') }}
             </Button>

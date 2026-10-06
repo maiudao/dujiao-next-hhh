@@ -21,14 +21,14 @@ const loginViewLoader: RouteComponentLoader = () => import('../views/auth/Login.
 const resellerLayoutLoader: RouteComponentLoader = () => import('../views/reseller/ResellerConsoleLayout.vue')
 
 const routeWarmupLoaders: RouteComponentLoader[] = [
-    productsViewLoader,
-    productDetailViewLoader,
-    cartViewLoader,
-    checkoutViewLoader,
-    paymentViewLoader,
-    blogViewLoader,
-    noticeViewLoader,
-    loginViewLoader,
+    templateView('Products', productsViewLoader),
+    templateView('ProductDetail', productDetailViewLoader),
+    templateView('Cart', cartViewLoader),
+    templateView('Checkout', checkoutViewLoader),
+    templateView('Payment', paymentViewLoader),
+    templateView('Blog', blogViewLoader),
+    templateView('Notice', noticeViewLoader),
+    templateView('auth/Login', loginViewLoader),
 ]
 
 let hasScheduledRouteWarmup = false
@@ -340,8 +340,8 @@ router.beforeEach(async (to, _from, next) => {
     }
     void captureAffiliateFromRoute(to)
 
-    // Ensure config is loaded before checking template mode
-    await appStore.loadConfig(true)
+    // 首次导航复用启动时取得的配置；后续切页仍刷新营业状态等业务配置。
+    await appStore.loadConfig(Boolean(_from.name))
 
     if (to.meta.requiresUserAuth) {
         if (!userAuthStore.isAuthenticated) {

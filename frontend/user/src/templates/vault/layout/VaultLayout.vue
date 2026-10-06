@@ -220,13 +220,9 @@ const onDocClick = (e: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener('click', onDocClick)
-  // Teleport 到 body 的浮层（Toast / ConfirmDialog / 公告弹窗 / Select 下拉）在
-  // .vault-scope 之外，靠 body 上的这个 class 拿到 vault 配色，详见 styles/vault.css
-  document.body.classList.add('vault-tokens')
 })
 onUnmounted(() => {
   document.removeEventListener('click', onDocClick)
-  document.body.classList.remove('vault-tokens')
 })
 </script>
 

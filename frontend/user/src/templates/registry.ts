@@ -14,6 +14,7 @@ export const STOREFRONT_TEMPLATES: StorefrontTemplate[] = ['classic', 'vault']
 export const DEFAULT_TEMPLATE: StorefrontTemplate = 'classic'
 
 const OVERRIDE_KEY = 'dj-storefront-template'
+let initializedTemplate: StorefrontTemplate | null = null
 
 const isTemplate = (value: unknown): value is StorefrontTemplate =>
     typeof value === 'string' && (STOREFRONT_TEMPLATES as string[]).includes(value)
@@ -48,6 +49,7 @@ export const initTemplateOverride = (): void => {
 
 /** 当前激活的店面模板。 */
 export const getActiveTemplate = (): StorefrontTemplate => {
+    if (initializedTemplate) return initializedTemplate
     const override = readOverride()
     if (override) return override
     try {
@@ -59,6 +61,15 @@ export const getActiveTemplate = (): StorefrontTemplate => {
     }
     return DEFAULT_TEMPLATE
 }
+
+// 配置加载成功后锁定本次访问的模板。业务配置照常刷新，模板修改在刷新页面后生效，
+// 避免路由缓存的页面组件与刷新后的外壳分属两套模板。
+export const initializeStorefrontTemplate = (): void => {
+    initializedTemplate ??= getActiveTemplate()
+}
+
+// 启动与 App 使用同一个导入入口，确保首次显示之前外壳及样式已加载完成。
+export const loadVaultLayout = () => import('./vault/layout/VaultLayout.vue')
 
 // vault 模板页面（按需动态加载）。key 形如 './vault/Home.vue'
 const vaultViews = import.meta.glob('./vault/**/*.vue')

@@ -4,9 +4,7 @@
     <VaultLayout v-if="isVault && !isResellerConsole">
       <ErrorBoundary>
         <RouterView v-slot="{ Component }">
-          <Transition name="page-fade" mode="out-in">
-            <component :is="Component" />
-          </Transition>
+          <component :is="Component" />
         </RouterView>
       </ErrorBoundary>
     </VaultLayout>
@@ -17,9 +15,7 @@
       <main class="flex-1" :class="isResellerConsole ? '' : 'pb-14 lg:pb-0'">
         <ErrorBoundary>
           <RouterView v-slot="{ Component }">
-            <Transition name="page-fade" mode="out-in">
-              <component :is="Component" />
-            </Transition>
+            <component :is="Component" />
           </RouterView>
         </ErrorBoundary>
       </main>
@@ -29,20 +25,17 @@
     </template>
 
     <SupportCharacter />
-    <Loading :loading="appStore.loading" />
     <Toast />
     <ConfirmDialog />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAppStore } from './stores/app'
-import { getActiveTemplate } from './templates/registry'
+import { getActiveTemplate, loadVaultLayout } from './templates/registry'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
-import Loading from './components/Loading.vue'
 import Toast from './components/Toast.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import ErrorBoundary from './components/ErrorBoundary.vue'
@@ -52,26 +45,20 @@ import SupportCharacter from './components/SupportCharacter.vue'
 import { useStorefrontRefresh } from './composables/useStorefrontRefresh'
 
 // vault 外壳按需加载，classic 用户不会拉取其 chunk/样式
-const VaultLayout = defineAsyncComponent(() => import('./templates/vault/layout/VaultLayout.vue'))
+const VaultLayout = defineAsyncComponent(loadVaultLayout)
 
 // config 由 router.beforeEach 统一加载，无需在此重复调用
-const appStore = useAppStore()
 useStorefrontRefresh()
 const route = useRoute()
 const isResellerConsole = computed(() => route.meta.resellerConsole === true)
-// getActiveTemplate 读取 appStore.config（响应式），config 加载后会重新计算
+// 启动时确定模板，外壳与路由始终使用同一份选择。
 const isVault = computed(() => getActiveTemplate() === 'vault')
+// 首次渲染前给 body 的弹窗/提示同步配色，不等异步外壳的 mounted。
+watch([isVault, isResellerConsole], ([vault, consolePage]) => {
+  document.body.classList.toggle('vault-tokens', vault && !consolePage)
+}, { immediate: true, flush: 'sync' })
 </script>
 
 <style>
 .storefront-payment-closed:disabled { background: var(--ui-bg-secondary, #eef0f4); color: var(--ui-text-secondary, #646b7b); border: 1px solid var(--ui-border, #d9dce5); opacity: 1; cursor: not-allowed; }
-.page-fade-enter-active,
-.page-fade-leave-active {
-  transition: opacity 200ms ease;
-}
-
-.page-fade-enter-from,
-.page-fade-leave-to {
-  opacity: 0;
-}
 </style>

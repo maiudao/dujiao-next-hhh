@@ -8,7 +8,7 @@
            Toast / ConfirmDialog / 公告弹窗 / reka-ui 的 SelectContent 等浮层都
            Teleport 到 <body>，落在 .vault-scope 之外。只写 .vault-scope 的话这些
            浮层会退回 classic 的 --ui-* 调色板（蓝 #0071e3），与 vault 的靛蓝页面
-           撞色。body 上的 class 由 VaultLayout 挂载时打上、卸载时摘掉。
+           撞色。body 上的 class 由 App 在首次渲染及路由切换前统一同步。
            注意：只有「令牌」双挂，背景/flex 布局那几条仍只作用于 .vault-scope，
            否则会改掉 body 自身的布局。
 

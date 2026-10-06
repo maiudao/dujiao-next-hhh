@@ -6,6 +6,26 @@
   <meta name="google" content="notranslate" />
   <meta http-equiv="Content-Language" content="zh-CN" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script data-cfasync="false">
+    // 在模块与样式到达前恢复主题，避免深色用户先看到白色背景。
+    try {
+      const saved = localStorage.getItem('dujiao_theme')
+      document.documentElement.classList.toggle('dark', saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches))
+    } catch {
+      document.documentElement.classList.toggle('dark', matchMedia('(prefers-color-scheme: dark)').matches)
+    }
+  </script>
+  <style>
+    html:not([data-storefront-ready]) { background: #f7f7fb; }
+    html.dark:not([data-storefront-ready]) { background: #15151f; color-scheme: dark; }
+    body { margin: 0; }
+    .storefront-startup-error { box-sizing: border-box; max-width: 380px; margin: 18vh auto; padding: 28px; border-radius: 16px; background: var(--ui-bg-elevated, #fff); color: var(--ui-text-primary, #25253a); font-family: system-ui, sans-serif; }
+    .storefront-startup-error h1 { margin: 0 0 12px; font-size: 21px; }
+    .storefront-startup-error p { margin: 0 0 20px; font-size: 14px; line-height: 1.7; }
+    .storefront-startup-error button { min-height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: #5145ed; color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+    .storefront-startup-error button:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+    @media (max-width: 420px) { .storefront-startup-error { margin-inline: 20px; } }
+  </style>
   <title></title>
 </head>
 
