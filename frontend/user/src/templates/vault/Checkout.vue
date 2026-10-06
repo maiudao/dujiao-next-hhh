@@ -113,7 +113,7 @@
       <!-- 右栏：汇总 + 支付 -->
       <aside class="sticky top-[90px] rounded-xl border bg-card p-[22px]">
         <h2 class="mb-2.5 text-lg font-bold">{{ t('checkout.submitTitle') }}</h2>
-        <p class="mb-4 rounded-sm border bg-secondary px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">{{ t('checkout.submitHint') }}</p>
+        <p class="mb-4 rounded-sm border bg-secondary px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">{{ samplingMode ? samplingNotice : t('checkout.submitHint') }}</p>
 
         <div class="grid gap-2.5">
           <div class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('cart.itemsCount') }}</span><span class="font-semibold text-foreground">{{ totalItems }}</span></div>
@@ -166,8 +166,8 @@
           <div v-if="!requiresOnlineChannel" class="text-[13px] text-[color:var(--teal-strong)]">{{ t('checkout.walletCoversAll') }}</div>
         </div>
 
-        <Button class="h-11 w-full rounded-full font-bold" :disabled="!canSubmit" @click="handleSubmit">
-          {{ submitting ? t('checkout.submitting') : t('checkout.submitButton') }}
+        <Button class="h-11 w-full rounded-full font-bold" :class="{ 'storefront-payment-closed': samplingMode }" :disabled="!canSubmit" @click="handleSubmit">
+          {{ samplingMode ? closedPaymentLabel : (submitting ? t('checkout.submitting') : t('checkout.submitButton')) }}
         </Button>
       </aside>
     </div>
@@ -203,7 +203,7 @@ const {
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents,
   requiresOnlineChannel, paymentChannels, selectedChannelId, isChannelDisabledForAmount, channelAmountLimitHint,
   handleSelectChannel, paymentChannelLabel, paymentChannelIcon, formatChannelFeeRate, formatChannelFixedFee,
-  submitting, canSubmit, handleSubmit,
+  submitting, canSubmit, handleSubmit, closedPaymentLabel, samplingMode, samplingNotice,
 } = useCheckout()
 
 // 字符串模板 ref，逻辑在 composable 内，显式标记避免 noUnusedLocals 误报。

@@ -1,6 +1,6 @@
 <template>
   <RouterLink :to="`/products/${product.slug}`" custom v-slot="{ href, navigate }">
-  <component :is="samplingMode ? 'div' : 'a'" :href="samplingMode ? undefined : href" class="flex h-full flex-col gap-2.5 rounded-lg border bg-card p-3 text-left" :class="samplingMode ? 'cursor-not-allowed grayscale opacity-75' : [soldOut ? 'opacity-[0.74]' : '', 'transition hover:-translate-y-[3px] hover:border-hairline-strong hover:shadow-[var(--shadow)]']" :aria-disabled="samplingMode" @click="samplingMode ? undefined : navigate($event)">
+  <a :href="href" class="flex h-full flex-col gap-2.5 rounded-lg border bg-card p-3 text-left transition hover:-translate-y-[3px] hover:border-hairline-strong hover:shadow-[var(--shadow)]" :class="soldOut ? 'opacity-[0.74]' : ''" @click="navigate($event)">
     <div class="flex flex-col items-stretch gap-[11px]">
       <span
         class="relative grid h-[152px] w-full flex-none place-items-center overflow-hidden rounded-[13px] will-change-transform after:absolute after:inset-0 after:bg-[radial-gradient(130%_80%_at_78%_14%,rgba(255,255,255,0.26),transparent_56%)]"
@@ -46,20 +46,11 @@
         </div>
         <span v-if="priceSignal" class="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="priceSignal.tone">{{ priceSignal.label }}</span>
       </div>
-      <span v-if="samplingMode" class="inline-flex flex-none items-center rounded-full border border-border bg-muted px-3.5 py-1.5 text-[13px] font-bold text-muted-foreground" aria-disabled="true">{{ samplingLabelFor(product) }}</span>
-      <span v-else-if="soldOut" class="inline-flex flex-none items-center rounded-full border-2 border-hairline-strong px-3.5 py-1.5 text-[13px] font-bold text-foreground" aria-disabled="true">{{ t('products.stockStatus.outOfStock') }}</span>
-      <button
-        v-else
-        type="button"
-        class="inline-flex flex-none items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-bold text-white transition hover:bg-primary/90"
-        :aria-label="t('products.quickBuyAria')"
-        @click.prevent.stop="$emit('quickBuy', product)"
-      >
-        <Zap class="h-3.5 w-3.5" />
-        {{ t('products.quickBuy') }}
-      </button>
+      <span class="inline-flex flex-none items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-bold text-white">
+        <Package class="h-3.5 w-3.5" />查看详情
+      </span>
     </div>
-  </component>
+  </a>
   </RouterLink>
 </template>
 

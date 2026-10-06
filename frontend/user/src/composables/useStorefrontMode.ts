@@ -34,6 +34,11 @@ export function useStorefrontMode() {
     return labels[Math.abs(hash) % labels.length] ?? labels[0] ?? '今日暂停营业'
   }
   const samplingNotice = computed(() => t('storefront.samplingNotice'))
+  const closedPaymentLabel = '已打烊，暂不能支付'
+  const refreshBeforePayment = async () => {
+    if (!await appStore.loadConfig(true)) throw new Error('暂时无法确认营业状态，请检查网络后重试。')
+    if (samplingMode.value) throw new Error(samplingNotice.value)
+  }
 
-  return { samplingMode, samplingLabelFor, samplingNotice }
+  return { samplingMode, samplingLabelFor, samplingNotice, closedPaymentLabel, refreshBeforePayment }
 }

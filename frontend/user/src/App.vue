@@ -49,12 +49,14 @@ import ErrorBoundary from './components/ErrorBoundary.vue'
 import BackToTop from './components/BackToTop.vue'
 import MobileBottomNav from './components/MobileBottomNav.vue'
 import SupportCharacter from './components/SupportCharacter.vue'
+import { useStorefrontRefresh } from './composables/useStorefrontRefresh'
 
 // vault 外壳按需加载，classic 用户不会拉取其 chunk/样式
 const VaultLayout = defineAsyncComponent(() => import('./templates/vault/layout/VaultLayout.vue'))
 
 // config 由 router.beforeEach 统一加载，无需在此重复调用
 const appStore = useAppStore()
+useStorefrontRefresh()
 const route = useRoute()
 const isResellerConsole = computed(() => route.meta.resellerConsole === true)
 // getActiveTemplate 读取 appStore.config（响应式），config 加载后会重新计算
@@ -62,6 +64,7 @@ const isVault = computed(() => getActiveTemplate() === 'vault')
 </script>
 
 <style>
+.storefront-payment-closed:disabled { background: var(--ui-bg-secondary, #eef0f4); color: var(--ui-text-secondary, #646b7b); border: 1px solid var(--ui-border, #d9dce5); opacity: 1; cursor: not-allowed; }
 .page-fade-enter-active,
 .page-fade-leave-active {
   transition: opacity 200ms ease;

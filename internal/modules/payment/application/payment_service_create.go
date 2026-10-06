@@ -76,6 +76,15 @@ func (s *PaymentService) CreatePayment(input CreatePaymentInput) (*CreatePayment
 
 	// 在事务外查询设置，避免 SQLite 单连接池下自锁
 	walletOnly := s.settingService != nil && s.settingService.GetWalletOnlyPayment()
+	// Read settings before the transaction: SQLite may use a single connection.
+	storefrontPaused := false
+	var storefrontErr error
+	if s.settingService != nil {
+		var setting map[string]interface{}
+		setting, storefrontErr = s.settingService.GetByKey(constants.SettingKeySiteConfig)
+		mode, _ := setting["storefront_mode"].(string)
+		storefrontPaused = strings.EqualFold(strings.TrimSpace(mode), "sampling")
+	}
 	if walletOnly {
 		input.UseBalance = true
 		if input.ChannelID != 0 {
@@ -92,6 +101,14 @@ func (s *PaymentService) CreatePayment(input CreatePaymentInput) (*CreatePayment
 			return orderapp.ErrOrderNotFound
 		}
 		lockedOrder := *preloaded
+		if lockedOrder.ResellerID == nil {
+			if storefrontErr != nil {
+				return storefrontErr
+			}
+			if storefrontPaused {
+				return orderapp.ErrStorefrontPaused
+			}
+		}
 		if lockedOrder.ParentID != nil {
 			return ErrPaymentInvalid
 		}

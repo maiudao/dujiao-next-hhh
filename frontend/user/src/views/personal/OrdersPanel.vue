@@ -124,9 +124,10 @@
               <Button as-child variant="outline" size="sm">
                 <router-link :to="`/orders/${order.order_no}`">{{ t('orders.viewDetails') }}</router-link>
               </Button>
-              <Button v-if="order.status === 'pending_payment'" as-child size="sm">
+              <Button v-if="order.status === 'pending_payment' && !samplingMode" as-child size="sm">
                 <router-link :to="`/pay?order_no=${order.order_no}`">{{ t('orders.payNow') }}</router-link>
               </Button>
+              <Button v-if="order.status === 'pending_payment' && samplingMode" size="sm" disabled>{{ closedPaymentLabel }}</Button>
             </div>
           </div>
         </div>
@@ -245,6 +246,7 @@ import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ShoppingBag, Layers, Clock, CheckCircle2, Wallet } from 'lucide-vue-next'
 import { userOrderAPI } from '../../api'
+import { useStorefrontMode } from '../../composables/useStorefrontMode'
 import { walletAPI } from '../../api/wallet'
 import { orderStatusVariant, orderStatusLabel, type BadgeTone } from '../../utils/status'
 import { debounceAsync } from '../../utils/debounce'
@@ -260,6 +262,7 @@ import PanelHeading from '../../components/shared/PanelHeading.vue'
 import StatCard from '../../components/shared/StatCard.vue'
 
 const { t } = useI18n()
+const { samplingMode, closedPaymentLabel } = useStorefrontMode()
 
 
 // ========== Tab 状态 ==========

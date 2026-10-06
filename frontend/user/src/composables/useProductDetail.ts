@@ -309,8 +309,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     if (limit === null) return false
     return limit < quantityEffectiveMin.value
   })
-  const canPurchase = computed(() => {
-    if (samplingMode.value) return false
+  const canAddToCart = computed(() => {
     if (!product.value) return false
     if (activeSkus.value.length === 0) return false
     if (product.value.is_sold_out) return false
@@ -320,6 +319,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     if (stockBelowMinPurchase.value) return false
     return true
   })
+  const canPurchase = computed(() => !samplingMode.value && canAddToCart.value)
   const cannotPurchaseReason = computed(() => {
     if (!product.value) return ''
     if (samplingMode.value) return samplingNotice.value
@@ -417,7 +417,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
 
   const addToCart = () => {
     if (!product.value) return
-    if (!canPurchase.value) return
+    if (!canAddToCart.value) return
     purchaseWarning.value = ''
     if (requiresLogin.value) {
       router.push(`/auth/login?redirect=${encodeURIComponent(route.fullPath)}`)
@@ -692,7 +692,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
     // 购买能力
     purchaseType, requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason,
-    samplingMode, samplingNotice,
+    samplingMode, samplingNotice, canAddToCart,
     categoryName, images,
     // 动作
     addToCart, buyNow, goLogin, loadProduct,

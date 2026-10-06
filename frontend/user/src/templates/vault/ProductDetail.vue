@@ -173,14 +173,14 @@
           <div ref="purchaseActionsRef" class="mt-[18px] flex flex-wrap gap-3">
             <Button v-if="requiresLogin && !samplingMode" class="h-12 w-full rounded-full text-[17px] font-bold" @click="goLogin">{{ t('productDetail.loginToBuy') }}</Button>
             <template v-else>
-              <Button class="h-12 flex-1 rounded-full text-[17px] font-bold" :disabled="!canPurchase" @click="buyNow"><Zap /> {{ t('productDetail.buyNow') }}</Button>
-              <Button variant="outline" class="h-12 rounded-full text-[17px] font-bold" :disabled="!canPurchase" @click="addToCart"><ShoppingCart /> {{ t('productDetail.addToCart') }}</Button>
+              <Button class="h-12 flex-1 rounded-full text-[17px] font-bold" :class="{ 'storefront-payment-closed': samplingMode }" :disabled="!canPurchase" @click="buyNow"><Zap /> {{ samplingMode ? '已打烊，暂不能支付' : t('productDetail.buyNow') }}</Button>
+              <Button variant="outline" class="h-12 rounded-full text-[17px] font-bold" :disabled="!canAddToCart" @click="addToCart"><ShoppingCart /> {{ t('productDetail.addToCart') }}</Button>
             </template>
           </div>
 
           <div class="mt-4 flex items-center gap-3 rounded-md bg-[color:var(--teal-soft)] px-[18px] py-3.5 text-[color:var(--teal-strong)]">
             <TicketCheck class="h-[22px] w-[22px] flex-none" />
-            <span class="text-sm font-semibold">{{ t('productDetail.deliveryReassurance') }}</span>
+            <span class="text-sm font-semibold">{{ samplingMode ? samplingNotice : t('productDetail.deliveryReassurance') }}</span>
           </div>
         </div>
       </section>
@@ -218,6 +218,8 @@
         :visible="showMobileBar && !!product && !loading"
         :requires-login="requiresLogin && !samplingMode"
         :can-purchase="canPurchase"
+        :can-add-to-cart="canAddToCart"
+        :sampling-mode="samplingMode"
         :show-member-price="mobileBarShowMemberPrice"
         :member-price-display="mobileBarMemberPriceDisplay"
         :show-sku-promotion-price="mobileBarShowSkuPromotionPrice"
@@ -293,7 +295,7 @@ const {
   showSelectedSkuMemberBadge,
   isSkuPurchasable, skuDisplayText, skuStockText,
   quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
-  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason, samplingMode,
+  requiresLogin, requiresSKUSelection, canPurchase, canAddToCart, cannotPurchaseReason, samplingMode, samplingNotice,
   categoryName, images,
   addToCart, buyNow, goLogin, loadProduct,
   mobileBarShowMemberPrice, mobileBarMemberPriceDisplay,

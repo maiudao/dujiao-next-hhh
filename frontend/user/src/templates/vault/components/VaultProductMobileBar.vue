@@ -23,11 +23,11 @@
         <!-- 操作 -->
         <Button v-if="requiresLogin" size="lg" class="flex-none rounded-full font-bold" @click="$emit('goLogin')">{{ t('productDetail.loginToBuy') }}</Button>
         <template v-else>
-          <Button variant="outline" size="lg" class="flex-none rounded-full font-bold" :disabled="!canPurchase" @click="$emit('addToCart')">
+          <Button variant="outline" size="lg" class="flex-none rounded-full font-bold" :disabled="!canAddToCart" @click="$emit('addToCart')">
             <ShoppingCart /> {{ t('productDetail.addToCart') }}
           </Button>
-          <Button size="lg" class="flex-none rounded-full font-bold" :disabled="!canPurchase" @click="$emit('buyNow')">
-            <Zap /> {{ t('productDetail.buyNow') }}
+          <Button size="lg" class="flex-none rounded-full font-bold" :class="{ 'storefront-payment-closed': samplingMode }" :disabled="!canPurchase" @click="$emit('buyNow')">
+            <Zap /> {{ samplingMode ? '已打烊' : t('productDetail.buyNow') }}
           </Button>
         </template>
       </div>
@@ -46,6 +46,8 @@ defineProps<{
   visible: boolean
   requiresLogin: boolean
   canPurchase: boolean
+  canAddToCart: boolean
+  samplingMode: boolean
   showMemberPrice: boolean
   memberPriceDisplay: string
   showSkuPromotionPrice: boolean

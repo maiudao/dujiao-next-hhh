@@ -32,11 +32,11 @@
           {{ t('productDetail.loginToBuy') }}
         </Button>
         <template v-else>
-          <Button variant="secondary" size="lg" class="rounded-xl font-bold" :disabled="!canPurchase" @click="$emit('addToCart')">
+          <Button variant="secondary" size="lg" class="rounded-xl font-bold" :disabled="!canAddToCart" @click="$emit('addToCart')">
             {{ t('productDetail.addToCart') }}
           </Button>
-          <Button size="lg" class="rounded-xl font-bold" :disabled="!canPurchase" @click="$emit('buyNow')">
-            {{ t('productDetail.buyNow') }}
+          <Button size="lg" class="rounded-xl font-bold" :class="{ 'storefront-payment-closed': samplingMode }" :disabled="!canPurchase" @click="$emit('buyNow')">
+            {{ samplingMode ? '已打烊' : t('productDetail.buyNow') }}
           </Button>
         </template>
       </div>
@@ -54,6 +54,8 @@ defineProps<{
   visible: boolean
   requiresLogin: boolean
   canPurchase: boolean
+  canAddToCart: boolean
+  samplingMode: boolean
   showMemberPrice: boolean
   memberPriceDisplay: string
   showSkuPromotionPrice: boolean

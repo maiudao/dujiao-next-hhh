@@ -65,7 +65,7 @@
         :action-to="backLink"
       />
 
-      <div v-else-if="showResultView" class="space-y-6">
+      <div v-else-if="showResultView && !samplingMode" class="space-y-6">
         <div class="border bg-card text-card-foreground shadow-sm rounded-2xl p-6">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -325,7 +325,7 @@
             </template>
           </div>
 
-          <div v-if="paymentResult"
+          <div v-if="paymentResult && !samplingMode"
             class="border bg-card text-card-foreground shadow-sm rounded-2xl p-6">
             <h2 class="text-lg font-bold mb-4 text-foreground">{{ t('payment.infoTitle') }}</h2>
             <div class="text-sm text-muted-foreground space-y-2">
@@ -429,9 +429,10 @@
             {{ t('payment.selectChannelError') }}
           </div>
 
-          <Button class="w-full font-semibold" :disabled="!canSubmitPayment" @click="handlePayment">
-            {{ submitting ? t('payment.submitting') : t('payment.submitButton') }}
+          <Button class="w-full font-semibold" :class="{ 'storefront-payment-closed': samplingMode }" :disabled="!canSubmitPayment" @click="handlePayment">
+            {{ samplingMode ? closedPaymentLabel : (submitting ? t('payment.submitting') : t('payment.submitButton')) }}
           </Button>
+          <p v-if="samplingMode" role="status" class="mt-3 text-sm leading-relaxed text-muted-foreground">{{ samplingNotice }}</p>
           <Button variant="secondary" class="w-full mt-3 font-semibold" :disabled="loading" @click="handleRefresh">
             {{ t('payment.refreshStatus') }}
           </Button>
@@ -468,7 +469,7 @@ const {
   orderExpired, orderCanceled, paymentAlert, countdownExpired, countdownText, showCountdown, showResultView, pollingActive, orderItems,
   customerFeeApplied, customerFeeAmountDisplay, payableAmountDisplay, walletBalanceDisplay,
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents, requiresOnlineChannel,
-  paymentWalletPaidDisplay, paymentOnlinePayDisplay, isChannelDisabledForAmount, channelAmountLimitHint, canSubmitPayment,
+  paymentWalletPaidDisplay, paymentOnlinePayDisplay, isChannelDisabledForAmount, channelAmountLimitHint, canSubmitPayment, samplingMode, samplingNotice, closedPaymentLabel,
   formatDate, statusLabel, formatMoney, hasDiscountAmount, formatDiscountMoney, getLocalizedText, orderItemSkuText, fulfillmentTypeLabelText,
   handleCopyPayLink, handleCopyWalletAddress, handleOpenPayLink, restoreCachedPayment, handleChangePaymentMethod,
   handlePayment, handleGuestAuthSubmit, handleRefresh,

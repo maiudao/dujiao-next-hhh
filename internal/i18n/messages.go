@@ -16,6 +16,7 @@ const (
 
 var messages = map[string]map[string]string{
 	LocaleZH: {
+		"error.storefront_paused":                        "小店已打烊，请留意开店时间，或联系店主咨询。",
 		"error.jwt_secret_missing":                       "JWT secret 未配置",
 		"error.auth_header_missing":                      "缺少 Authorization header",
 		"error.auth_header_invalid":                      "Authorization header 格式错误",
@@ -375,6 +376,7 @@ var messages = map[string]map[string]string{
 		"error.invalid_product_status":           "无效的商品状态参数",
 	},
 	LocaleTW: {
+		"error.storefront_paused":                        "小店已打烊，請留意開店時間，或聯絡店主諮詢。",
 		"error.jwt_secret_missing":                       "JWT secret 未配置",
 		"error.auth_header_missing":                      "缺少 Authorization header",
 		"error.auth_header_invalid":                      "Authorization header 格式錯誤",
@@ -734,6 +736,7 @@ var messages = map[string]map[string]string{
 		"error.invalid_product_status":           "無效的商品狀態參數",
 	},
 	LocaleEN: {
+		"error.storefront_paused":                        "The shop is closed. Please check opening hours or contact the owner.",
 		"error.jwt_secret_missing":                       "JWT secret is not configured",
 		"error.auth_header_missing":                      "Missing Authorization header",
 		"error.auth_header_invalid":                      "Invalid Authorization header format",

@@ -52,7 +52,7 @@ export function useCheckout() {
   const appStore = useAppStore()
   const userAuthStore = useUserAuthStore()
   const { t } = useI18n()
-  const { samplingMode, samplingNotice } = useStorefrontMode()
+  const { samplingMode, samplingNotice, closedPaymentLabel, refreshBeforePayment } = useStorefrontMode()
 
   const { getLocalizedText, siteCurrency, formatPrice } = useLocalized()
   const { resolveWholesalePriceAmount } = useProductLabels()
@@ -714,6 +714,12 @@ export function useCheckout() {
   }
 
   const loadPreview = async () => {
+    if (samplingMode.value) {
+      preview.value = null
+      orderPaymentChannels.value = []
+      previewError.value = ''
+      return
+    }
     if (syncingStock.value) {
       preview.value = null
       orderPaymentChannels.value = []
@@ -784,6 +790,18 @@ export function useCheckout() {
   }
 
   const debouncedLoadPreview = debounceAsync(loadPreview, 300)
+  watch(samplingMode, closed => {
+    error.value = ''
+    previewError.value = ''
+    if (closed) {
+      previewRequestId.value++
+      previewLoading.value = false
+      preview.value = null
+      debouncedLoadPreview.cancel()
+    } else {
+      void debouncedLoadPreview()
+    }
+  })
 
   const loadPreviewNow = async () => {
     debouncedLoadPreview.cancel()
@@ -803,6 +821,8 @@ export function useCheckout() {
     submitAttempted.value = true
     error.value = ''
     previewError.value = ''
+    try { await refreshBeforePayment() }
+    catch (err: any) { error.value = err.message; return }
     if (!canSubmit.value) {
       error.value = submitBlockedReason.value || t('checkout.errors.submitFailed')
       return
@@ -1126,6 +1146,7 @@ export function useCheckout() {
     manualFieldError,
     isResellerTenant,
     samplingMode,
+    closedPaymentLabel,
     samplingNotice,
     // mode select / guest
     checkoutMode,

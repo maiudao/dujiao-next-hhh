@@ -162,7 +162,7 @@
         <div class="h-fit rounded-2xl border bg-card text-card-foreground p-6 lg:sticky lg:top-24">
           <h2 class="mb-4 text-lg font-bold text-foreground">{{ t('checkout.submitTitle') }}</h2>
           <div class="mb-4 rounded-lg border bg-secondary p-3 text-xs text-muted-foreground">
-            {{ t('checkout.submitHint') }}
+            {{ samplingMode ? samplingNotice : t('checkout.submitHint') }}
           </div>
 
           <div class="mb-4 space-y-3 text-sm text-muted-foreground">
@@ -241,10 +241,11 @@
           <Button
             size="lg"
             class="w-full font-semibold"
+            :class="{ 'storefront-payment-closed': samplingMode }"
             :disabled="!canSubmit"
             @click="handleSubmit"
           >
-            {{ submitting ? t('checkout.submitting') : t('checkout.submitButton') }}
+            {{ samplingMode ? closedPaymentLabel : (submitting ? t('checkout.submitting') : t('checkout.submitButton')) }}
           </Button>
         </div>
       </div>
@@ -284,7 +285,7 @@ const {
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents,
   requiresOnlineChannel, paymentChannels, selectedChannelId, isChannelDisabledForAmount, channelAmountLimitHint,
   handleSelectChannel, paymentChannelLabel, paymentChannelIcon, formatChannelFeeRate, formatChannelFixedFee,
-  submitting, canSubmit, handleSubmit,
+  submitting, canSubmit, handleSubmit, closedPaymentLabel, samplingMode, samplingNotice,
 } = useCheckout()
 
 // 这两个引用仅通过模板字符串 ref 绑定（刷新/重置逻辑在 composable 内），

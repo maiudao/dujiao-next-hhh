@@ -34,6 +34,16 @@ var defaultSupportImages = map[string][]interface{}{
 func normalizeStorefrontSupport(raw interface{}) map[string]interface{} {
 	config, _ := raw.(map[string]interface{})
 	result := make(map[string]interface{}, 2)
+	paidMessage := strings.TrimSpace(normalizeSettingTextWithRuneLimit(config["paid_order_message"], 300))
+	if paidMessage == "" {
+		paidMessage = "订单已付款。可以点击顶部栏的联系方式，联系店主确认处理进度；咨询时请附上订单号。打烊期间回复可能稍晚，请留意开店时间。"
+	}
+	result["paid_order_message"] = paidMessage
+	deliveredMessage := strings.TrimSpace(normalizeSettingTextWithRuneLimit(config["delivered_order_message"], 300))
+	if deliveredMessage == "" {
+		deliveredMessage = "订单已交付成功，请查看本页“订单交付”里的“交付结果”，那里是店主发送给你的内容。使用方法请查看下方“使用说明”，有疑问可以联系店主。"
+	}
+	result["delivered_order_message"] = deliveredMessage
 	for _, mode := range []string{"open", "sampling"} {
 		state, _ := config[mode].(map[string]interface{})
 		images := []interface{}{}
@@ -72,7 +82,28 @@ func normalizeStorefrontSupport(raw interface{}) map[string]interface{} {
 				messages = []interface{}{"明天再来吧，营业时间是每天9：00到12：00。", "店主正在休息，营业后就能继续购买啦。", "先收藏小店吧，明天再来挑选你喜欢的商品。"}
 			}
 		}
-		result[mode] = map[string]interface{}{"images": images, "messages": messages}
+		contactMessages := []interface{}{}
+		items, configured := state["contact_messages"].([]interface{})
+		if !configured {
+			if mode == "open" {
+				contactMessages = append(contactMessages, "想了解商品、购买流程或售后？可以添加店主的联系方式，先聊清楚再下单。")
+			} else {
+				contactMessages = append(contactMessages, "店主暂时休息啦。可以先添加联系方式留言，咨询商品或订单，营业后会尽快回复。")
+			}
+		}
+		for _, item := range items {
+			if _, ok := item.(string); !ok {
+				continue
+			}
+			text := strings.TrimSpace(normalizeSettingTextWithRuneLimit(item, 180))
+			if text != "" {
+				contactMessages = append(contactMessages, text)
+			}
+			if len(contactMessages) == 10 {
+				break
+			}
+		}
+		result[mode] = map[string]interface{}{"images": images, "messages": messages, "contact_messages": contactMessages}
 	}
 	return result
 }

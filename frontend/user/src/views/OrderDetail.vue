@@ -69,9 +69,10 @@
               <Badge :variant="statusVariant(order.status)" size="sm">
                 {{ statusLabel(order.status) }}
               </Badge>
-              <Button v-if="order.status === 'pending_payment'" as-child size="sm">
+              <Button v-if="order.status === 'pending_payment' && !samplingMode" as-child size="sm">
                 <router-link :to="`/pay?order_no=${order.order_no}`">{{ t('orderDetail.payNow') }}</router-link>
               </Button>
+              <Button v-if="order.status === 'pending_payment' && samplingMode" size="sm" disabled>{{ closedPaymentLabel }}</Button>
               <Button v-if="order.status === 'pending_payment'" variant="destructive" size="sm" @click="cancelOrder">
                 {{ t('orderDetail.cancel') }}
               </Button>
@@ -187,21 +188,14 @@
                     <div class="mb-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                       {{ t('orderDetail.fulfillmentTruncatedHint') }}
                     </div>
-                    <div class="border rounded-xl p-4 text-sm text-muted-foreground whitespace-pre-wrap break-all overflow-hidden max-h-48 overflow-y-auto">{{ child.fulfillment.payload }}</div>
+                    <DeliveryResult :payload="child.fulfillment.payload" truncated />
                   </div>
-                  <div v-else-if="fulfillmentDeliveryLines(child.fulfillment).length"
-                    class="mt-3 border rounded-xl p-4 text-sm text-muted-foreground space-y-1 break-all overflow-hidden">
-                    <div v-for="(line, index) in fulfillmentDeliveryLines(child.fulfillment)" :key="`child-fulfillment-${child.id}-${index}`">{{ line }}</div>
-                  </div>
-                  <div v-else-if="child.fulfillment.payload"
-                    class="mt-3 border rounded-xl p-4 text-sm text-muted-foreground whitespace-pre-wrap break-all overflow-hidden">
-                    {{ child.fulfillment.payload }}
-                  </div>
+                  <DeliveryResult v-else :payload="child.fulfillment.payload" :lines="fulfillmentDeliveryLines(child.fulfillment)" />
                   <div v-if="child.fulfillment.status === 'delivered' && instructionBlocks(child.items).length"
                     class="mt-4 space-y-3">
                     <div v-for="(block, bi) in instructionBlocks(child.items)" :key="`child-inst-${child.id}-${bi}`"
-                      class="rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30 p-4">
-                      <div class="flex items-center gap-2 mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+                      class="border-t py-4">
+                      <div class="flex items-center gap-2 mb-2 text-sm font-semibold text-muted-foreground">
                         <Info class="w-4 h-4" :stroke-width="2" />
                         {{ t('orderDetail.instructionsTitle') }}
                       </div>
@@ -246,21 +240,14 @@
             <div class="mb-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
               {{ t('orderDetail.fulfillmentTruncatedHint') }}
             </div>
-            <div class="border rounded-xl p-4 text-sm text-muted-foreground whitespace-pre-wrap break-all overflow-hidden max-h-64 overflow-y-auto">{{ order.fulfillment.payload }}</div>
+            <DeliveryResult :payload="order.fulfillment.payload" truncated />
           </div>
-          <div v-else-if="fulfillmentDeliveryLines(order.fulfillment).length"
-            class="mt-4 border rounded-xl p-4 text-sm text-muted-foreground space-y-1 break-all overflow-hidden">
-            <div v-for="(line, index) in fulfillmentDeliveryLines(order.fulfillment)" :key="`fulfillment-${order.order_no || 'order'}-${index}`">{{ line }}</div>
-          </div>
-          <div v-else
-            class="mt-4 border rounded-xl p-4 text-sm text-muted-foreground whitespace-pre-wrap break-all overflow-hidden">
-            {{ order.fulfillment.payload }}
-          </div>
+          <DeliveryResult v-else :payload="order.fulfillment.payload" :lines="fulfillmentDeliveryLines(order.fulfillment)" />
           <div v-if="order.fulfillment.status === 'delivered' && instructionBlocks(order.items).length"
             class="mt-4 space-y-3">
             <div v-for="(block, bi) in instructionBlocks(order.items)" :key="`order-inst-${bi}`"
-              class="rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30 p-4">
-              <div class="flex items-center gap-2 mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+              class="border-t py-4">
+              <div class="flex items-center gap-2 mb-2 text-sm font-semibold text-muted-foreground">
                 <Info class="w-4 h-4" :stroke-width="2" />
                 {{ t('orderDetail.instructionsTitle') }}
               </div>
@@ -269,7 +256,7 @@
           </div>
         </div>
 
-        <div class="rounded-2xl border bg-card shadow-sm p-6">
+        <div v-if="!order.children?.length" class="rounded-2xl border bg-card shadow-sm p-6">
           <h2 class="text-lg font-bold mb-4">{{ t('orderDetail.itemsTitle') }}</h2>
           <div v-if="order.items && order.items.length > 0" class="space-y-4">
             <div v-for="(item, idx) in order.items" :key="idx"
@@ -444,11 +431,12 @@ import EmptyState from '../components/EmptyState.vue'
 import BreadcrumbNav from '../components/BreadcrumbNav.vue'
 import SmartImage from '../components/SmartImage.vue'
 import { useOrderDetail } from '../composables/useOrderDetail'
+import DeliveryResult from '../components/order/DeliveryResult.vue'
 
 const { t } = useI18n()
 
 const {
-  loading, order, debouncedLoadOrder, cancelOrder,
+  loading, order, debouncedLoadOrder, cancelOrder, samplingMode, closedPaymentLabel,
   statusLabel, statusVariant, fulfillmentTypeLabelText, fulfillmentStatusLabelText,
   formatDate, getLocalizedText, formatMoney, formatDiscountMoney, hasDiscountAmount, hasAmount,
   refundReasonText, showRefundRecordsCard, refundRecords, showTimeCard,

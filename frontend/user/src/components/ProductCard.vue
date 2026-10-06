@@ -1,10 +1,7 @@
 <template>
   <Card
     class="group relative overflow-hidden flex flex-col h-full rounded-2xl transition-all theme-slide-up"
-    :aria-disabled="samplingMode"
-    :class="samplingMode
-      ? 'cursor-not-allowed opacity-75 grayscale border-border'
-      : isSoldOut(product)
+    :class="isSoldOut(product)
       ? 'cursor-default opacity-85 grayscale-[0.25] saturate-50 border-destructive/30'
       : 'cursor-pointer hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg'"
     :style="{ animationDelay: `${index * animationStep}ms` }"
@@ -153,11 +150,10 @@
             variant="outline"
             size="icon"
             class="w-8 h-8 md:w-9 md:h-9"
-            :aria-label="t('products.quickBuyAria')"
-            :disabled="isSoldOut(product) || samplingMode"
-            @click.stop="$emit('quickBuy', product)"
+            aria-label="查看商品详情和购买须知"
+            @click.stop="handleCardClick"
           >
-            <ShoppingCart class="h-4 w-4" />
+            <ArrowRight class="h-4 w-4" />
           </Button>
           <!-- Desktop: view details -->
           <span
@@ -178,7 +174,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { computed, ref, watch } from 'vue'
-import { ArrowRight, ChevronRight, Image as ImageIcon, Lock, Pencil, ShoppingCart, UserPlus, Zap } from 'lucide-vue-next'
+import { ArrowRight, ChevronRight, Image as ImageIcon, Lock, Pencil, UserPlus, Zap } from 'lucide-vue-next'
 import { getFirstImageUrl, getImageUrl } from '../utils/image'
 import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { useStorefrontMode } from '../composables/useStorefrontMode'
@@ -238,7 +234,6 @@ const handleImageError = () => {
 }
 
 const handleCardClick = () => {
-  if (samplingMode.value) return
   emit('click', props.product.slug)
 }
 </script>

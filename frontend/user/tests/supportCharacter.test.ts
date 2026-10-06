@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clampCharacterAnchor, clampCharacterPosition, differentIndex, readSupportState, safeSupportImage } from '../src/utils/supportCharacter.ts'
+import { clampCharacterAnchor, clampCharacterPosition, differentIndex, readSupportState, safeSupportImage, supportMessagePool } from '../src/utils/supportCharacter.ts'
 import { visibleStorefrontContacts } from '../src/utils/storefrontContacts.ts'
 import { personalRouteEnabled, personalSectionEnabled } from '../src/utils/personalFeatures.ts'
 
@@ -24,6 +24,34 @@ test('each refresh can avoid the previous selection, including two assets', () =
   }
   assert.equal(differentIndex(1, 0, .8), 0)
   assert.equal(differentIndex(2, -1, .8), 1)
+})
+
+test('contact messages join the random pool with actions only on their own entries', () => {
+  const state = readSupportState({ messages: ['普通提示'], contact_messages: ['营业联系提示', '更多联系提示'] }, 'open')
+  assert.deepEqual(supportMessagePool(state), [
+    { text: '普通提示', showContact: false },
+    { text: '营业联系提示', showContact: true },
+    { text: '更多联系提示', showContact: true },
+  ])
+  assert.equal(differentIndex(3, 0, .1), 1)
+  assert.equal(differentIndex(3, 0, .9), 2)
+})
+
+test('legacy states get separate contact defaults while explicit empty lists disable them', () => {
+  const open = readSupportState({}, 'open')
+  const closed = readSupportState({}, 'sampling')
+  assert.equal(open.contact_messages.length, 1)
+  assert.equal(closed.contact_messages.length, 1)
+  assert.notEqual(open.contact_messages[0], closed.contact_messages[0])
+  assert.deepEqual(readSupportState({ contact_messages: [] }, 'open').contact_messages, [])
+  assert(supportMessagePool(readSupportState({ contact_messages: [] }, 'sampling')).every(message => !message.showContact))
+})
+
+test('contact message limits reject nontext, trim blanks and cap text and count', () => {
+  const state = readSupportState({ contact_messages: [null, '', '  hello  ', '字'.repeat(200), ...Array(20).fill('more')] }, 'open')
+  assert.equal(state.contact_messages.length, 10)
+  assert.equal(state.contact_messages[0], 'hello')
+  assert.equal([...state.contact_messages[1]!].length, 180)
 })
 
 test('dragging keeps the whole character and bubble within the viewport', () => {

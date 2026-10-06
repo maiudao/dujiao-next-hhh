@@ -48,7 +48,7 @@
     </section>
 
     <!-- 商品 -->
-    <section class="rounded-xl border bg-card p-[22px]">
+    <section v-if="!order.children?.length" class="rounded-xl border bg-card p-[22px]">
       <h2 class="mb-4 text-lg font-bold">{{ t('orderDetail.itemsTitle') }}</h2>
       <div v-if="order.items && order.items.length > 0" class="grid">
         <VaultOrderItem v-for="(item, idx) in order.items" :key="idx" :item="item" :currency="order.currency" />

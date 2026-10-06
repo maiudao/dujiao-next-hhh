@@ -2,23 +2,30 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAppStore } from '../stores/app'
 import { useStorefrontMode } from '../composables/useStorefrontMode'
-import { clampCharacterAnchor, differentIndex, readSupportState } from '../utils/supportCharacter'
+import { clampCharacterAnchor, differentIndex, readSupportState, supportMessagePool } from '../utils/supportCharacter'
 import { createSupportAudio } from '../utils/supportAudio'
 import downSoundData from '../assets/support-sounds/Ya1.mp3?inline'
 import upSoundData from '../assets/support-sounds/Ya2.mp3?inline'
-import { X } from 'lucide-vue-next'
+import { X, MessageCircle } from 'lucide-vue-next'
+import ContactDialog from './ContactDialog.vue'
+import { usePaidOrderPage } from '../composables/usePaidOrderSupport'
+import { readPaidOrderMessage } from '../utils/paidOrderSupport'
 
 const appStore = useAppStore()
 const { samplingMode } = useStorefrontMode()
 const mode = computed(() => samplingMode.value ? 'sampling' : 'open')
 const state = computed(() => readSupportState(appStore.config?.storefront_support?.[mode.value], mode.value))
+const messages = computed(() => supportMessagePool(state.value))
 const imageIndex = ref(0)
 const messageIndex = ref(0)
 const pressed = ref(false)
 const bubbleOpen = ref(false)
+const contactOpen = ref(false)
+const { key: paidOrderPage, phase: orderPhase } = usePaidOrderPage()
 const bubble = ref<HTMLElement | null>(null)
 const bubbleSize = ref({ width: 200, height: 100 })
 const statusTitle = computed(() => samplingMode.value ? '打烊中' : '正在营业')
+const bubbleTitle = computed(() => orderPhase.value === 'delivered' ? '交付成功' : orderPhase.value === 'paid' ? '订单已付款' : statusTitle.value)
 // Pixel coordinates keep the rounded corner stable when the message height changes.
 const bubblePath = computed(() => {
   const w = bubbleSize.value.width, h = bubbleSize.value.height
@@ -31,7 +38,13 @@ const position = ref<{ x: number; y: number } | null>(null)
 const moved = ref(false)
 const image = computed(() => state.value.images[imageIndex.value % state.value.images.length]!)
 const fallbackImage = computed(() => samplingMode.value ? '/storefront/characters/gpt-busy.webp' : '/storefront/characters/gpt-normal.webp')
-const message = computed(() => state.value.messages[messageIndex.value % state.value.messages.length])
+const currentMessage = computed(() => messages.value[messageIndex.value % messages.value.length]!)
+const showContact = computed(() => Boolean(paidOrderPage.value) || currentMessage.value.showContact)
+const message = computed(() => paidOrderPage.value
+  ? readPaidOrderMessage(orderPhase.value === 'delivered'
+    ? appStore.config?.storefront_support?.delivered_order_message
+    : appStore.config?.storefront_support?.paid_order_message, orderPhase.value === 'delivered' ? 'delivered' : 'paid')
+  : currentMessage.value.text)
 let gesture: { id: number; x: number; y: number; left: number; top: number; dragged: boolean } | null = null
 let animationTimer: ReturnType<typeof setTimeout> | undefined
 let selectionSignature = ''
@@ -52,7 +65,7 @@ function randomize() {
   if (selectionSignature === signature) return
   selectionSignature = signature
   imageIndex.value = pick('shop-support-image-' + mode.value, state.value.images.length)
-  messageIndex.value = pick('shop-support-message-' + mode.value, state.value.messages.length)
+  messageIndex.value = pick('shop-support-message-' + mode.value, messages.value.length)
   failedImage.value = ''
 }
 function squish() {
@@ -64,7 +77,7 @@ function squish() {
   })
 }
 function cycle() {
-  messageIndex.value = (messageIndex.value + 1) % state.value.messages.length
+  if (!paidOrderPage.value) messageIndex.value = differentIndex(messages.value.length, messageIndex.value)
   imageIndex.value = (imageIndex.value + 1) % state.value.images.length
   try {
     sessionStorage.setItem('shop-support-image-' + mode.value, String(imageIndex.value))
@@ -114,6 +127,10 @@ function resized() {
   else if (position.value) constrain(position.value.x, position.value.y)
 }
 watch(state, randomize, { deep: true })
+watch(paidOrderPage, (orderNo, previous) => {
+  if (orderNo) bubbleOpen.value = true
+  else if (previous) bubbleOpen.value = false
+}, { immediate: true })
 watch(bubble, element => {
   bubbleObserver?.disconnect()
   if (!element) return
@@ -135,7 +152,7 @@ onUnmounted(() => {
   <aside ref="root" class="shop-character" :class="{ 'shop-character-pressed': pressed, 'shop-character-closed': samplingMode }"
     :style="position ? { left: position.x + 'px', top: position.y + 'px', right: 'auto', bottom: 'auto' } : undefined"
     aria-label="店铺客服提示">
-    <div class="shop-character-reaction">
+    <div class="shop-character-reaction" :class="{ 'shop-character-with-contact': showContact }">
       <Transition name="support-bubble">
         <div v-if="bubbleOpen" ref="bubble" class="shop-character-bubble" id="shop-support-bubble">
           <svg class="shop-character-outline" :viewBox="`0 0 ${bubbleSize.width} ${bubbleSize.height}`" preserveAspectRatio="none" aria-hidden="true"><path :d="bubblePath" /></svg>
@@ -143,9 +160,10 @@ onUnmounted(() => {
             @pointerdown="playSound('down')" @pointerup="playSound('up')" @pointercancel="stopSounds"
             @keydown="(['Enter', ' '].includes($event.key) && !$event.repeat) && playSound('down')"
             @keyup="['Enter', ' '].includes($event.key) && playSound('up')">
-            <span class="shop-character-title"><i aria-hidden="true"></i>{{ statusTitle }}<span class="status-dots" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></span>
+            <span class="shop-character-title"><i aria-hidden="true"></i>{{ bubbleTitle }}<span v-if="!paidOrderPage" class="status-dots" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></span>
             <span class="shop-character-message" aria-live="polite">{{ message }}</span>
           </button>
+          <button v-if="showContact" type="button" class="shop-character-contact" @click="contactOpen = true"><MessageCircle :size="14" aria-hidden="true" /><span>获取店家的联系方式</span></button>
           <button type="button" class="shop-character-close" aria-label="收起客服气泡" @click="bubbleOpen = false"><X :size="10" /></button>
         </div>
       </Transition>
@@ -167,6 +185,7 @@ onUnmounted(() => {
     </button>
   </aside>
   </Teleport>
+  <ContactDialog v-model:open="contactOpen" />
 </template>
 
 <style scoped>
@@ -179,8 +198,9 @@ onUnmounted(() => {
   display: flex; justify-content: flex-end;
 }
 .shop-character-reaction { position: absolute; right: 0; bottom: calc(100% + 10px); width: 200px; z-index: 3; }
+.shop-character-with-contact { width: 220px; }
 .shop-character-bubble {
-  position: relative; width: 100%; pointer-events: auto;
+  position: relative; display: flow-root; width: 100%; pointer-events: auto;
   text-align: left; color: #29334b; cursor: pointer;
   filter: drop-shadow(0 7px 11px rgb(24 48 85 / 14%));
 }
@@ -209,7 +229,12 @@ onUnmounted(() => {
 .shop-character-title .status-dots { margin-left: -5px; }
 .shop-character-title i { width: 7px; height: 7px; border-radius: 50%; background: var(--green, #07835f); }
 .shop-character-closed .shop-character-title i { background: var(--amber, #a56a00); }
-.shop-character-message { display: block; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.shop-character-message { display: block; font-size: 12px; font-weight: 400; line-height: 1.65; overflow-wrap: anywhere; }
+.shop-character-contact { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; width: calc(100% - 28px); min-height: 36px; margin: 0 14px 18px; padding: 8px; border: 1px solid #245cb0; border-radius: 8px; background: #2864bd; color: #fff; font-size: 11px; font-weight: 600; line-height: 1.45; cursor: pointer; pointer-events: auto; transition: background-color 140ms, border-color 140ms; }
+.shop-character-contact svg { flex: none; }
+.shop-character-contact span { white-space: nowrap; }
+.shop-character-contact:hover { background: #1e54a4; border-color: #1e54a4; }
+.shop-character-contact:active { background: #194887; }
 .shop-character-handle { position: relative; z-index: 2; width: var(--character-width); height: var(--character-height); padding: 0; background: transparent; border: 0; pointer-events: auto; touch-action: none; cursor: grab; }
 .shop-character-handle:active { cursor: grabbing; }
 .shop-character-handle img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; user-select: none; filter: drop-shadow(0 6px 7px rgb(24 48 85 / 12%)); }
@@ -228,6 +253,8 @@ onUnmounted(() => {
 @media (max-width: 900px) {
   .shop-character { --character-width: 88px; --character-height: 92px; --squish-distance: 11.04px; width: 188px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); }
   .shop-character-reaction { bottom: calc(100% + 8px); width: 160px; }
+  .shop-character-with-contact { width: 180px; }
+  .shop-character-contact { gap: 5px; width: calc(100% - 24px); margin-inline: 12px; font-size: 10.5px; }
   .shop-character-bubble { border-radius: 20px 23px 19px 24px; }
   .shop-character-copy { padding: 12px 13px 16px; }
   .shop-character-title { font-size: 12px; margin-bottom: 3px; }

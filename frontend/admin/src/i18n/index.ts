@@ -2766,7 +2766,7 @@ const messages = {
           subtitle: '打烊模式会暂停主站新订单，并将商品卡片灰显；恢复营业后保留每个商品原有的上架状态。',
           openActive: '店铺正在营业',
           samplingActive: '店铺目前处于打烊模式',
-          impact: '已创建的订单仍可继续支付和处理；分销店铺不受影响。',
+          impact: '打烊后仍可浏览商品、加入购物车；新订单和未付款订单暂停支付，已付款订单继续处理；分销店铺不受影响。',
           startSampling: '开始打烊',
           openStore: '开店',
           samplingEnabled: '已开启打烊模式',

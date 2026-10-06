@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { userOrderAPI } from '../api'
@@ -6,6 +6,9 @@ import { debounceAsync } from '../utils/debounce'
 import { useConfirmDialog } from './useConfirmDialog'
 import { toast } from './useToast'
 import { useOrderDisplayHelpers } from './useOrderDisplayHelpers'
+import { usePaidOrderSupport } from './usePaidOrderSupport'
+import { useStorefrontMode } from './useStorefrontMode'
+import { useOrderRefresh } from './useOrderRefresh'
 
 /**
  * 已登录用户订单详情逻辑（classic + vault 共用）。
@@ -18,6 +21,8 @@ export function useOrderDetail() {
 
   const loading = ref(true)
   const order = ref<any>(null)
+  usePaidOrderSupport(order)
+  const { samplingMode, samplingNotice, closedPaymentLabel } = useStorefrontMode()
   const fulfillmentDownloading = ref(false)
 
   const helpers = useOrderDisplayHelpers(order)
@@ -39,19 +44,28 @@ export function useOrderDetail() {
     }
   }
 
-  const loadOrder = async () => {
-    loading.value = true
+  let orderRequest = 0
+  let refreshing = false
+  const loadOrder = async (silent = false) => {
+    if (silent && refreshing) return
+    refreshing = true
+    const request = ++orderRequest
+    const orderNo = String(route.params.order_no || '').trim()
+    if (!silent) loading.value = true
     try {
-      const response = await userOrderAPI.detail(String(route.params.order_no || '').trim())
+      const response = await userOrderAPI.detail(orderNo, { cache: 'no-store', silentBusinessError: silent })
+      if (request !== orderRequest || orderNo !== route.params.order_no) return
       order.value = response.data.data
     } catch (error) {
-      order.value = null
+      if (!silent && request === orderRequest) order.value = null
     } finally {
-      loading.value = false
+      if (request === orderRequest) { loading.value = false; refreshing = false }
     }
   }
+  useOrderRefresh(() => { if (route.params.order_no && !loading.value) void loadOrder(true) })
+  watch(() => route.params.order_no, () => { order.value = null; void loadOrder() })
 
-  const debouncedLoadOrder = debounceAsync(loadOrder, 300)
+  const debouncedLoadOrder = debounceAsync(() => loadOrder(), 300)
 
   const cancelOrder = async () => {
     if (!order.value) return
@@ -80,10 +94,12 @@ export function useOrderDetail() {
   })
 
   onUnmounted(() => {
+    orderRequest++
     debouncedLoadOrder.cancel()
   })
 
   return {
+    samplingMode, samplingNotice, closedPaymentLabel,
     loading,
     order,
     debouncedLoadOrder,

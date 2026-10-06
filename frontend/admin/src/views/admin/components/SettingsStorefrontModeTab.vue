@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PauseCircle, Store } from 'lucide-vue-next'
+import { MessageCircle, PauseCircle, Plus, Store, Trash2 } from 'lucide-vue-next'
 import { adminAPI } from '@/api/admin'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,7 +42,7 @@ function updateContact(key: ContactKey, field: 'value' | 'enabled', value: strin
   emit('update:contacts', { ...props.contacts, [key]: { ...props.contacts[key], [field]: value } })
 }
 
-const updateSupport = (mode: SupportMode, field: 'images' | 'messages', values: string[]) => {
+const updateSupport = (mode: SupportMode, field: 'images' | 'messages' | 'contact_messages', values: string[]) => {
   emit('update:support', { ...props.support, [mode]: { ...props.support[mode], [field]: values } })
 }
 const updateImages = (mode: SupportMode, values: string | string[]) => {
@@ -55,6 +55,11 @@ const editMessage = (mode: SupportMode, index: number, text: string | number) =>
 }
 const removeMessage = (mode: SupportMode, index: number) => {
   updateSupport(mode, 'messages', props.support[mode].messages.filter((_, i) => i !== index))
+}
+const editContactMessage = (mode: SupportMode, index: number, text: string | number) => {
+  const messages = [...props.support[mode].contact_messages]
+  messages[index] = String(text)
+  updateSupport(mode, 'contact_messages', messages)
 }
 
 const updateLabel = (index: number, value: string | number) => {
@@ -132,6 +137,20 @@ const setMode = async (mode: 'open' | 'sampling') => {
         </div>
       </div>
     </section>
+    <section class="border-t border-border pt-6">
+      <h2 class="text-lg font-semibold">已付款订单提示</h2>
+      <p class="mt-2 text-sm text-muted-foreground">已付款订单详情页自动展开这段提示；点击角色或气泡保持此段文字，并提供“获取店家的联系方式”按钮。请在上方配置并公开至少一种联系方式。</p>
+      <Label for="paid-order-support-message" class="mt-4 block">气泡正文</Label>
+      <Textarea id="paid-order-support-message" class="mt-2 max-w-2xl" :model-value="support.paid_order_message" :maxlength="300" :rows="4"
+        @update:model-value="emit('update:support', { ...support, paid_order_message: String($event) })" />
+      <p class="mt-2 text-xs text-muted-foreground">最多 300 字，保存后生效。留空会恢复默认提示；正在营业和打烊时均显示。</p>
+      <h3 class="mt-6 font-semibold">交付成功提示</h3>
+      <p class="mt-2 text-sm text-muted-foreground">订单更新为“已交付”或“已完成”后，自动展开此段提示，引导用户查看交付结果；点击角色不会换成普通营业提示。</p>
+      <Label for="delivered-order-support-message" class="mt-4 block">交付成功气泡正文</Label>
+      <Textarea id="delivered-order-support-message" class="mt-2 max-w-2xl" :model-value="support.delivered_order_message" :maxlength="300" :rows="4"
+        @update:model-value="emit('update:support', { ...support, delivered_order_message: String($event) })" />
+      <p class="mt-2 text-xs text-muted-foreground">最多 300 字，保存后生效。留空会恢复默认提示。</p>
+    </section>
     <section class="rounded-xl border border-border bg-card p-6">
       <h2 class="text-lg font-semibold">联系方式</h2>
       <p class="mt-2 text-sm text-muted-foreground">勾选“公开展示”后，访客可在顶部“联系方式”弹窗查看并复制。关闭展示会同时隐藏号码和链接；填写后记得保存更改。</p>
@@ -160,7 +179,7 @@ const setMode = async (mode: 'open' | 'sampling') => {
             <MediaPicker :model-value="support[stateMode].images" multiple @update:model-value="updateImages(stateMode, $event)" />
           </div>
           <div class="space-y-3">
-            <Label>对话正文（最多 30 条）</Label>
+            <Label>普通消息（最多 30 条，不显示联系方式按钮）</Label>
             <div v-for="(message, index) in support[stateMode].messages" :key="index" class="flex items-start gap-2">
               <Textarea :model-value="message" :maxlength="180" :rows="3" :aria-label="`${stateMode === 'open' ? '营业' : '打烊'}提示 ${index + 1}`"
                 class="flex-1" @update:model-value="editMessage(stateMode, index, $event)" />
@@ -169,6 +188,25 @@ const setMode = async (mode: 'open' | 'sampling') => {
             <Button type="button" variant="outline" :disabled="support[stateMode].messages.length >= 30"
               @click="updateSupport(stateMode, 'messages', [...support[stateMode].messages, ''])">添加提示语</Button>
             <p class="text-xs text-muted-foreground">正文为纯文字，不执行 HTML。至少保留一条；空白内容保存时会略过。</p>
+          </div>
+          <div class="space-y-3 border-t border-border pt-5" :data-contact-message-mode="stateMode">
+            <div>
+              <h4 class="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300"><MessageCircle class="h-4 w-4" />带联系方式按钮的随机消息</h4>
+              <p class="mt-2 text-xs leading-relaxed text-muted-foreground">{{ stateMode === 'open' ? '营业时' : '打烊时' }}与普通消息一起随机出现，气泡下方附带“获取店家的联系方式”按钮，点击打开“联系店主”弹窗。</p>
+            </div>
+            <div v-for="(message, index) in support[stateMode].contact_messages" :key="index" class="flex items-start gap-2">
+              <div class="min-w-0 flex-1 space-y-2">
+                <Label :for="`contact-support-${stateMode}-${index}`">{{ stateMode === 'open' ? '营业' : '打烊' }}联系方式消息 {{ index + 1 }}</Label>
+                <Textarea :id="`contact-support-${stateMode}-${index}`" :model-value="message" :maxlength="180" :rows="3"
+                  @update:model-value="editContactMessage(stateMode, index, $event)" />
+              </div>
+              <Button type="button" variant="outline" size="icon" class="mt-6 shrink-0"
+                :aria-label="`删除${stateMode === 'open' ? '营业' : '打烊'}联系方式消息 ${index + 1}`" title="删除联系方式消息"
+                @click="updateSupport(stateMode, 'contact_messages', support[stateMode].contact_messages.filter((_, i) => i !== index))"><Trash2 class="h-4 w-4" /></Button>
+            </div>
+            <Button type="button" variant="outline" :disabled="support[stateMode].contact_messages.length >= 10"
+              @click="updateSupport(stateMode, 'contact_messages', [...support[stateMode].contact_messages, ''])"><Plus class="mr-2 h-4 w-4" />添加联系方式消息</Button>
+            <p class="text-xs leading-relaxed text-muted-foreground">最多 10 条，每条 180 字；空白内容保存时略过。删空这一组后，不再随机出现联系方式消息。请在上方公开至少一种联系方式，再保存更改。</p>
           </div>
         </div>
       </div>

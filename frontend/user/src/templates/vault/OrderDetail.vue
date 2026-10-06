@@ -39,9 +39,10 @@
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
           <Badge :variant="statusVariant(order.status)" class="rounded-full">{{ statusLabel(order.status) }}</Badge>
-          <Button v-if="order.status === 'pending_payment'" as-child size="sm" class="rounded-full">
+          <Button v-if="order.status === 'pending_payment' && !samplingMode" as-child size="sm" class="rounded-full">
             <RouterLink :to="`/pay?order_no=${order.order_no}`">{{ t('orderDetail.payNow') }}</RouterLink>
           </Button>
+          <Button v-if="order.status === 'pending_payment' && samplingMode" size="sm" disabled>{{ closedPaymentLabel }}</Button>
           <Button v-if="order.status === 'pending_payment'" type="button" variant="outline" size="sm" class="rounded-full border-destructive text-destructive hover:bg-destructive/10" @click="cancelOrder">{{ t('orderDetail.cancel') }}</Button>
         </div>
       </div>
@@ -67,7 +68,7 @@ import { useOrderDetail } from '../../composables/useOrderDetail'
 const { t } = useI18n()
 
 const {
-  loading, order, debouncedLoadOrder, cancelOrder, fulfillmentDownloading, handleDownloadFulfillment,
+  loading, order, debouncedLoadOrder, cancelOrder, fulfillmentDownloading, handleDownloadFulfillment, samplingMode, closedPaymentLabel,
   statusLabel, statusVariant, formatDate, formatMoney,
 } = useOrderDetail()
 </script>

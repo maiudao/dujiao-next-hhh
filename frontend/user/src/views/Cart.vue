@@ -40,9 +40,9 @@
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
                     <RouterLink :to="`/products/${item.slug}`" custom v-slot="{ href, navigate }">
-                      <component :is="samplingMode ? 'span' : 'a'" :href="samplingMode ? undefined : href" class="text-base md:text-lg font-bold text-primary hover:underline line-clamp-1" @click="samplingMode ? undefined : navigate($event)">
+                      <a :href="href" class="text-base md:text-lg font-bold text-primary hover:underline line-clamp-1" @click="navigate($event)">
                         {{ getLocalizedText(item.title) }}
-                      </component>
+                      </a>
                     </RouterLink>
                     <p class="mt-1 text-sm text-muted-foreground">{{ t('cart.priceLabel') }}：{{ formatPrice(item.priceAmount, totalCurrency) }}</p>
                     <p v-if="itemSkuDisplay(item)" class="mt-1 text-xs text-muted-foreground truncate">{{ t('cart.skuLabel') }}：{{ itemSkuDisplay(item) }}</p>
@@ -142,7 +142,7 @@
                 {{ t('cart.checkout') }}
               </router-link>
             </Button>
-            <Button v-else size="lg" class="w-full font-semibold" disabled>{{ t('cart.checkout') }}</Button>
+            <Button v-else size="lg" class="storefront-payment-closed w-full font-semibold" disabled>{{ closedPaymentLabel }}</Button>
             <Button as-child variant="secondary" size="lg" class="w-full font-semibold">
               <router-link to="/products">
                 {{ t('cart.emptyAction') }}
@@ -167,7 +167,7 @@ import { useCart } from '../composables/useCart'
 import { useStorefrontMode } from '../composables/useStorefrontMode'
 
 const { t } = useI18n()
-const { samplingMode, samplingNotice } = useStorefrontMode()
+const { samplingMode, samplingNotice, closedPaymentLabel } = useStorefrontMode()
 
 const {
   getLocalizedText, formatPrice, totalCurrency,

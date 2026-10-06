@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { guestOrderAPI } from '../api'
@@ -6,6 +6,9 @@ import { debounceAsync } from '../utils/debounce'
 import { clearGuestOrderAuth, loadGuestOrderAuth, saveGuestOrderAuth } from '../utils/guestOrderAuth'
 import { resolveGuestOrderDetailViewState } from '../utils/guestOrderDetailState'
 import { useOrderDisplayHelpers } from './useOrderDisplayHelpers'
+import { usePaidOrderSupport } from './usePaidOrderSupport'
+import { useOrderRefresh } from './useOrderRefresh'
+import { useStorefrontMode } from './useStorefrontMode'
 
 /**
  * 游客订单详情逻辑（classic + vault 共用）。
@@ -17,6 +20,8 @@ export function useGuestOrderDetail() {
 
   const loading = ref(true)
   const order = ref<any>(null)
+  usePaidOrderSupport(order)
+  const { samplingMode, closedPaymentLabel } = useStorefrontMode()
   const authError = ref('')
   const auth = ref({
     email: '',
@@ -58,8 +63,14 @@ export function useGuestOrderDetail() {
     showAuthForm: showAuthForm.value,
   }))
 
-  const loadOrder = async () => {
-    loading.value = true
+  let orderRequest = 0
+  let refreshing = false
+  const loadOrder = async (silent = false) => {
+    if (silent && refreshing) return
+    refreshing = true
+    const request = ++orderRequest
+    const orderNo = String(route.params.order_no || '').trim()
+    if (!silent) loading.value = true
     try {
       if (!hasAuth.value) {
         order.value = null
@@ -70,17 +81,22 @@ export function useGuestOrderDetail() {
         email: auth.value.email,
         order_password: auth.value.order_password,
       })
+      if (request !== orderRequest || orderNo !== route.params.order_no) return
       order.value = response.data.data
       authError.value = ''
     } catch (error) {
-      order.value = null
-      authError.value = t('guestOrderDetail.authInvalid')
+      if (!silent && request === orderRequest) {
+        order.value = null
+        authError.value = t('guestOrderDetail.authInvalid')
+      }
     } finally {
-      loading.value = false
+      if (request === orderRequest) { loading.value = false; refreshing = false }
     }
   }
 
-  const debouncedLoadOrder = debounceAsync(loadOrder, 300)
+  const debouncedLoadOrder = debounceAsync(() => loadOrder(), 300)
+  useOrderRefresh(() => { if (hasAuth.value && !loading.value && route.params.order_no) void loadOrder(true) })
+  watch(() => route.params.order_no, () => { order.value = null; void loadOrder() })
 
   const persistAuth = () => {
     saveGuestOrderAuth({
@@ -117,10 +133,12 @@ export function useGuestOrderDetail() {
   })
 
   onUnmounted(() => {
+    orderRequest++
     debouncedLoadOrder.cancel()
   })
 
   return {
+    samplingMode, closedPaymentLabel,
     loading,
     order,
     authError,

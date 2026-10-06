@@ -21,6 +21,7 @@ import (
 )
 
 var (
+	ErrStorefrontPaused                    = errors.New("storefront paused")
 	ErrPaymentInvalid                      = errors.New("payment invalid")
 	ErrPaymentNotFound                     = errors.New("payment not found")
 	ErrOrderStatusInvalid                  = errors.New("order status invalid")
@@ -353,6 +354,7 @@ var paymentProviderGatewayErrorRules = []mappedError{
 
 var paymentCreateErrorRules = concatMappedErrors(
 	[]mappedError{
+		{target: ErrStorefrontPaused, code: response.CodeBadRequest, key: "error.storefront_paused"},
 		{target: ErrPaymentInvalid, code: response.CodeBadRequest, key: "error.payment_invalid"},
 		{target: ErrOrderNotFound, code: response.CodeNotFound, key: "error.order_not_found"},
 		{target: ErrOrderStatusInvalid, code: response.CodeBadRequest, key: "error.order_status_invalid"},

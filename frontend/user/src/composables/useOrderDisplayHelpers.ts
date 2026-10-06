@@ -83,7 +83,7 @@ export function useOrderDisplayHelpers(order: Ref<any>) {
     if (!raw) return ''
     const date = new Date(raw)
     if (Number.isNaN(date.getTime())) return raw
-    return date.toLocaleString()
+    return date.toLocaleString('zh-CN')
   }
 
   const getLocalizedText = (jsonData: any) => {

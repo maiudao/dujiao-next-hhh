@@ -26,7 +26,8 @@ export const useAppStore = defineStore('app', () => {
     const canAccessResellerConsole = computed(() => personalFeatures.reseller && !!config.value && !isResellerTenant.value)
 
     // 设置语言：同时驱动 vue-i18n（内部按需加载语言包）
-    const setLocale = (newLocale: string) => {
+    const setLocale = (_requestedLocale: string) => {
+        const newLocale = 'zh-CN'
         locale.value = newLocale
         localStorage.setItem('locale', newLocale)
         void setI18nLocale(newLocale)
@@ -36,7 +37,7 @@ export const useAppStore = defineStore('app', () => {
     // canonical / og / twitter 等页面级别字段交由各页面通过 usePageSeo 接管，
     // 避免与页面级 useHead 冲突或产生重复标签。
     useHead({
-        htmlAttrs: { lang: computed(() => locale.value) },
+        htmlAttrs: { lang: 'zh-CN', translate: 'no' },
         title: () => {
             const seo = config.value?.seo
             const lang = locale.value
@@ -70,11 +71,11 @@ export const useAppStore = defineStore('app', () => {
     }
 
     // 加载全局配置
-    const loadConfig = async (force = false) => {
+    const fetchConfig = async (force = false): Promise<boolean> => {
         if (config.value && !force) {
             applySEO()
             applyCustomScripts(config.value?.scripts)
-            return
+            return true
         }
         if (!force) loading.value = true
         try {
@@ -103,11 +104,20 @@ export const useAppStore = defineStore('app', () => {
                     'background:transparent;',
                 )
             }
+            return true
         } catch (error) {
             console.error('Failed to load config:', error)
+            return false
         } finally {
             if (!force) loading.value = false
         }
+    }
+
+    let configRequest: Promise<boolean> | null = null
+    const loadConfig = (force = false): Promise<boolean> => {
+        if (configRequest) return configRequest
+        configRequest = fetchConfig(force).finally(() => { configRequest = null })
+        return configRequest
     }
 
     // 获取校正后的服务器当前时间（毫秒时间戳）

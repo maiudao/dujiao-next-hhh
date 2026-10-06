@@ -96,9 +96,7 @@
               type="button"
               class="product-option"
               :class="{ 'product-option-sold-out': isSoldOut(product), 'product-option-paused': samplingMode }"
-              :aria-label="samplingMode ? samplingLabelFor(product) : copy.viewProduct(getLocalizedText(product.title))"
-              :disabled="samplingMode"
-              :aria-disabled="samplingMode"
+              :aria-label="copy.viewProduct(getLocalizedText(product.title))"
               @click="openProduct(product.slug)"
             >
               <span class="product-option-top">
@@ -126,7 +124,7 @@
                   </span>
                 </span>
                 <span class="product-action">
-                  {{ samplingMode ? copy.samplingClosed : (isSoldOut(product) ? copy.viewDetails : copy.selectProduct) }}
+                  {{ isSoldOut(product) ? copy.viewDetails : copy.selectProduct }}
                   <ArrowRight :size="15" aria-hidden="true" />
                 </span>
               </span>
@@ -350,7 +348,6 @@ const followLink = (raw: unknown) => {
 }
 
 const openProduct = (slug: string) => {
-  if (samplingMode.value) return
   if (slug) void router.push(`/products/${encodeURIComponent(slug)}`)
 }
 

@@ -79,15 +79,15 @@ type ResellerOverlay interface {
 
 // Handler 处理公开站点配置 HTTP 请求。
 type Handler struct {
-	cache          ConfigCache
-	settings       Settings
-	payments       PaymentChannels
-	captcha        CaptchaPublic
-	telegram       TelegramAuthPublic
-	fallback       TelegramAuthFallback
-	google         GoogleAuthPublic
-	googleFallback GoogleAuthFallback
-	overlay        ResellerOverlay
+	cache            ConfigCache
+	settings         Settings
+	payments         PaymentChannels
+	captcha          CaptchaPublic
+	telegram         TelegramAuthPublic
+	fallback         TelegramAuthFallback
+	google           GoogleAuthPublic
+	googleFallback   GoogleAuthFallback
+	overlay          ResellerOverlay
 	allowGuestOrders bool
 }
 
@@ -113,15 +113,15 @@ func NewHandler(
 		panic("public config handler: payments is nil")
 	}
 	return &Handler{
-		cache:          cache,
-		settings:       settings,
-		payments:       payments,
-		captcha:        captcha,
-		telegram:       telegram,
-		fallback:       fallback,
-		google:         google,
-		googleFallback: googleFallback,
-		overlay:        overlay,
+		cache:            cache,
+		settings:         settings,
+		payments:         payments,
+		captcha:          captcha,
+		telegram:         telegram,
+		fallback:         fallback,
+		google:           google,
+		googleFallback:   googleFallback,
+		overlay:          overlay,
 		allowGuestOrders: allowGuestOrders,
 	}
 }
@@ -140,6 +140,7 @@ func (h *Handler) GetConfig(c *gin.Context) {
 	}
 
 	tenant, _ := reseller.TenantFromContext(c.Request.Context())
+	c.Header("Cache-Control", "no-store")
 	cacheKey := h.cache.CacheKey(tenant.ResellerID)
 
 	var cached map[string]interface{}

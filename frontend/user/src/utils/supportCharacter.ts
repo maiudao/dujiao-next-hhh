@@ -3,7 +3,10 @@ import characterCatalog from '../../public/storefront/characters/catalog.json' w
 export interface SupportState {
   images: string[]
   messages: string[]
+  contact_messages: string[]
 }
+
+export interface SupportMessage { text: string; showContact: boolean }
 
 export const supportDefaults: Record<'open' | 'sampling', SupportState> = {
   open: {
@@ -13,6 +16,7 @@ export const supportDefaults: Record<'open' | 'sampling', SupportState> = {
       '想了解商品或库存？下单前可以先和客服聊聊。',
       '付款后记得查看订单进度，有售后问题也可以联系店主。',
     ],
+    contact_messages: ['想了解商品、购买流程或售后？可以添加店主的联系方式，先聊清楚再下单。'],
   },
   sampling: {
     images: characterCatalog.sampling.map(item => item.path),
@@ -21,6 +25,7 @@ export const supportDefaults: Record<'open' | 'sampling', SupportState> = {
       '店主正在休息，营业后就能继续购买啦。',
       '先收藏小店吧，明天再来挑选你喜欢的商品。',
     ],
+    contact_messages: ['店主暂时休息啦。可以先添加联系方式留言，咨询商品或订单，营业后会尽快回复。'],
   },
 }
 
@@ -37,10 +42,22 @@ export function readSupportState(raw: unknown, mode: 'open' | 'sampling'): Suppo
   const messages = Array.isArray(state.messages)
     ? state.messages.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean).slice(0, 30)
     : []
+  const contactMessages = Array.isArray(state.contact_messages)
+    ? state.contact_messages.filter((item): item is string => typeof item === 'string')
+      .map(item => [...item.trim()].slice(0, 180).join('')).filter(Boolean).slice(0, 10)
+    : supportDefaults[mode].contact_messages
   return {
     images: images.length ? images : supportDefaults[mode].images,
     messages: messages.length ? messages : supportDefaults[mode].messages,
+    contact_messages: contactMessages,
   }
+}
+
+export function supportMessagePool(state: SupportState): SupportMessage[] {
+  return [
+    ...state.messages.map(text => ({ text, showContact: false })),
+    ...state.contact_messages.map(text => ({ text, showContact: true })),
+  ]
 }
 
 export function differentIndex(length: number, previous: number, random = Math.random()): number {

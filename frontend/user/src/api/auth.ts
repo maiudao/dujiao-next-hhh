@@ -36,5 +36,5 @@ export const captchaAPI = {
 }
 
 export const configAPI = {
-    get: () => api.get('/public/config'),
+    get: () => api.get('/public/config', { cache: 'no-store' }),
 }

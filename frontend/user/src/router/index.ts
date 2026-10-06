@@ -341,9 +341,7 @@ router.beforeEach(async (to, _from, next) => {
     void captureAffiliateFromRoute(to)
 
     // Ensure config is loaded before checking template mode
-    if (!appStore.config) {
-        await appStore.loadConfig()
-    }
+    await appStore.loadConfig(true)
 
     if (to.meta.requiresUserAuth) {
         if (!userAuthStore.isAuthenticated) {

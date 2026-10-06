@@ -32,7 +32,7 @@
     "defaultMessage": "页面加载出错，请重试"
   },
   "storefront": {
-    "samplingNotice": "店铺目前处于打烊模式，暂不接受新订单。已创建订单的支付与处理不受影响。"
+    "samplingNotice": "小店已打烊，请留意开店时间。可以先加入购物车，或添加店主联系方式咨询；已付款订单继续处理。"
   },
   "formValidation": {
     "required": "此字段为必填项",
@@ -1619,14 +1619,14 @@
     "unitPriceLabel": "单价",
     "totalPriceLabel": "小计",
     "noItems": "暂无订单项",
-    "childOrdersTitle": "子订单",
-    "childOrderNo": "子订单号",
-    "childOrderAmount": "子订单金额",
-    "childItemsTitle": "子订单明细",
-    "childFulfillmentTitle": "子订单交付",
+    "childOrdersTitle": "订单",
+    "childOrderNo": "订单号",
+    "childOrderAmount": "订单金额",
+    "childItemsTitle": "商品明细",
+    "childFulfillmentTitle": "订单交付",
     "childFulfillmentEmpty": "暂无交付信息",
     "manualSubmissionTitle": "提交信息",
-    "fulfillmentTitle": "交付信息",
+    "fulfillmentTitle": "订单交付",
     "fulfillmentType": "类型",
     "fulfillmentStatus": "状态",
     "instructionsTitle": "使用说明",

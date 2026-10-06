@@ -36,7 +36,7 @@
     </div>
 
     <!-- 结果视图 -->
-    <div v-else-if="showResultView" class="mb-[18px] rounded-xl border bg-card p-[22px]">
+    <div v-else-if="showResultView && !samplingMode" class="mb-[18px] rounded-xl border bg-card p-[22px]">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 class="text-lg font-bold">{{ paymentResultTitle }}</h2>
@@ -201,7 +201,7 @@
         </section>
 
         <!-- 支付信息 -->
-        <section v-if="paymentResult" class="rounded-xl border bg-card p-[22px]">
+        <section v-if="paymentResult && !samplingMode" class="rounded-xl border bg-card p-[22px]">
           <h2 class="mb-3.5 text-lg font-bold">{{ t('payment.infoTitle') }}</h2>
           <div class="grid gap-1.5 text-[13px] text-muted-foreground">
             <div>{{ t('payment.methodLabel') }}：{{ resultChannelName }}</div>
@@ -226,9 +226,10 @@
         <div v-else-if="walletOnlyPayment && expectedOnlinePayCents > 0 && !orderExpired && !orderCanceled" class="mb-3 rounded-sm bg-warning/10 px-3 py-2.5 text-xs font-semibold text-warning">{{ t('payment.walletInsufficientHint') }}</div>
         <div v-else-if="!walletOnlyPayment && requiresOnlineChannel && !orderExpired && !orderCanceled" class="mb-3 rounded-sm bg-warning/10 px-3 py-2.5 text-xs font-semibold text-warning">{{ t('payment.selectChannelError') }}</div>
 
-        <Button class="h-11 w-full rounded-full font-bold" :disabled="!canSubmitPayment" @click="handlePayment">
-          {{ submitting ? t('payment.submitting') : t('payment.submitButton') }}
+        <Button class="h-11 w-full rounded-full font-bold" :class="{ 'storefront-payment-closed': samplingMode }" :disabled="!canSubmitPayment" @click="handlePayment">
+          {{ samplingMode ? closedPaymentLabel : (submitting ? t('payment.submitting') : t('payment.submitButton')) }}
         </Button>
+        <p v-if="samplingMode" role="status" class="mt-3 text-sm leading-relaxed text-muted-foreground">{{ samplingNotice }}</p>
         <Button variant="outline" class="mt-2.5 h-11 w-full rounded-full font-bold" :disabled="loading" @click="handleRefresh">{{ t('payment.refreshStatus') }}</Button>
       </aside>
     </div>
@@ -258,7 +259,7 @@ const {
   orderExpired, orderCanceled, paymentAlert, countdownExpired, countdownText, showCountdown, showResultView, pollingActive, orderItems,
   customerFeeApplied, customerFeeAmountDisplay, payableAmountDisplay, walletBalanceDisplay,
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents, requiresOnlineChannel,
-  paymentWalletPaidDisplay, paymentOnlinePayDisplay, isChannelDisabledForAmount, channelAmountLimitHint, canSubmitPayment,
+  paymentWalletPaidDisplay, paymentOnlinePayDisplay, isChannelDisabledForAmount, channelAmountLimitHint, canSubmitPayment, samplingMode, samplingNotice, closedPaymentLabel,
   formatDate, statusLabel, formatMoney, hasDiscountAmount, formatDiscountMoney, getLocalizedText, orderItemSkuText, fulfillmentTypeLabelText,
   handleCopyPayLink, handleCopyWalletAddress, handleOpenPayLink, restoreCachedPayment, handleChangePaymentMethod,
   handlePayment, handleGuestAuthSubmit, handleRefresh,

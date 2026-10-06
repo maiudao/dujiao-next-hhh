@@ -24,6 +24,7 @@ import {
 import QRCode from 'qrcode'
 import { type PageAlert } from '../utils/alerts'
 import { loadGuestOrderAuth, saveGuestOrderAuth } from '../utils/guestOrderAuth'
+import { useStorefrontMode } from './useStorefrontMode'
 
 /**
  * 支付页共享逻辑（classic + vault 双模板共用）。
@@ -35,6 +36,7 @@ export function usePayment() {
   const appStore = useAppStore()
   const telegramMiniAppStore = useTelegramMiniAppStore()
   const { t } = useI18n()
+  const { samplingMode, samplingNotice, closedPaymentLabel, refreshBeforePayment } = useStorefrontMode()
 
   const loading = ref(true)
   const submitting = ref(false)
@@ -499,6 +501,7 @@ export function usePayment() {
     return channelAmountLimitHint(channel)
   })
   const canSubmitPayment = computed(() => {
+    if (samplingMode.value) return false
     if (submitting.value) return false
     if (walletOnlyPayment.value && expectedOnlinePayCents.value > 0) return false
     if (!walletOnlyPayment.value && requiresOnlineChannel.value && !selectedChannelId.value) return false
@@ -751,7 +754,9 @@ export function usePayment() {
     }
   }
 
-  const openPayLinkInCompatibleWindow = (automatic = false) => {
+  const openPayLinkInCompatibleWindow = async (automatic = false) => {
+    try { await refreshBeforePayment() }
+    catch (err: any) { error.value = err.message; return }
     if (!payLink.value) return
     if (isTelegramMiniApp.value) {
       telegramMiniAppStore.openLink(payLink.value)
@@ -765,7 +770,11 @@ export function usePayment() {
       // 随后立即切断 opener 再跳转到支付站。这样第三方回跳仍能恢复游客订单，
       // 同时不给外部收银台保留反向控制原页面的能力。
       const paymentWindow = window.open('', '_blank')
-      if (!paymentWindow) return
+      if (!paymentWindow) {
+        // The fresh status check can consume user activation in some browsers.
+        window.location.assign(payLink.value)
+        return
+      }
       paymentWindow.opener = null
       paymentWindow.location.replace(payLink.value)
     }
@@ -948,6 +957,8 @@ export function usePayment() {
 
   const performPayment = async () => {
     error.value = ''
+    try { await refreshBeforePayment() }
+    catch (err: any) { error.value = err.message; return }
     if (!orderNoResolved.value) {
       error.value = t('payment.orderNotFound')
       return
@@ -1353,6 +1364,7 @@ export function usePayment() {
   }
 
   return {
+    samplingMode, samplingNotice, closedPaymentLabel,
     // state
     loading,
     submitting,

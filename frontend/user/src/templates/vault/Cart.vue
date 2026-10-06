@@ -26,17 +26,17 @@
       <div class="grid gap-4">
         <article v-for="item in cartItems" :key="cartItemKey(item)" class="flex gap-4 rounded-xl border bg-card p-4">
           <RouterLink :to="`/products/${item.slug}`" custom v-slot="{ href, navigate }">
-            <component :is="samplingMode ? 'div' : 'a'" :href="samplingMode ? undefined : href" class="relative grid h-[88px] w-[88px] flex-none place-items-center overflow-hidden rounded-md bg-secondary" @click="samplingMode ? undefined : navigate($event)">
+            <a :href="href" class="relative grid h-[88px] w-[88px] flex-none place-items-center overflow-hidden rounded-md bg-secondary" @click="navigate($event)">
               <img v-if="cartItemImage(item)" :src="cartItemImage(item)" :alt="getLocalizedText(item.title)" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
               <Package v-else class="h-10 w-10 text-muted-foreground" />
-            </component>
+            </a>
           </RouterLink>
 
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <RouterLink :to="`/products/${item.slug}`" custom v-slot="{ href, navigate }">
-                  <component :is="samplingMode ? 'span' : 'a'" :href="samplingMode ? undefined : href" class="block truncate font-bold hover:text-primary" @click="samplingMode ? undefined : navigate($event)">{{ getLocalizedText(item.title) }}</component>
+                  <a :href="href" class="block truncate font-bold hover:text-primary" @click="navigate($event)">{{ getLocalizedText(item.title) }}</a>
                 </RouterLink>
                 <p class="mt-1 text-[13px] text-muted-foreground">{{ t('cart.priceLabel') }}：{{ formatPrice(item.priceAmount, totalCurrency) }}</p>
                 <p v-if="itemSkuDisplay(item)" class="mt-1 text-[13px] text-muted-foreground">{{ t('cart.skuLabel') }}：{{ itemSkuDisplay(item) }}</p>
@@ -90,7 +90,7 @@
         </div>
         <p class="my-4 rounded-sm border bg-secondary px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">{{ t('cart.disclaimer') }}</p>
         <Button v-if="!samplingMode" as-child class="h-11 w-full rounded-full font-bold"><RouterLink to="/checkout">{{ t('cart.checkout') }} <ArrowRight /></RouterLink></Button>
-        <Button v-else class="h-11 w-full rounded-full font-bold" disabled>{{ t('cart.checkout') }}</Button>
+        <Button v-else class="storefront-payment-closed h-11 w-full rounded-full font-bold" disabled>{{ closedPaymentLabel }}</Button>
         <Button as-child variant="outline" class="mt-2.5 h-11 w-full rounded-full font-bold"><RouterLink to="/products">{{ t('cart.emptyAction') }}</RouterLink></Button>
       </aside>
     </div>
@@ -107,7 +107,7 @@ import { useCart } from '../../composables/useCart'
 import { useStorefrontMode } from '../../composables/useStorefrontMode'
 
 const { t } = useI18n()
-const { samplingMode, samplingNotice } = useStorefrontMode()
+const { samplingMode, samplingNotice, closedPaymentLabel } = useStorefrontMode()
 
 const {
   getLocalizedText, formatPrice, totalCurrency,

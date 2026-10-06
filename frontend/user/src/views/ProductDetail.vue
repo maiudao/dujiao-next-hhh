@@ -302,11 +302,11 @@
                     {{ t('productDetail.loginToBuy') }}
                   </Button>
                   <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Button variant="secondary" class="h-12 font-bold" :disabled="!canPurchase" @click="addToCart">
+                    <Button variant="secondary" class="h-12 font-bold" :disabled="!canAddToCart" @click="addToCart">
                       {{ t('productDetail.addToCart') }}
                     </Button>
-                    <Button class="h-12 font-bold" :disabled="!canPurchase" @click="buyNow">
-                      {{ t('productDetail.buyNow') }}
+                    <Button class="h-12 font-bold" :class="{ 'storefront-payment-closed': samplingMode }" :disabled="!canPurchase" @click="buyNow">
+                      {{ samplingMode ? '已打烊，暂不能支付' : t('productDetail.buyNow') }}
                     </Button>
                   </div>
                 </div>
@@ -374,6 +374,8 @@
           :visible="showMobileBar && !!product && !loading"
           :requires-login="requiresLogin && !samplingMode"
           :can-purchase="canPurchase"
+          :can-add-to-cart="canAddToCart"
+          :sampling-mode="samplingMode"
           :show-member-price="mobileBarShowMemberPrice"
           :member-price-display="mobileBarMemberPriceDisplay"
           :show-sku-promotion-price="mobileBarShowSkuPromotionPrice"
@@ -464,7 +466,7 @@ const {
   showSelectedSkuMemberBadge,
   isSkuPurchasable, skuDisplayText, skuStockText, skuStockBadgeClass,
   quantityEffectiveLimit, quantityEffectiveMin, handleQuantityInput,
-  requiresLogin, requiresSKUSelection, canPurchase, cannotPurchaseReason, samplingMode,
+  requiresLogin, requiresSKUSelection, canPurchase, canAddToCart, cannotPurchaseReason, samplingMode,
   categoryName, images,
   addToCart, buyNow, goLogin, loadProduct,
   mobileBarShowMemberPrice, mobileBarMemberPriceDisplay,

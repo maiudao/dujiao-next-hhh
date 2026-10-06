@@ -2,7 +2,7 @@ import { createI18n } from 'vue-i18n'
 // 默认语言（兜底语言）静态打包，其余语言按需动态加载
 import zhCN from './locales/zh-CN.json'
 
-const supportedLocales = ['zh-CN', 'zh-TW', 'en-US']
+const supportedLocales = ['zh-CN']
 
 // 非默认语言的懒加载器：切换语言时才下载对应语言包 chunk
 const localeLoaders: Record<string, () => Promise<{ default: Record<string, unknown> }>> = {
@@ -13,21 +13,6 @@ const localeLoaders: Record<string, () => Promise<{ default: Record<string, unkn
 const loadedLocales = new Set(['zh-CN'])
 
 export function detectLocale(): string {
-    const saved = localStorage.getItem('locale')
-    if (saved && supportedLocales.includes(saved)) return saved
-
-    const browserLang = navigator.language || ''
-    if (supportedLocales.includes(browserLang)) return browserLang
-
-    const langPrefix = browserLang.split('-')[0]
-    if (langPrefix === 'zh') {
-        if (browserLang.includes('TW') || browserLang.includes('HK') || browserLang.includes('Hant')) {
-            return 'zh-TW'
-        }
-        return 'zh-CN'
-    }
-    if (langPrefix === 'en') return 'en-US'
-
     return 'zh-CN'
 }
 
@@ -69,7 +54,7 @@ export async function setI18nLocale(locale: string): Promise<void> {
 // 空闲时预取其余语言包：让语言切换即时生效，也避免部署更新后旧页面
 // 再切语言时请求已失效的旧 chunk（预取时已进入浏览器缓存）
 export function warmupLocaleMessages(): void {
-    if (typeof window === 'undefined') return
+    if (supportedLocales.length === 1 || typeof window === 'undefined') return
 
     const prefetch = () => {
         for (const locale of Object.keys(localeLoaders)) {
