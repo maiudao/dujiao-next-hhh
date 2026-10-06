@@ -355,7 +355,7 @@ const loadProducts = async () => {
   loading.value = true
   loadError.value = false
   try {
-    products.value = await loadAllPages(async (page, pageSize) => {
+    const allProducts = await loadAllPages(async (page, pageSize) => {
       const response = await productAPI.list({ page, page_size: pageSize })
       const body = response.data
       return {
@@ -363,6 +363,8 @@ const loadProducts = async () => {
         totalPages: Number(body?.pagination?.total_page || 0),
       }
     })
+    // 首页按后台商品排序权重升序；合并全部分页后再排序，确保跨页顺序一致。
+    products.value = allProducts.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
   } catch (error) {
     loadError.value = true
     console.error('Failed to load landing page products:', error)
