@@ -3,7 +3,7 @@
     <div class="landing-shell">
       <main class="landing-layout">
         <section class="landing-story" aria-labelledby="landing-title">
-          <div class="story-content">
+          <div class="story-content" :class="{ 'story-content-random': !appStore.isResellerTenant }">
           <div class="story-badges">
             <span v-if="content.badgePrimary" class="story-badge story-badge-primary">
               <Store :size="14" aria-hidden="true" />
@@ -15,7 +15,7 @@
             </span>
           </div>
 
-          <h1 id="landing-title" class="landing-title">
+          <h1 id="landing-title" class="landing-title" :class="{ 'landing-title-random': !appStore.isResellerTenant }">
             <span>{{ content.title }}</span>
             <span class="landing-title-accent">{{ content.accentTitle }}</span>
           </h1>
@@ -166,6 +166,17 @@
   </div>
 </template>
 
+<script lang="ts">
+// 每次页面加载选一组；两行保持配对，页面内跳转或主题切换不重新抽取。
+const headlineVariants = [
+  { title: '你需要的那一点便利', accentTitle: '小店替你备着' },
+  { title: '生活已经够忙了', accentTitle: '有些事可以省心' },
+  { title: '让日常多一点轻松', accentTitle: '从一点便利开始' },
+  { title: '你想做的事有很多', accentTitle: '小店帮上一点忙' },
+] as const
+const selectedHeadline = headlineVariants[Math.floor(Math.random() * headlineVariants.length)]!
+</script>
+
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useHead } from '@unhead/vue'
@@ -302,8 +313,8 @@ const content = computed(() => {
   return {
     badgePrimary: localizedValue(config.badge_primary, defaults.badgePrimary),
     badgeSecondary: localizedValue(config.badge_secondary, defaults.badgeSecondary),
-    title: localizedValue(config.title, defaults.title),
-    accentTitle: localizedValue(config.accent_title, defaults.accentTitle),
+    title: appStore.isResellerTenant ? localizedValue(config.title, defaults.title) : selectedHeadline.title,
+    accentTitle: appStore.isResellerTenant ? localizedValue(config.accent_title, defaults.accentTitle) : selectedHeadline.accentTitle,
     description: localizedValue(config.description, defaults.description),
     primaryLabel: localizedValue(config.primary_label, defaults.primaryLabel),
     primaryUrl: '/products',
@@ -543,6 +554,10 @@ onMounted(async () => {
   zoom: 0.88;
 }
 
+.story-content-random {
+  container-type: inline-size;
+}
+
 .story-badges {
   flex-wrap: wrap;
   gap: 8px;
@@ -578,6 +593,7 @@ onMounted(async () => {
 }
 
 .landing-title {
+  --headline-max-size: 58px;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -590,6 +606,11 @@ onMounted(async () => {
 
 .landing-title-accent {
   color: var(--blue);
+}
+
+/* 最长的首句为九个汉字，两句共用字号并随左栏宽度适配。 */
+.landing-title.landing-title-random {
+  font-size: min(var(--headline-max-size), 10.7cqi);
 }
 
 .landing-description {
@@ -1104,6 +1125,7 @@ onMounted(async () => {
   }
 
   .landing-title {
+    --headline-max-size: 46px;
     font-size: 46px;
   }
 
@@ -1145,6 +1167,7 @@ onMounted(async () => {
   }
 
   .landing-title {
+    --headline-max-size: 42px;
     font-size: 42px;
   }
 
@@ -1225,6 +1248,7 @@ onMounted(async () => {
   }
 
   .landing-title {
+    --headline-max-size: 36px;
     font-size: 36px;
   }
 
