@@ -88,7 +88,7 @@
             </button>
           </div>
 
-          <div v-else-if="products.length" class="product-grid">
+          <div v-else-if="products.length" class="product-grid" tabindex="0" role="region" aria-labelledby="products-title">
             <RouterLink
               v-for="product in products"
               :key="product.id || product.slug"
@@ -1112,6 +1112,34 @@ onMounted(async () => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (min-width: 901px) {
+  .landing-page { min-height: 0; }
+  .landing-shell { padding-top: 24px; padding-bottom: 24px; }
+  .landing-story { align-self: start; justify-content: flex-start; padding-top: 12px; }
+  .product-panel {
+    display: flex;
+    flex-direction: column;
+    height: max(480px, calc(100dvh - 119px));
+    margin-top: 0;
+  }
+  .product-panel-header, .catalog-footnote { flex-shrink: 0; }
+  .product-grid {
+    flex: 1;
+    min-height: 0;
+    grid-auto-rows: max-content;
+    align-content: start;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--product-line) transparent;
+    padding: 3px 4px 3px 3px;
+    margin: -3px -4px -3px -3px;
+  }
+  .product-grid:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+  .product-panel > .catalog-state { flex: 1; min-height: 0; }
 }
 
 @media (max-width: 1060px) {

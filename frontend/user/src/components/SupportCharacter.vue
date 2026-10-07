@@ -193,8 +193,9 @@ onUnmounted(() => {
   --character-width: 125px; --character-height: 130px; --squish-distance: 15.6px;
   position: fixed; z-index: 45; width: 234px; pointer-events: none;
   height: var(--character-height);
-  right: max(12px, calc((100% - 1132px) / 2 - 62.5px));
-  bottom: max(34px, env(safe-area-inset-bottom));
+  /* Keep the desktop default beneath the landing page's left-hand story. */
+  left: max(24px, calc((100% - 1132px) / 2));
+  bottom: max(64px, env(safe-area-inset-bottom));
   display: flex; justify-content: flex-end;
 }
 .shop-character-reaction { position: absolute; right: 0; bottom: calc(100% + 10px); width: 200px; z-index: 3; }
@@ -251,7 +252,7 @@ onUnmounted(() => {
 .support-tag-leave-active { transition: transform 160ms ease-in, opacity 120ms; }
 .support-tag-enter-from, .support-tag-leave-to { transform: translateX(62px); opacity: 0; }
 @media (max-width: 900px) {
-  .shop-character { --character-width: 88px; --character-height: 92px; --squish-distance: 11.04px; width: 188px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .shop-character { --character-width: 88px; --character-height: 92px; --squish-distance: 11.04px; width: 188px; left: auto; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); }
   .shop-character-reaction { bottom: calc(100% + 8px); width: 160px; }
   .shop-character-with-contact { width: 180px; }
   .shop-character-contact { gap: 5px; width: calc(100% - 24px); margin-inline: 12px; font-size: 10.5px; }
