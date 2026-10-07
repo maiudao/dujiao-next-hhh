@@ -1118,6 +1118,17 @@ onMounted(async () => {
   .landing-page { min-height: 0; }
   .landing-shell { padding-top: 24px; padding-bottom: 24px; }
   .landing-story { align-self: start; justify-content: flex-start; padding-top: 12px; }
+  .story-highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .story-highlights .highlight-item {
+    min-width: 0;
+    justify-content: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .story-highlights .highlight-item svg { width: 14px; height: 14px; }
   .product-panel {
     display: flex;
     flex-direction: column;
