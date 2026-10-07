@@ -85,6 +85,9 @@ func (s *AdminService) QuickUpdate(id string, fields map[string]interface{}) (*p
 		if err := validateActivationCategory(s.categories, categoryID, productcontract.ErrProductCategoryInvalid); err != nil {
 			return nil, err
 		}
+		if _, err := productdomain.NormalizeProductTags(product.Tags, true); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.products.QuickUpdate(id, fields); err != nil {
 		return nil, err

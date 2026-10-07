@@ -9,9 +9,6 @@
         <img v-if="coverImage" :src="coverImage" :alt="title" loading="lazy" class="absolute inset-0 h-full w-full object-cover" @error="imageErrored = true" />
         <Package v-else class="relative z-[1] h-[58px] w-[58px] text-white" />
         <!-- 商家标签浮层 -->
-        <div v-if="!samplingMode && !soldOut && product.tags && product.tags.length" class="absolute right-1.5 top-1.5 z-[3] flex max-w-[80%] flex-wrap justify-end gap-1">
-          <span v-for="(tag, i) in product.tags.slice(0, 2)" :key="i" class="inline-flex max-w-full items-center truncate rounded-md border border-white/25 bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">{{ tag }}</span>
-        </div>
       </span>
       <div class="flex min-w-0 flex-col gap-0.5 px-1">
         <span v-if="categoryName" class="truncate text-xs font-semibold text-muted-foreground">{{ categoryName }}</span>
@@ -20,8 +17,11 @@
     </div>
 
     <!-- 属性徽章：交付方式 · 购买类型 · 库存 -->
+    <div v-if="product.tags?.length" class="mx-1 flex flex-wrap gap-1.5">
+      <span v-for="tag in product.tags" :key="tag" class="max-w-full break-all rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">{{ tag }}</span>
+    </div>
     <div class="mx-1 flex flex-wrap items-center gap-1.5">
-      <span class="inline-flex items-center gap-1 rounded-full bg-[color:var(--teal-soft)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--teal-strong)]">
+      <span v-if="product.fulfillment_type === 'auto'" class="inline-flex items-center gap-1 rounded-full bg-[color:var(--teal-soft)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--teal-strong)]">
         <component :is="product.fulfillment_type === 'auto' ? Zap : Pencil" class="h-3 w-3" />
         {{ getFulfillmentTypeLabel(product.fulfillment_type) }}
       </span>

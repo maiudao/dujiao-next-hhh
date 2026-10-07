@@ -47,7 +47,7 @@
 
           <div class="mb-1.5 flex flex-wrap gap-2">
             <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-semibold" :class="stockPillTone">{{ getStockStatusLabel(product) }}</span>
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--teal-soft)] px-2.5 py-1 text-[12.5px] font-semibold text-[color:var(--teal-strong)]">
+            <span v-if="product.fulfillment_type === 'auto'" class="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--teal-soft)] px-2.5 py-1 text-[12.5px] font-semibold text-[color:var(--teal-strong)]">
               <component :is="product.fulfillment_type === 'auto' ? Zap : Pencil" class="h-3.5 w-3.5" />
               {{ getFulfillmentTypeLabel(product.fulfillment_type) }}
             </span>
@@ -57,8 +57,8 @@
             </span>
           </div>
 
-          <div v-if="product.tags && product.tags.length" class="mb-1 flex flex-wrap gap-1.5">
-            <span v-for="(tag, i) in product.tags" :key="i" class="inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-[12.5px] font-semibold text-muted-foreground">{{ tag }}</span>
+          <div v-if="product.tags && product.tags.length" class="mb-3 flex flex-wrap gap-1.5">
+            <span v-for="(tag, i) in product.tags" :key="i" class="inline-flex max-w-full break-all items-center rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[12.5px] font-semibold text-primary">{{ tag }}</span>
           </div>
 
           <!-- 价格 -->

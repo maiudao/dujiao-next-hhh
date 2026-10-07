@@ -323,6 +323,10 @@ func (h *AdminProductHandler) CreateProduct(c *gin.Context) {
 			ginutil.RespondError(c, response.CodeBadRequest, "error.product_purchase_invalid", nil)
 			return
 		}
+		if errors.Is(err, productdomain.ErrProductTagsInvalid) {
+			ginutil.RespondError(c, response.CodeBadRequest, "error.product_tags_invalid", nil)
+			return
+		}
 		if errors.Is(err, productcontract.ErrProductCategoryInvalid) {
 			ginutil.RespondError(c, response.CodeBadRequest, "error.product_category_invalid", nil)
 			return
@@ -417,6 +421,10 @@ func (h *AdminProductHandler) UpdateProduct(c *gin.Context) {
 		}
 		if errors.Is(err, productcontract.ErrProductPurchaseInvalid) {
 			ginutil.RespondError(c, response.CodeBadRequest, "error.product_purchase_invalid", nil)
+			return
+		}
+		if errors.Is(err, productdomain.ErrProductTagsInvalid) {
+			ginutil.RespondError(c, response.CodeBadRequest, "error.product_tags_invalid", nil)
 			return
 		}
 		if errors.Is(err, productcontract.ErrProductCategoryInvalid) {
@@ -532,6 +540,10 @@ func (h *AdminProductHandler) QuickUpdateProduct(c *gin.Context) {
 
 	product, err := h.admin.QuickUpdate(id, fields)
 	if err != nil {
+		if errors.Is(err, productdomain.ErrProductTagsInvalid) {
+			ginutil.RespondError(c, response.CodeBadRequest, "error.product_tags_invalid", nil)
+			return
+		}
 		if errors.Is(err, productcontract.ErrNotFound) {
 			ginutil.RespondError(c, response.CodeNotFound, "error.product_not_found", nil)
 			return
@@ -660,6 +672,8 @@ type batchProductFailureItem struct {
 func productBatchFailureFromError(locale string, id uint, err error) batchProductFailureItem {
 	errorCode := "product_update_failed"
 	switch {
+	case errors.Is(err, productdomain.ErrProductTagsInvalid):
+		errorCode = "product_tags_invalid"
 	case errors.Is(err, productcontract.ErrProductCategoryInvalid):
 		errorCode = "product_category_invalid"
 	case errors.Is(err, productcontract.ErrNotFound):

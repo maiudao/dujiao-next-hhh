@@ -286,6 +286,7 @@ func TestProductServiceUpdateWholesalePricesOptionalSemantics(t *testing.T) {
 	}
 
 	created, err := svc.Write.Create(productwrite.CreateProductInput{
+		Tags:            []string{"service-label"},
 		CategoryID:      category.ID,
 		Slug:            "wholesale-update",
 		TitleJSON:       map[string]interface{}{"zh-CN": "wholesale-update"},
@@ -307,6 +308,7 @@ func TestProductServiceUpdateWholesalePricesOptionalSemantics(t *testing.T) {
 	idStr := strconv.FormatUint(uint64(created.ID), 10)
 	baseUpdate := func() productwrite.CreateProductInput {
 		return productwrite.CreateProductInput{
+			Tags:            []string{"service-label"},
 			CategoryID:      category.ID,
 			Slug:            created.Slug,
 			TitleJSON:       map[string]interface{}{"zh-CN": "wholesale-update"},

@@ -9,9 +9,9 @@
               <Store :size="14" aria-hidden="true" />
               {{ content.badgePrimary }}
             </span>
-            <span v-if="content.badgeSecondary" class="story-badge story-badge-secondary">
+            <span class="story-badge story-badge-secondary" :class="{ 'story-badge-closed': samplingMode }" role="status">
               <span class="live-dot" aria-hidden="true"></span>
-              {{ content.badgeSecondary }}
+              {{ samplingMode ? businessStatus.closed : businessStatus.open }}
             </span>
           </div>
 
@@ -72,7 +72,6 @@
             <div>
               <p class="panel-kicker">{{ copy.catalogKicker }}</p>
               <h2 id="products-title">{{ copy.catalogTitle }}</h2>
-              <p class="panel-description">{{ copy.catalogDescription }}</p>
             </div>
           </div>
 
@@ -90,14 +89,13 @@
           </div>
 
           <div v-else-if="products.length" class="product-grid">
-            <button
+            <RouterLink
               v-for="product in products"
               :key="product.id || product.slug"
-              type="button"
+              :to="`/products/${encodeURIComponent(product.slug)}`"
               class="product-option"
               :class="{ 'product-option-sold-out': isSoldOut(product), 'product-option-paused': samplingMode }"
               :aria-label="copy.viewProduct(getLocalizedText(product.title))"
-              @click="openProduct(product.slug)"
             >
               <span class="product-option-top">
                 <span v-if="product.category?.name" class="product-category">
@@ -110,9 +108,12 @@
                 <span
                   class="stock-badge"
                   :class="stockClass(product)"
-                >{{ samplingMode ? samplingLabelFor(product) : getStockStatusLabel(product) }}</span>
+                >{{ samplingMode ? copy.samplingClosed : getStockStatusLabel(product) }}</span>
               </span>
               <span class="product-title">{{ getLocalizedText(product.title) }}</span>
+              <span v-if="product.tags?.length" class="product-tags">
+                <span v-for="tag in product.tags" :key="tag" class="product-tag">{{ tag }}</span>
+              </span>
               <span v-if="getLocalizedText(product.description)" class="product-description">
                 {{ getLocalizedText(product.description) }}
               </span>
@@ -124,11 +125,11 @@
                   </span>
                 </span>
                 <span class="product-action">
-                  {{ isSoldOut(product) ? copy.viewDetails : copy.selectProduct }}
+                  {{ samplingMode || isSoldOut(product) ? copy.viewDetails : copy.selectProduct }}
                   <ArrowRight :size="15" aria-hidden="true" />
                 </span>
               </span>
-            </button>
+            </RouterLink>
           </div>
 
           <div v-else class="catalog-state">
@@ -167,6 +168,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowRight,
@@ -196,7 +198,7 @@ type LandingField = Record<string, string> | undefined
 const router = useRouter()
 const appStore = useAppStore()
 const userAuthStore = useUserAuthStore()
-const { samplingMode, samplingLabelFor, samplingNotice } = useStorefrontMode()
+const { samplingMode, samplingNotice } = useStorefrontMode()
 const { theme } = useTheme()
 const { getLocalizedText, formatPrice, siteCurrency } = useLocalized()
 const { isSoldOut, getStockStatusLabel, hasPromotionPrice, getPromotionPriceAmount } = useProductLabels()
@@ -254,6 +256,19 @@ const landingDefaults = {
 } as const
 
 const copy = computed(() => localeCopy[appStore.locale as keyof typeof localeCopy] || localeCopy['zh-CN'])
+const businessStatus = computed(() => {
+  if (appStore.locale === 'en-US') return { open: 'The shop is open', closed: 'The shop is closed' }
+  if (appStore.locale === 'zh-TW') return { open: '小店正在營業中', closed: '小店已經打烊了' }
+  return { open: '小店正在营业中', closed: '小店已经打烊了' }
+})
+useHead(() => appStore.isResellerTenant ? {} : {
+  title: 'HHH 小店｜ChatGPT 代充',
+  meta: [
+    { name: 'description', content: '第三方人工服务。购买前可查看适用条件、交付流程和售后范围' },
+    { property: 'og:title', content: 'HHH 小店｜ChatGPT 代充' },
+    { property: 'og:description', content: '第三方人工服务。购买前可查看适用条件、交付流程和售后范围' },
+  ],
+})
 const defaultLanding = computed(() => landingDefaults[appStore.locale as keyof typeof landingDefaults] || landingDefaults['zh-CN'])
 const landingConfig = computed(() => appStore.config?.home_landing || {})
 
@@ -345,10 +360,6 @@ const followLink = (raw: unknown) => {
     return
   }
   window.location.assign(href)
-}
-
-const openProduct = (slug: string) => {
-  if (slug) void router.push(`/products/${encodeURIComponent(slug)}`)
 }
 
 const loadProducts = async () => {
@@ -513,7 +524,7 @@ onMounted(async () => {
 .landing-layout {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  grid-template-columns: minmax(240px, 0.73fr) minmax(0, 1.6fr);
   align-items: stretch;
   gap: 34px;
 }
@@ -553,8 +564,11 @@ onMounted(async () => {
 }
 
 .story-badge-secondary {
-  color: var(--muted);
+  color: var(--green);
 }
+
+.story-badge-closed { color: var(--amber); }
+.story-badge-closed .live-dot { background: var(--amber); }
 
 .live-dot {
   width: 7px;
@@ -794,7 +808,7 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .panel-kicker {
@@ -836,14 +850,15 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 154px;
-  padding: 16px;
+  min-height: 0;
+  padding: 14px;
   color: var(--ink);
   text-align: left;
-  background: var(--product-bg);
+  background: color-mix(in srgb, var(--product-bg) 48%, var(--panel-bg));
   border: 1px solid var(--product-line);
   border-radius: 16px;
   cursor: pointer;
+  text-decoration: none;
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
@@ -864,7 +879,7 @@ onMounted(async () => {
 }
 
 .product-option-paused {
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 .product-option-paused .product-action { color: var(--muted); }
@@ -930,32 +945,32 @@ onMounted(async () => {
 }
 
 .product-title {
-  display: -webkit-box;
-  overflow: hidden;
+  display: block;
   margin-top: 9px;
   color: var(--ink);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 1.4;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
+.product-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.product-tag { max-width: 100%; padding: 2px 7px; border-radius: 5px; color: var(--blue); background: var(--blue-soft); font-size: 11px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+
 .product-description {
-  display: -webkit-box;
-  overflow: hidden;
-  margin-top: 5px;
+  display: block;
+  margin: 8px 0 10px;
   color: var(--muted);
   font-size: 12px;
-  line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 
 .product-option-bottom {
   align-items: flex-end;
   margin-top: auto;
-  padding-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 
 .product-price-block {
@@ -967,11 +982,11 @@ onMounted(async () => {
 }
 
 .product-price {
-  color: var(--ink);
+  color: var(--blue);
   font-size: 22px;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .product-original-price {
@@ -986,6 +1001,10 @@ onMounted(async () => {
   color: var(--blue);
   font-size: 11px;
   font-weight: 700;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  background: var(--blue-soft);
 }
 
 .catalog-state {
@@ -1258,7 +1277,7 @@ onMounted(async () => {
   }
 
   .product-option {
-    min-height: 144px;
+    min-height: 0;
     padding: 14px;
   }
 

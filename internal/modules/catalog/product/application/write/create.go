@@ -131,6 +131,11 @@ func (s *WriteService) Create(input CreateProductInput) (*productdomain.Product,
 		product.ManualFormSchemaJSON = normalizedSchemaJSON
 	}
 
+	tags, err := productdomain.NormalizeProductTags(input.Tags, isActive)
+	if err != nil {
+		return nil, err
+	}
+	product.Tags = jsonslice.Strings(tags)
 	if err := s.transactions.WithinTransaction(func(repositories TransactionRepositories) error {
 		productRepo := repositories.Products
 		skuRepo := repositories.SKUs

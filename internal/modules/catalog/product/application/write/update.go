@@ -145,6 +145,11 @@ func (s *WriteService) Update(id string, input CreateProductInput) (*productdoma
 	}
 	product.ManualStockTotal = manualStockTotal
 
+	tags, err := productdomain.NormalizeProductTags(input.Tags, product.IsActive)
+	if err != nil {
+		return nil, err
+	}
+	product.Tags = jsonslice.Strings(tags)
 	if err := s.transactions.WithinTransaction(func(repositories TransactionRepositories) error {
 		productRepo := repositories.Products
 		skuRepo := repositories.SKUs

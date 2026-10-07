@@ -67,6 +67,7 @@ func TestProductServiceUpdateRejectsDisablingAutoSKUWithCardSecretStock(t *testi
 	insertCardSecrets(t, db, product.ID, stockSKU.ID, cardsecretdomain.StatusAvailable, 1)
 
 	_, err := svc.Write.Update(strconv.FormatUint(uint64(product.ID), 10), productwrite.CreateProductInput{
+		Tags:            []string{"service-label"},
 		CategoryID:      category.ID,
 		Slug:            product.Slug,
 		TitleJSON:       map[string]interface{}{"zh-CN": "auto-card-secret-product"},

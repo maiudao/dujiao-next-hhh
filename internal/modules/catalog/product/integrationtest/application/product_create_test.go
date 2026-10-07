@@ -35,6 +35,7 @@ func TestProductServiceCreateRejectsParentCategoryWithChildren(t *testing.T) {
 	}
 
 	_, err := svc.Write.Create(productwrite.CreateProductInput{
+		Tags:            []string{"service-label"},
 		CategoryID:      parent.ID,
 		Slug:            "invalid-parent-product",
 		TitleJSON:       map[string]interface{}{"zh-CN": "invalid-parent-product"},
@@ -67,6 +68,7 @@ func TestProductServiceCreateFiltersUnavailablePaymentChannels(t *testing.T) {
 	deletedChannel := createProductTestPaymentChannel(t, db, "Deleted", true, true)
 
 	product, err := svc.Write.Create(productwrite.CreateProductInput{
+		Tags:              []string{"service-label"},
 		CategoryID:        category.ID,
 		Slug:              "payment-channel-create",
 		TitleJSON:         map[string]interface{}{"zh-CN": "payment-channel-create"},
@@ -100,6 +102,7 @@ func TestProductServiceCreateRejectsInvalidPurchaseLimits(t *testing.T) {
 	intPtr := func(v int) *int { return &v }
 
 	_, err := svc.Write.Create(productwrite.CreateProductInput{
+		Tags:                []string{"service-label"},
 		CategoryID:          cat.ID,
 		Slug:                "invalid-limit-product",
 		TitleJSON:           map[string]interface{}{"zh-CN": "invalid-limit-product"},
@@ -126,6 +129,7 @@ func TestProductServiceCreateRollsBackProductAndSKUWhenWholesaleValidationFails(
 	}
 
 	_, err := svc.Write.Create(productwrite.CreateProductInput{
+		Tags:            []string{"service-label"},
 		CategoryID:      category.ID,
 		Slug:            "write-rollback-product",
 		TitleJSON:       map[string]interface{}{"zh-CN": "write-rollback-product"},

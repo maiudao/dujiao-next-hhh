@@ -55,6 +55,7 @@ func TestProductServiceUpdateKeepsMappedProductFulfillmentUpstream(t *testing.T)
 	}
 
 	updated, err := svc.Write.Update(strconv.FormatUint(uint64(product.ID), 10), productwrite.CreateProductInput{
+		Tags:            []string{"service-label"},
 		CategoryID:      category.ID,
 		Slug:            "mapped-product-updated",
 		TitleJSON:       map[string]interface{}{"zh-CN": "mapped-product-updated"},
@@ -113,6 +114,7 @@ func TestProductServiceUpdateFiltersUnavailablePaymentChannels(t *testing.T) {
 	}
 
 	updated, err := svc.Write.Update(strconv.FormatUint(uint64(product.ID), 10), productwrite.CreateProductInput{
+		Tags:              []string{"service-label"},
 		CategoryID:        category.ID,
 		Slug:              product.Slug,
 		TitleJSON:         map[string]interface{}{"zh-CN": "payment-channel-update"},
@@ -144,6 +146,7 @@ func TestProductServiceUpdateRejectsInvalidPurchaseLimits(t *testing.T) {
 	intPtr := func(v int) *int { return &v }
 
 	created, err := svc.Write.Create(productwrite.CreateProductInput{
+		Tags:                []string{"service-label"},
 		CategoryID:          cat.ID,
 		Slug:                "valid-limit-product",
 		TitleJSON:           map[string]interface{}{"zh-CN": "valid"},
@@ -159,6 +162,7 @@ func TestProductServiceUpdateRejectsInvalidPurchaseLimits(t *testing.T) {
 	}
 
 	_, err = svc.Write.Update(strconv.FormatUint(uint64(created.ID), 10), productwrite.CreateProductInput{
+		Tags:                []string{"service-label"},
 		CategoryID:          cat.ID,
 		Slug:                "valid-limit-product",
 		TitleJSON:           map[string]interface{}{"zh-CN": "valid"},

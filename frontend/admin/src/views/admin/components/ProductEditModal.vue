@@ -563,6 +563,11 @@ const closeModal = () => {
 const handleSubmit = async () => {
   submitting.value = true
   try {
+    addTag()
+    form.tags = [...new Set(form.tags.map((tag) => tag.trim()).filter(Boolean))]
+    if ((form.is_active && form.tags.length === 0) || form.tags.length > 6 || form.tags.some((tag) => Array.from(tag).length > 40 || /[\r\n\t]/.test(tag))) {
+      throw new Error(t('admin.products.form.tagsInvalid'))
+    }
     const normalizedCategoryID = Number(form.category_id)
     if (!Number.isFinite(normalizedCategoryID) || normalizedCategoryID <= 0) {
       throw new Error(getCategoryRequiredError())
@@ -643,14 +648,25 @@ const handleSubmit = async () => {
 }
 
 const addTag = () => {
-  if (newTag.value.trim() && !form.tags.includes(newTag.value.trim())) {
-    form.tags.push(newTag.value.trim())
-    newTag.value = ''
+  const tag = newTag.value.trim()
+  if (!tag) return
+  if (Array.from(tag).length > 40 || /[\r\n\t]/.test(tag) || (!form.tags.includes(tag) && form.tags.length >= 6)) {
+    throw new Error(t('admin.products.form.tagsInvalid'))
   }
+  if (!form.tags.includes(tag)) form.tags.push(tag)
+  newTag.value = ''
 }
 
 const removeTag = (index: number) => {
   form.tags.splice(index, 1)
+}
+
+const handleAddTag = () => {
+  try {
+    addTag()
+  } catch (err: any) {
+    notifyError(err.message)
+  }
 }
 
 // Watch productId to determine create vs edit mode and fetch product details
@@ -736,6 +752,24 @@ watch(
           <div class="col-span-1 md:col-span-2">
             <label class="block text-xs font-medium text-muted-foreground mb-1.5">{{ t('admin.products.form.title', { lang: getCurrentLangName() }) }}</label>
             <Input v-model="form.title[currentLang]" required :placeholder="t('admin.products.form.titlePlaceholder')" />
+          </div>
+
+          <div class="col-span-1 md:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
+            <Label for="product-tag-input" class="mb-2 block text-xs font-medium">
+              {{ t('admin.products.form.tags') }} <span v-if="form.is_active" class="text-destructive">*</span>
+              <span class="ml-2 font-normal text-muted-foreground">{{ form.tags.length }}/6</span>
+            </Label>
+            <div v-if="form.tags.length" class="mb-3 flex flex-wrap gap-2">
+              <span v-for="(tag, index) in form.tags" :key="tag" class="inline-flex max-w-full items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary">
+                <span class="break-all">{{ tag }}</span>
+                <button type="button" class="shrink-0 p-1" :aria-label="t('admin.products.form.removeTag', { tag })" @click="removeTag(index)">×</button>
+              </span>
+            </div>
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <Input id="product-tag-input" v-model="newTag" :required="form.is_active && form.tags.length === 0" aria-describedby="product-tags-tip" :placeholder="t('admin.products.form.tagsPlaceholder')" @keydown.enter.prevent="handleAddTag" />
+              <Button type="button" variant="outline" class="w-full sm:w-auto" @click="handleAddTag">{{ t('admin.products.actions.addTag') }}</Button>
+            </div>
+            <p id="product-tags-tip" class="mt-2 text-xs leading-relaxed text-muted-foreground">{{ t('admin.products.form.tagsTip') }}</p>
           </div>
 
           <div class="col-span-1">
@@ -1071,20 +1105,6 @@ watch(
             <label class="block text-xs font-medium text-muted-foreground mb-1.5">{{ t('admin.products.form.instructions', { lang: getCurrentLangName() }) }}</label>
             <RichEditor :model-value="form.instructions[currentLang] || ''" @update:model-value="(v: string) => form.instructions[currentLang] = v" :placeholder="t('admin.products.form.instructionsPlaceholder')" />
             <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.products.form.instructionsTip') }}</p>
-          </div>
-
-          <div class="col-span-1 md:col-span-2">
-            <label class="block text-xs font-medium text-muted-foreground mb-1.5">{{ t('admin.products.form.tags') }}</label>
-            <div class="flex flex-wrap gap-2 mb-2">
-              <span v-for="(tag, index) in form.tags" :key="index" class="rounded-lg border border-border px-3 py-1 text-xs text-muted-foreground flex items-center gap-1">
-                {{ tag }}
-                <button type="button" class="hover:text-foreground" @click="removeTag(index)">x</button>
-              </span>
-            </div>
-            <div class="flex flex-col gap-2 sm:flex-row">
-              <Input v-model="newTag" :placeholder="t('admin.products.form.tagsPlaceholder')" @keydown.enter.prevent="addTag" />
-              <Button type="button" variant="outline" class="w-full sm:w-auto" @click="addTag">{{ t('admin.products.actions.addTag') }}</Button>
-            </div>
           </div>
 
           <div v-if="paymentChannels.length > 0" class="col-span-1 md:col-span-2">

@@ -61,7 +61,7 @@ func TestAdminServiceDeleteUsesAllCascadePorts(t *testing.T) {
 }
 
 func TestAdminServiceQuickUpdateValidatesActivationCategory(t *testing.T) {
-	products := &productRepositoryStub{product: &productdomain.Product{ID: 11, CategoryID: 3}}
+	products := &productRepositoryStub{product: &productdomain.Product{ID: 11, CategoryID: 3, Tags: []string{"service-label"}}}
 	service := NewAdminService(Options{
 		Products:   products,
 		Categories: categoryRepositoryStub{categories: map[string]*categorydomain.Category{"5": {ID: 5, IsActive: true}}},
