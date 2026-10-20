@@ -291,11 +291,14 @@ func buildVerifyCodeContent(code, purpose, locale string, brands ...mailbrand.Br
 		case constants.VerifyPurposeTelegramBind:
 			subject = "Telegram 綁定驗證碼"
 			purposeText = "綁定 Telegram"
-		case constants.VerifyPurposeChangeEmailOld, constants.VerifyPurposeChangeEmailNew:
-			subject = "更換郵箱驗證碼"
-			purposeText = "更換郵箱"
+		case constants.VerifyPurposeChangeEmailOld:
+			subject = "更換郵箱：確認原郵箱"
+			purposeText = "確認原郵箱歸屬，以授權更換綁定郵箱"
+		case constants.VerifyPurposeChangeEmailNew:
+			subject = "更換郵箱：驗證新郵箱"
+			purposeText = "驗證新郵箱歸屬，以完成更換綁定郵箱"
 		}
-		body := fmt.Sprintf("您的驗證碼是：%s\n\n該驗證碼用於 %s，請勿洩露。", code, purposeText)
+		body := fmt.Sprintf("您的驗證碼是：%s\n\n該驗證碼僅用於%s，請回到發起此操作的頁面輸入。請勿將驗證碼轉告他人，包括客服。\n\n若非您本人操作，請忽略此郵件。", code, purposeText)
 		return applyVerifyCodeBrand(normalized, subject, body, brand)
 	case i18n.LocaleEN:
 		subject := "Email Verification Code"
@@ -310,11 +313,14 @@ func buildVerifyCodeContent(code, purpose, locale string, brands ...mailbrand.Br
 		case constants.VerifyPurposeTelegramBind:
 			subject = "Telegram Binding Code"
 			purposeText = "binding Telegram"
-		case constants.VerifyPurposeChangeEmailOld, constants.VerifyPurposeChangeEmailNew:
-			subject = "Change Email Code"
-			purposeText = "change email"
+		case constants.VerifyPurposeChangeEmailOld:
+			subject = "Change Email: Confirm Current Address"
+			purposeText = "confirming your current address to authorize an email change"
+		case constants.VerifyPurposeChangeEmailNew:
+			subject = "Change Email: Verify New Address"
+			purposeText = "verifying your new address to complete an email change"
 		}
-		body := fmt.Sprintf("Your verification code is: %s\n\nThis code is for %s. Do not share it.", code, purposeText)
+		body := fmt.Sprintf("Your verification code is: %s\n\nThis code is only for %s. Enter it on the page where you requested it. Do not share it with anyone, including support.\n\nIf you did not request this, ignore this email.", code, purposeText)
 		return applyVerifyCodeBrand(normalized, subject, body, brand)
 	default:
 		subject := "邮箱验证码"
@@ -329,11 +335,14 @@ func buildVerifyCodeContent(code, purpose, locale string, brands ...mailbrand.Br
 		case constants.VerifyPurposeTelegramBind:
 			subject = "Telegram 绑定验证码"
 			purposeText = "绑定 Telegram"
-		case constants.VerifyPurposeChangeEmailOld, constants.VerifyPurposeChangeEmailNew:
-			subject = "更换邮箱验证码"
-			purposeText = "更换邮箱"
+		case constants.VerifyPurposeChangeEmailOld:
+			subject = "更换邮箱：确认原邮箱"
+			purposeText = "确认原邮箱归属，以授权更换绑定邮箱"
+		case constants.VerifyPurposeChangeEmailNew:
+			subject = "更换邮箱：验证新邮箱"
+			purposeText = "验证新邮箱归属，以完成更换绑定邮箱"
 		}
-		body := fmt.Sprintf("您的验证码是：%s\n\n该验证码用于 %s，请勿泄露。", code, purposeText)
+		body := fmt.Sprintf("您的验证码是：%s\n\n该验证码仅用于%s，请回到发起此操作的页面输入。请勿将验证码转告他人，包括客服。\n\n若非您本人操作，请忽略此邮件。", code, purposeText)
 		return applyVerifyCodeBrand(normalized, subject, body, brand)
 	}
 }

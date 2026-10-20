@@ -6,10 +6,11 @@
   <meta name="google" content="notranslate" />
   <meta http-equiv="Content-Language" content="zh-CN" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script data-cfasync="false" src="/huihua-theme.js?v=20261021"></script>
   <script data-cfasync="false">
     // 在模块与样式到达前恢复主题，避免深色用户先看到白色背景。
     try {
-      const saved = localStorage.getItem('dujiao_theme')
+      const saved = window.HuihuaDisplayTheme?.theme || localStorage.getItem('dujiao_theme')
       document.documentElement.classList.toggle('dark', saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches))
     } catch {
       document.documentElement.classList.toggle('dark', matchMedia('(prefers-color-scheme: dark)').matches)

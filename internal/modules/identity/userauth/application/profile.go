@@ -51,6 +51,9 @@ func (s *Service) ResetPassword(email, code, newPassword string) error {
 		now := time.Now()
 		locked.PasswordHash = string(hashedPassword)
 		locked.PasswordSetupRequired = false
+		locked.EmailVerifiedAt = &now
+		locked.EmailVerificationSource = userdomain.EmailProofCode
+		locked.EmailVerificationExempt = false
 		locked.UpdatedAt = now
 		locked.TokenVersion++
 		locked.TokenInvalidBefore = &now
@@ -260,6 +263,8 @@ func (s *Service) ChangeEmail(userID uint, newEmail, oldCode, newCode string) (*
 		now := time.Now()
 		locked.Email = normalized
 		locked.EmailVerifiedAt = &now
+		locked.EmailVerificationSource = userdomain.EmailProofCode
+		locked.EmailVerificationExempt = false
 		locked.UpdatedAt = now
 		if err := tx.UpdateUser(locked); err != nil {
 			return err
@@ -321,6 +326,11 @@ func (s *Service) ensureTelegramVirtualEmailState(user *userdomain.User) error {
 		return nil
 	}
 	updated := false
+	if user.EmailVerificationSource != "" || user.EmailVerificationExempt {
+		user.EmailVerificationSource = ""
+		user.EmailVerificationExempt = false
+		updated = true
+	}
 	if user.EmailVerifiedAt != nil {
 		user.EmailVerifiedAt = nil
 		updated = true

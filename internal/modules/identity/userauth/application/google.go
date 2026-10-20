@@ -230,9 +230,11 @@ func (s *Service) loginGoogleTransaction(
 			if strings.ToLower(strings.TrimSpace(user.Status)) != constants.UserStatusActive {
 				return ErrUserDisabled
 			}
-			if user.EmailVerifiedAt == nil {
+			if !user.HasTrustedEmailProof() {
 				now := time.Now()
 				user.EmailVerifiedAt = &now
+				user.EmailVerificationSource = userdomain.EmailProofGoogle
+				user.EmailVerificationExempt = false
 				user.UpdatedAt = now
 				if err = tx.UpdateUser(user); err != nil {
 					return err
@@ -347,14 +349,15 @@ func newGoogleUser(verified *googleauthapp.VerifiedIdentity) (*userdomain.User, 
 		displayName = resolveNicknameFromEmail(verified.Email)
 	}
 	return &userdomain.User{
-		Email:                 verified.Email,
-		PasswordHash:          passwordHash,
-		PasswordSetupRequired: true,
-		DisplayName:           displayName,
-		Status:                constants.UserStatusActive,
-		EmailVerifiedAt:       &now,
-		CreatedAt:             now,
-		UpdatedAt:             now,
+		Email:                   verified.Email,
+		PasswordHash:            passwordHash,
+		PasswordSetupRequired:   true,
+		DisplayName:             displayName,
+		Status:                  constants.UserStatusActive,
+		EmailVerifiedAt:         &now,
+		EmailVerificationSource: userdomain.EmailProofGoogle,
+		CreatedAt:               now,
+		UpdatedAt:               now,
 	}, nil
 }
 

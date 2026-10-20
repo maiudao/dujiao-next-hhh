@@ -312,8 +312,13 @@ func (s *Service) Register(email, password, code string, agreementAccepted bool,
 		// assigned by an insert in a rolled-back transaction.
 		user = &userdomain.User{
 			Email: normalized, PasswordHash: string(hashedPassword), DisplayName: nickname,
-			Status: constants.UserStatusActive, EmailVerifiedAt: &now,
-			CreatedAt: now, UpdatedAt: now, LastLoginAt: &now,
+			Status:                  constants.UserStatusActive,
+			EmailVerificationExempt: !emailVerificationEnabled,
+			CreatedAt:               now, UpdatedAt: now, LastLoginAt: &now,
+		}
+		if emailVerificationEnabled {
+			user.EmailVerifiedAt = &now
+			user.EmailVerificationSource = userdomain.EmailProofCode
 		}
 		if err := tx.CreateUser(user); err != nil {
 			return err
@@ -351,7 +356,7 @@ func (s *Service) LoginStep1(email, password string, rememberMe bool) (*UserLogi
 	if strings.ToLower(user.Status) != constants.UserStatusActive {
 		return nil, ErrUserDisabled
 	}
-	if user.EmailVerifiedAt == nil {
+	if user.EmailVerifiedAt == nil && !user.EmailVerificationExempt {
 		return nil, ErrEmailNotVerified
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {

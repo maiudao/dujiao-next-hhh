@@ -27,13 +27,31 @@ type User struct {
 	TOTPPendingExpiresAt  *time.Time   `json:"-"`                                                            // 待绑定 secret 过期时间（10 分钟）
 	RecoveryCodes         string       `gorm:"type:text;default:''" json:"-"`                                // jsonmap.JSON 数组：[{"hash":"...","used_at":null|"..."}]
 	EmailVerifiedAt       *time.Time   `json:"email_verified_at"`                                            // 邮箱验证时间
-	LastLoginAt           *time.Time   `json:"last_login_at"`                                                // 最后登录时间
-	CreatedAt             time.Time    `gorm:"index" json:"created_at"`                                      // 创建时间
-	UpdatedAt             time.Time    `gorm:"index" json:"updated_at"`                                      // 更新时间
-	DeletedAt             *time.Time   `gorm:"index" json:"-"`                                               // 软删除时间
+	// Legacy timestamps alone are not proof of mailbox ownership. Empty source
+	// means unknown, including historical imports and administrator overrides.
+	EmailVerificationSource string `gorm:"not null;default:''" json:"-"`
+	// Explicit registration-policy exemption permits password login but is never
+	// exported as an email_verified claim or used to link accounts.
+	EmailVerificationExempt bool       `gorm:"not null;default:false" json:"-"`
+	LastLoginAt             *time.Time `json:"last_login_at"`           // 最后登录时间
+	CreatedAt               time.Time  `gorm:"index" json:"created_at"` // 创建时间
+	UpdatedAt               time.Time  `gorm:"index" json:"updated_at"` // 更新时间
+	DeletedAt               *time.Time `gorm:"index" json:"-"`          // 软删除时间
 }
 
 // TableName 指定表名
 func (User) TableName() string {
 	return "users"
+}
+
+const (
+	EmailProofCode   = "email_code"
+	EmailProofGoogle = "google_authoritative"
+)
+
+// HasTrustedEmailProof is deliberately stricter than legacy login eligibility.
+// Existing timestamps must not silently become federation/linking evidence.
+func (u *User) HasTrustedEmailProof() bool {
+	return u != nil && u.Email != "" && u.EmailVerifiedAt != nil &&
+		(u.EmailVerificationSource == EmailProofCode || u.EmailVerificationSource == EmailProofGoogle)
 }

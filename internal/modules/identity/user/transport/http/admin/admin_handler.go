@@ -380,6 +380,10 @@ func (h *AdminHandler) UpdateAdminUser(c *gin.Context) {
 		}
 		if normalized != user.Email {
 			user.Email = normalized
+			// Editing an address is not proof of the new mailbox. Preserve
+			// existing login policy, but invalidate trusted federation evidence.
+			user.EmailVerificationSource = ""
+			revokeToken = true
 			updated = true
 		}
 	}
@@ -433,10 +437,15 @@ func (h *AdminHandler) UpdateAdminUser(c *gin.Context) {
 			if user.EmailVerifiedAt == nil {
 				now := time.Now()
 				user.EmailVerifiedAt = &now
+				user.EmailVerificationSource = ""
+				user.EmailVerificationExempt = false
 				updated = true
 			}
-		} else if user.EmailVerifiedAt != nil {
+		} else if user.EmailVerifiedAt != nil || user.EmailVerificationExempt || user.EmailVerificationSource != "" {
 			user.EmailVerifiedAt = nil
+			user.EmailVerificationSource = ""
+			user.EmailVerificationExempt = false
+			revokeToken = true
 			updated = true
 		}
 	}
