@@ -341,6 +341,16 @@ func (s *Service) Register(email, password, code string, agreementAccepted bool,
 
 // LoginStep1 用户密码登录第一步：校验密码，根据是否启用 2FA 返回 challenge token 或正式 JWT。
 func (s *Service) LoginStep1(email, password string, rememberMe bool) (*UserLoginResult, error) {
+	user, err := s.verifyPassword(email, password)
+	if err != nil {
+		return nil, err
+	}
+	return s.loginAfterPassword(user, rememberMe)
+}
+
+// verifyPassword is shared with federation, which must not issue an unrelated
+// bearer JWT or mutate user state before its durable interaction is committed.
+func (s *Service) verifyPassword(email, password string) (*userdomain.User, error) {
 	normalized, err := normalizeEmail(email)
 	if err != nil {
 		return nil, err
@@ -362,7 +372,10 @@ func (s *Service) LoginStep1(email, password string, rememberMe bool) (*UserLogi
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
+	return user, nil
+}
 
+func (s *Service) loginAfterPassword(user *userdomain.User, rememberMe bool) (*UserLoginResult, error) {
 	if user.TOTPEnabledAt != nil {
 		challenge, jti, expiresAt, err := s.IssueUserChallengeToken(user.ID, rememberMe)
 		if err != nil {
@@ -398,6 +411,22 @@ func (s *Service) LoginStep1(email, password string, rememberMe bool) (*UserLogi
 		Token:        token,
 		ExpiresAt:    expiresAt,
 	}, nil
+}
+
+// PasswordIdentity proves only the first factor. It cannot establish a session
+// without the federation store rechecking auth version and required 2FA.
+type PasswordIdentity struct {
+	UserID       uint
+	TokenVersion uint64
+	RequiresTOTP bool
+}
+
+func (s *Service) CheckPassword(email, password string) (*PasswordIdentity, error) {
+	user, err := s.verifyPassword(email, password)
+	if err != nil {
+		return nil, err
+	}
+	return &PasswordIdentity{UserID: user.ID, TokenVersion: user.TokenVersion, RequiresTOTP: user.TOTPEnabledAt != nil}, nil
 }
 
 // IssueUserChallengeToken 签发用户 2FA 挑战 token
