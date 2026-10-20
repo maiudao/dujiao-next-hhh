@@ -15,21 +15,22 @@
         <button type="button" class="mobile-contact-entry hidden max-[900px]:inline-flex" @click="contactOpen = true">联系方式</button>
 
         <nav class="flex gap-0.5 max-[900px]:hidden">
-          <button type="button" class="order-1 whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground" @click="contactOpen = true">联系方式</button>
+          <button type="button" class="order-2 whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground" @click="contactOpen = true">联系方式</button>
           <template v-for="item in menuItems" :key="item.key">
             <RouterLink
               v-if="item.type === 'route'"
               :to="item.path"
               class="whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               active-class="!bg-primary/10 !text-primary"
-              :class="item.key === 'products' ? 'order-0' : 'order-2'"
+              :class="item.key === 'products' ? 'order-0' : 'order-3'"
             >{{ item.label }}</RouterLink>
             <a
               v-else
               :href="item.path"
               :target="item.target"
               rel="noopener noreferrer"
-              class="order-2 whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              class="whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              :class="item.key === 'main-site' ? 'order-1' : 'order-3'"
             >{{ item.label }}</a>
           </template>
         </nav>
@@ -40,7 +41,7 @@
             <Sun v-if="theme === 'dark'" class="h-[18px] w-[18px]" />
             <Moon v-else class="h-[18px] w-[18px]" />
           </button>
-          <RouterLink class="relative grid h-10 w-10 flex-none place-items-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" to="/cart" :aria-label="t('navbar.cart')">
+          <RouterLink class="relative grid h-10 w-10 flex-none place-items-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary max-[900px]:hidden" to="/cart" :aria-label="t('navbar.cart')">
             <ShoppingCart class="h-[18px] w-[18px]" />
             <span v-if="cartCount > 0" class="absolute -right-[3px] -top-[3px] grid h-[19px] min-w-[19px] place-items-center rounded-full bg-primary px-[5px] text-[11px] font-bold text-white">{{ cartCount }}</span>
           </RouterLink>
@@ -76,6 +77,11 @@
                 <RouterLink v-if="item.type === 'route'" :to="item.path" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</RouterLink>
                 <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</a>
               </template>
+              <RouterLink to="/cart" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">
+                <ShoppingCart class="h-[18px] w-[18px]" aria-hidden="true" />
+                <span>{{ t('navbar.cart') }}</span>
+                <span v-if="cartCount > 0" class="ml-auto rounded-full bg-primary/10 px-2 text-xs font-bold tabular-nums text-primary">{{ cartCount }}</span>
+              </RouterLink>
               <RouterLink v-if="appStore.config?.guest_orders_enabled && !userAuthStore.isAuthenticated" to="/guest/orders" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ t('navbar.guestOrders') }}</RouterLink>
               <RouterLink v-if="userAuthStore.isAuthenticated" to="/me" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ t('navbar.personalCenter') }}</RouterLink>
               <RouterLink v-else to="/auth/login" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ t('navbar.login') }}</RouterLink>
@@ -178,6 +184,7 @@ const menuItems = computed<NavItem[]>(() => {
   if (!isListMode.value) {
     items.push({ key: 'products', path: '/products', label: t('products.allCategories'), icon: LayoutGrid, type: 'route', target: '_self' })
   }
+  items.push({ key: 'main-site', path: 'https://huihuahui.xyz', label: '主站', icon: LayoutGrid, type: 'link', target: '_self' })
   // 内置（博客/公告/关于）+ 后台自定义导航项
   items.push(...secondaryNavItems.value)
   return items
