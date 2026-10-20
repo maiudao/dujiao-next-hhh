@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	emailverificationdomain "github.com/dujiao-next/internal/modules/identity/emailverification/domain"
 	externalidentitydomain "github.com/dujiao-next/internal/modules/identity/externalidentity/domain"
 	googleauthapp "github.com/dujiao-next/internal/modules/identity/googleauth/application"
 	userdomain "github.com/dujiao-next/internal/modules/identity/user/domain"
@@ -20,6 +21,9 @@ type VerificationEmailSender interface {
 // authentication mutations. Implementations must execute every method on the
 // same database transaction.
 type AuthTransaction interface {
+	GetLatestVerificationCodeForUpdate(email, purpose string) (*emailverificationdomain.Code, error)
+	ConsumeVerificationCode(id uint, verifiedAt time.Time, maxAttempts int) (bool, error)
+	IncrementVerificationAttempt(id uint, at time.Time, maxAttempts int) error
 	GetUserByEmail(email string) (*userdomain.User, error)
 	GetUserByIDForUpdate(userID uint) (*userdomain.User, error)
 	CreateUser(user *userdomain.User) error

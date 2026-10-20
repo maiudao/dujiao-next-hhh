@@ -32,21 +32,35 @@ func (s *Service) ResetPassword(email, code, newPassword string) error {
 		return ErrNotFound
 	}
 
-	if _, err := s.verifyCode(normalized, constants.VerifyPurposeReset, code); err != nil {
+	proofs := []emailProof{{normalized, constants.VerifyPurposeReset, code}}
+	if err := s.checkEmailProofs(proofs); err != nil {
 		return err
 	}
-
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	user.PasswordHash = string(hashedPassword)
-	user.PasswordSetupRequired = false
-	now := time.Now()
-	user.UpdatedAt = now
-	user.TokenVersion++
-	user.TokenInvalidBefore = &now
-	if err := s.userRepo.Update(user); err != nil {
+	err = s.withEmailProofs(proofs, func(tx AuthTransaction) error {
+		locked, err := tx.GetUserByEmail(normalized)
+		if err != nil {
+			return err
+		}
+		if locked == nil {
+			return ErrNotFound
+		}
+		now := time.Now()
+		locked.PasswordHash = string(hashedPassword)
+		locked.PasswordSetupRequired = false
+		locked.UpdatedAt = now
+		locked.TokenVersion++
+		locked.TokenInvalidBefore = &now
+		if err := tx.UpdateUser(locked); err != nil {
+			return err
+		}
+		user = locked
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 	_ = cache.SetUserAuthState(context.Background(), cache.BuildUserAuthState(user))
@@ -220,20 +234,40 @@ func (s *Service) ChangeEmail(userID uint, newEmail, oldCode, newCode string) (*
 		return nil, ErrEmailChangeExists
 	}
 
+	oldEmail := user.Email
+	proofs := []emailProof{{normalized, constants.VerifyPurposeChangeEmailNew, newCode}}
 	if mode != EmailChangeModeBindOnly {
-		if _, err := s.verifyCode(user.Email, constants.VerifyPurposeChangeEmailOld, oldCode); err != nil {
-			return nil, err
+		proofs = append(proofs, emailProof{oldEmail, constants.VerifyPurposeChangeEmailOld, oldCode})
+	}
+	err = s.withEmailProofs(proofs, func(tx AuthTransaction) error {
+		locked, err := tx.GetUserByIDForUpdate(userID)
+		if err != nil {
+			return err
 		}
-	}
-	if _, err := s.verifyCode(normalized, constants.VerifyPurposeChangeEmailNew, newCode); err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	user.Email = normalized
-	user.EmailVerifiedAt = &now
-	user.UpdatedAt = now
-	if err := s.userRepo.Update(user); err != nil {
+		if locked == nil {
+			return ErrNotFound
+		}
+		if !strings.EqualFold(locked.Email, oldEmail) {
+			return ErrEmailChangeInvalid
+		}
+		existing, err := tx.GetUserByEmail(normalized)
+		if err != nil {
+			return err
+		}
+		if existing != nil {
+			return ErrEmailChangeExists
+		}
+		now := time.Now()
+		locked.Email = normalized
+		locked.EmailVerifiedAt = &now
+		locked.UpdatedAt = now
+		if err := tx.UpdateUser(locked); err != nil {
+			return err
+		}
+		user = locked
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 	return user, nil

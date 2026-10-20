@@ -283,40 +283,45 @@ func (s *Service) Register(email, password, code string, agreementAccepted bool,
 		return nil, "", time.Time{}, ErrEmailExists
 	}
 
+	var proofs []emailProof
 	if emailVerificationEnabled {
-		if _, err := s.verifyCode(normalized, constants.VerifyPurposeRegister, code); err != nil {
-			return nil, "", time.Time{}, err
-		}
+		proofs = append(proofs, emailProof{normalized, constants.VerifyPurposeRegister, code})
 	}
-
+	if err := s.checkEmailProofs(proofs); err != nil {
+		return nil, "", time.Time{}, err
+	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, "", time.Time{}, err
 	}
 
-	now := time.Now()
 	nickname := resolveNicknameFromEmail(normalized)
-	user := &userdomain.User{
-		Email:           normalized,
-		PasswordHash:    string(hashedPassword),
-		DisplayName:     nickname,
-		Status:          constants.UserStatusActive,
-		EmailVerifiedAt: &now,
-		CreatedAt:       now,
-		UpdatedAt:       now,
-	}
-
-	if err := s.userRepo.Create(user); err != nil {
-		return nil, "", time.Time{}, err
-	}
-
-	token, expiresAt, err := s.GenerateUserJWT(user, 0)
+	var user *userdomain.User
+	var token string
+	var expiresAt time.Time
+	err = s.withEmailProofs(proofs, func(tx AuthTransaction) error {
+		existing, err := tx.GetUserByEmail(normalized)
+		if err != nil {
+			return err
+		}
+		if existing != nil {
+			return ErrEmailExists
+		}
+		now := time.Now()
+		// Construct inside the callback: retries must not reuse an ID
+		// assigned by an insert in a rolled-back transaction.
+		user = &userdomain.User{
+			Email: normalized, PasswordHash: string(hashedPassword), DisplayName: nickname,
+			Status: constants.UserStatusActive, EmailVerifiedAt: &now,
+			CreatedAt: now, UpdatedAt: now, LastLoginAt: &now,
+		}
+		if err := tx.CreateUser(user); err != nil {
+			return err
+		}
+		token, expiresAt, err = s.GenerateUserJWT(user, 0)
+		return err
+	})
 	if err != nil {
-		return nil, "", time.Time{}, err
-	}
-
-	user.LastLoginAt = &now
-	if err := s.userRepo.Update(user); err != nil {
 		return nil, "", time.Time{}, err
 	}
 	_ = cache.SetUserAuthState(context.Background(), cache.BuildUserAuthState(user))
@@ -476,39 +481,6 @@ func (s *Service) CompleteLoginAfter2FA(userID uint, rememberMe bool) (*UserLogi
 	}
 	_ = cache.SetUserAuthState(context.Background(), cache.BuildUserAuthState(user))
 	return &UserLoginResult{RequiresTOTP: false, User: user, Token: token, ExpiresAt: expiresAt}, nil
-}
-
-func (s *Service) verifyCode(email, purpose, code string) (*emailverificationdomain.Code, error) {
-	record, err := s.codeRepo.GetLatest(email, purpose)
-	if err != nil {
-		return nil, err
-	}
-	if record == nil {
-		return nil, ErrVerifyCodeInvalid
-	}
-	if record.VerifiedAt != nil {
-		return nil, ErrVerifyCodeInvalid
-	}
-
-	now := time.Now()
-	if record.ExpiresAt.Before(now) {
-		return nil, ErrVerifyCodeExpired
-	}
-
-	maxAttempts := resolveMaxAttempts(s.cfg.Email.VerifyCode)
-	if maxAttempts > 0 && record.AttemptCount >= maxAttempts {
-		return nil, ErrVerifyCodeAttemptsExceeded
-	}
-
-	if strings.TrimSpace(record.Code) != strings.TrimSpace(code) {
-		_ = s.codeRepo.IncrementAttempt(record.ID)
-		return nil, ErrVerifyCodeInvalid
-	}
-
-	if err := s.codeRepo.MarkVerified(record.ID, now); err != nil {
-		return nil, err
-	}
-	return record, nil
 }
 
 func (s *Service) sendVerifyCode(ctx context.Context, email, purpose, locale string) error {

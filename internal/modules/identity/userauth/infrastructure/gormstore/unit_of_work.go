@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	emailverificationdomain "github.com/dujiao-next/internal/modules/identity/emailverification/domain"
 	externalidentitydomain "github.com/dujiao-next/internal/modules/identity/externalidentity/domain"
 	userdomain "github.com/dujiao-next/internal/modules/identity/user/domain"
 	userauthapp "github.com/dujiao-next/internal/modules/identity/userauth/application"
@@ -73,6 +74,39 @@ func isRetryableTransactionError(err error) bool {
 
 type transaction struct {
 	db *gorm.DB
+}
+
+func (t *transaction) GetLatestVerificationCodeForUpdate(email, purpose string) (*emailverificationdomain.Code, error) {
+	var code emailverificationdomain.Code
+	err := t.db.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("email = ? AND purpose = ? AND deleted_at IS NULL", email, purpose).
+		Order("sent_at DESC, id DESC").First(&code).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &code, nil
+}
+
+func (t *transaction) verificationUpdate(id uint, at time.Time, maxAttempts int) *gorm.DB {
+	query := t.db.Model(&emailverificationdomain.Code{}).
+		Where("id = ? AND deleted_at IS NULL AND verified_at IS NULL AND expires_at > ?", id, at)
+	if maxAttempts > 0 {
+		query = query.Where("attempt_count < ?", maxAttempts)
+	}
+	return query
+}
+
+func (t *transaction) ConsumeVerificationCode(id uint, verifiedAt time.Time, maxAttempts int) (bool, error) {
+	result := t.verificationUpdate(id, verifiedAt, maxAttempts).UpdateColumn("verified_at", verifiedAt)
+	return result.RowsAffected == 1, result.Error
+}
+
+func (t *transaction) IncrementVerificationAttempt(id uint, at time.Time, maxAttempts int) error {
+	return t.verificationUpdate(id, at, maxAttempts).
+		UpdateColumn("attempt_count", gorm.Expr("attempt_count + 1")).Error
 }
 
 func (t *transaction) GetUserByEmail(email string) (*userdomain.User, error) {

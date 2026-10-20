@@ -60,22 +60,28 @@ func (s *Service) BindTelegramChannelByEmailCode(input BindTelegramChannelByEmai
 	if err != nil {
 		return nil, nil, 0, err
 	}
-	if _, err := s.verifyCode(email, constants.VerifyPurposeTelegramBind, input.Code); err != nil {
-		return nil, nil, 0, err
-	}
-
-	targetUser, err := s.userRepo.GetByEmail(email)
+	var targetUser *userdomain.User
+	var identity *externalidentitydomain.Identity
+	var previousUserID uint
+	err = s.withEmailProofs([]emailProof{{email, constants.VerifyPurposeTelegramBind, input.Code}}, func(tx AuthTransaction) error {
+		var err error
+		targetUser, err = tx.GetUserByEmail(email)
+		if err != nil {
+			return err
+		}
+		if targetUser == nil {
+			return ErrNotFound
+		}
+		if strings.ToLower(strings.TrimSpace(targetUser.Status)) != constants.UserStatusActive {
+			return ErrUserDisabled
+		}
+		targetUser, identity, previousUserID, err = bindTelegramIdentityToUserTx(tx, targetUser, verified)
+		return err
+	})
 	if err != nil {
 		return nil, nil, 0, err
 	}
-	if targetUser == nil {
-		return nil, nil, 0, ErrNotFound
-	}
-	if strings.ToLower(strings.TrimSpace(targetUser.Status)) != constants.UserStatusActive {
-		return nil, nil, 0, ErrUserDisabled
-	}
-
-	return s.bindTelegramIdentityToUser(targetUser, verified)
+	return targetUser, identity, previousUserID, nil
 }
 
 func (s *Service) resolveTelegramChannelIdentity(verified *telegramauthapp.IdentityVerified) (*userdomain.User, *externalidentitydomain.Identity, error) {
@@ -180,15 +186,11 @@ func (s *Service) provisionTelegramChannelIdentity(verified *telegramauthapp.Ide
 	return user, identity, created, nil
 }
 
-func (s *Service) bindTelegramIdentityToUser(targetUser *userdomain.User, verified *telegramauthapp.IdentityVerified) (*userdomain.User, *externalidentitydomain.Identity, uint, error) {
+func bindTelegramIdentityToUserTx(tx AuthTransaction, targetUser *userdomain.User, verified *telegramauthapp.IdentityVerified) (*userdomain.User, *externalidentitydomain.Identity, uint, error) {
 	if targetUser == nil || verified == nil {
 		return nil, nil, 0, ErrNotFound
 	}
-	if s.userOAuthIdentityRepo == nil {
-		return nil, nil, 0, telegramauthapp.ErrTelegramAuthConfigInvalid
-	}
-
-	current, err := s.userOAuthIdentityRepo.GetByUserProvider(targetUser.ID, verified.Provider)
+	current, err := tx.GetIdentityByUserProvider(targetUser.ID, verified.Provider)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -196,14 +198,14 @@ func (s *Service) bindTelegramIdentityToUser(targetUser *userdomain.User, verifi
 		return nil, nil, 0, ErrUserOAuthAlreadyBound
 	}
 
-	occupied, err := s.userOAuthIdentityRepo.GetByProviderUserID(verified.Provider, verified.ProviderUserID)
+	occupied, err := tx.GetIdentityByProviderUserID(verified.Provider, verified.ProviderUserID)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 	if occupied != nil && occupied.UserID == targetUser.ID {
 		if applyTelegramIdentity(verified, occupied) {
 			occupied.UpdatedAt = time.Now()
-			if err := s.userOAuthIdentityRepo.Update(occupied); err != nil {
+			if err := tx.UpdateIdentity(occupied); err != nil {
 				return nil, nil, 0, err
 			}
 		}
@@ -211,7 +213,7 @@ func (s *Service) bindTelegramIdentityToUser(targetUser *userdomain.User, verifi
 	}
 
 	if occupied != nil {
-		previousUser, err := s.userRepo.GetByID(occupied.UserID)
+		previousUser, err := tx.GetUserByIDForUpdate(occupied.UserID)
 		if err != nil {
 			return nil, nil, 0, err
 		}
@@ -223,7 +225,7 @@ func (s *Service) bindTelegramIdentityToUser(targetUser *userdomain.User, verifi
 		occupied.UserID = targetUser.ID
 		applyTelegramIdentity(verified, occupied)
 		occupied.UpdatedAt = time.Now()
-		if err := s.userOAuthIdentityRepo.Update(occupied); err != nil {
+		if err := tx.UpdateIdentity(occupied); err != nil {
 			return nil, nil, 0, err
 		}
 		return targetUser, occupied, previousUserID, nil
@@ -239,7 +241,7 @@ func (s *Service) bindTelegramIdentityToUser(targetUser *userdomain.User, verifi
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
-	if err := s.userOAuthIdentityRepo.Create(identity); err != nil {
+	if err := tx.CreateIdentity(identity); err != nil {
 		return nil, nil, 0, err
 	}
 	return targetUser, identity, 0, nil

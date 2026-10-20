@@ -16,6 +16,7 @@ import (
 	externalidentitydomain "github.com/dujiao-next/internal/modules/identity/externalidentity/domain"
 	externalidentitystore "github.com/dujiao-next/internal/modules/identity/externalidentity/infrastructure/gormstore"
 	userauthapp "github.com/dujiao-next/internal/modules/identity/userauth/application"
+	userauthgormstore "github.com/dujiao-next/internal/modules/identity/userauth/infrastructure/gormstore"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -36,7 +37,9 @@ func setupUserAuthServiceChannelIdentityTest(t *testing.T) (*userauthapp.Service
 	userRepo := userstore.New(db)
 	identityRepo := externalidentitystore.New(db)
 
-	return userauthapp.NewService(&config.Config{}, userRepo, identityRepo, emailverificationstore.New(db), nil, nil, nil), db
+	svc := userauthapp.NewService(&config.Config{}, userRepo, identityRepo, emailverificationstore.New(db), nil, nil, nil)
+	svc.SetAuthUnitOfWork(userauthgormstore.New(db))
+	return svc, db
 }
 
 func TestResolveTelegramChannelIdentityReturnsBoundUser(t *testing.T) {

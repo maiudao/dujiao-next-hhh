@@ -21,6 +21,7 @@ import (
 	externalidentitydomain "github.com/dujiao-next/internal/modules/identity/externalidentity/domain"
 	externalidentitystore "github.com/dujiao-next/internal/modules/identity/externalidentity/infrastructure/gormstore"
 	userauthapp "github.com/dujiao-next/internal/modules/identity/userauth/application"
+	userauthgormstore "github.com/dujiao-next/internal/modules/identity/userauth/infrastructure/gormstore"
 	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
 	"github.com/dujiao-next/internal/shared/mailbrand"
 
@@ -78,7 +79,7 @@ func newRegistrationDomainPolicyAuthServiceWithSender(t *testing.T, sender usera
 		Email:   config.EmailConfig{Enabled: false},
 	}
 	settingSvc := settingsapp.NewService(settingsstore.New(db))
-	return userauthapp.NewService(
+	svc := userauthapp.NewService(
 		cfg,
 		userstore.New(db),
 		externalidentitystore.New(db),
@@ -86,7 +87,9 @@ func newRegistrationDomainPolicyAuthServiceWithSender(t *testing.T, sender usera
 		settingSvc,
 		sender,
 		nil,
-	), settingSvc, db
+	)
+	svc.SetAuthUnitOfWork(userauthgormstore.New(db))
+	return svc, settingSvc, db
 }
 
 func TestRegisterRejectsEmailDomainNotAllowed(t *testing.T) {
