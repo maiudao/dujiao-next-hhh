@@ -55,6 +55,9 @@ type IdentityClientConfig struct {
 	RedirectURI           string `mapstructure:"redirect_uri"`
 	PostLogoutRedirectURI string `mapstructure:"post_logout_redirect_uri"`
 	FormURL               string `mapstructure:"form_url"`
+	// When present, the client's original captcha/risk checks are redeemed
+	// through this exact backend URL; native captcha cannot bypass this bridge.
+	ChallengeURL string `mapstructure:"challenge_url"`
 }
 
 // AppConfig 应用级配置

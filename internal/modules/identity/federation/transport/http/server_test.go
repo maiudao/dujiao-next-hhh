@@ -45,6 +45,62 @@ type fixtureCaptcha struct {
 	deny  bool
 }
 
+type fixtureClientChallenge struct {
+	receipt, id, state string
+	calls              int
+}
+
+func (c *fixtureClientChallenge) Verify(_ context.Context, id, state, receipt, email string) error {
+	c.calls++
+	if id != c.id || state != c.state || receipt != c.receipt || c.receipt == "" || email != "fixture@example.invalid" {
+		return errors.New("denied")
+	}
+	c.receipt = ""
+	return nil
+}
+
+func TestClientChallengeCannotFallBackToNativeCaptcha(t *testing.T) {
+	f := newBrowserFixture(t)
+	nonce, verifier, state := randomSecret(t), randomSecret(t), randomSecret(t)
+	party := f.party(t, "main", nonce)
+	id, _ := f.begin(t, party, state, nonce, verifier)
+	check := &fixtureClientChallenge{id: id, state: state, receipt: randomSecret(t)}
+	f.handler.options.Challenges = map[string]ChallengeVerifier{"main": check}
+	form := url.Values{"authRequestID": {id}, "csrf": {state}, "email": {"fixture@example.invalid"}, "password": {"fixture-password"}, "captcha_code": {"passed"}}
+	_, status, _ := f.post(t, "/login/password", "https://main.example.invalid", form)
+	if status != http.StatusForbidden || check.calls != 0 || f.captcha.calls != 0 {
+		t.Fatal("missing receipt fell back to native captcha")
+	}
+	form.Set("challenge_receipt", randomSecret(t))
+	_, status, _ = f.post(t, "/login/password", "https://main.example.invalid", form)
+	if status != http.StatusForbidden || f.captcha.calls != 0 {
+		t.Fatal("wrong receipt fell back")
+	}
+	form.Set("challenge_receipt", check.receipt)
+	// Authority browser binding must be checked before the receipt is redeemed.
+	old := f.browser.Jar
+	f.browser.Jar, _ = cookiejar.New(nil)
+	before := check.calls
+	_, status, _ = f.post(t, "/login/password", "https://main.example.invalid", form)
+	if status != http.StatusForbidden || check.calls != before {
+		t.Fatal("unbound browser redeemed receipt")
+	}
+	f.browser.Jar = old
+	_, status, cookies := f.post(t, "/login/password", "https://main.example.invalid", form)
+	if status != http.StatusSeeOther || f.captcha.calls != 0 {
+		t.Fatal("verified client challenge did not reach real password login")
+	}
+	issued := false
+	for _, cookie := range cookies {
+		if cookie.Name == SessionCookieName {
+			issued = true
+		}
+	}
+	if !issued {
+		t.Fatal("real authority session was not issued")
+	}
+}
+
 func (c *fixtureCaptcha) Verify(_ string, payload captchahttp.CaptchaPayloadRequest, _ string) error {
 	c.calls++
 	if c.deny || payload.CaptchaCode != "passed" {

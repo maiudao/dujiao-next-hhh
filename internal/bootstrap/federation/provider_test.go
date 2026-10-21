@@ -67,6 +67,24 @@ func TestDisabledProviderNeedsNoDatabaseOrSecrets(t *testing.T) {
 	}
 }
 
+func TestMainSiteClientCannotOmitOrRedirectOriginalChallengeBridge(t *testing.T) {
+	cfg, deps := providerFixture(t)
+	if err := federationstore.New(deps.DB).Migrate(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	cfg.IdentityProvider.Clients[0].FormURL = "https://www.huihuahui.xyz/login"
+	for _, target := range []string{"", "https://elsewhere.invalid/auth/member/challenge/consume", "https://www.huihuahui.xyz/other"} {
+		cfg.IdentityProvider.Clients[0].ChallengeURL = target
+		if _, err := New(cfg, deps); err == nil {
+			t.Fatal("main-site challenge bridge misconfiguration accepted")
+		}
+	}
+	cfg.IdentityProvider.Clients[0].ChallengeURL = "https://www.huihuahui.xyz/auth/member/challenge/consume"
+	if _, err := New(cfg, deps); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestProviderRequiresExplicitSchemaAndFailClosedConfiguration(t *testing.T) {
 	cfg, deps := providerFixture(t)
 	if _, err := New(cfg, deps); err == nil {

@@ -21,6 +21,7 @@ import (
 	federationapp "github.com/dujiao-next/internal/modules/identity/federation/application"
 	federationdomain "github.com/dujiao-next/internal/modules/identity/federation/domain"
 	federationstore "github.com/dujiao-next/internal/modules/identity/federation/infrastructure/gormstore"
+	"github.com/dujiao-next/internal/modules/identity/federation/infrastructure/mainchallenge"
 	"github.com/dujiao-next/internal/modules/identity/federation/infrastructure/oidcprovider"
 	"github.com/dujiao-next/internal/modules/identity/federation/infrastructure/shopauth"
 	federationhttp "github.com/dujiao-next/internal/modules/identity/federation/transport/http"
@@ -67,9 +68,21 @@ func New(cfg *config.Config, deps Dependencies) (*federationhttp.Server, error) 
 	store := federationstore.New(deps.DB)
 	clients := make([]oidcprovider.ClientConfig, 0, len(settings.Clients))
 	forms := make([]federationhttp.UIClient, 0, len(settings.Clients))
+	challenges := make(map[string]federationhttp.ChallengeVerifier)
 	for _, client := range settings.Clients {
+		formURL, err := url.Parse(client.FormURL)
+		if err == nil && (formURL.Hostname() == "www.huihuahui.xyz" || formURL.Hostname() == "huihuahui.xyz") && client.ChallengeURL == "" {
+			return nil, errors.New("main-site identity client requires original challenge bridge")
+		}
 		clients = append(clients, oidcprovider.ClientConfig{ID: client.ID, Secret: client.Secret, RedirectURI: client.RedirectURI, PostLogoutRedirectURI: client.PostLogoutRedirectURI, LoginURL: settings.Issuer + "/login/continue"})
 		forms = append(forms, federationhttp.UIClient{ID: client.ID, FormURL: client.FormURL})
+		if client.ChallengeURL != "" {
+			verifier, err := mainchallenge.New(client.ChallengeURL, client.FormURL, client.ID, client.Secret, nil)
+			if err != nil {
+				return nil, errors.New("invalid identity challenge bridge")
+			}
+			challenges[client.ID] = verifier
+		}
 	}
 	protocol, err := oidcprovider.New(store, clients, key, settings.SigningKeyID)
 	if err != nil {
@@ -85,7 +98,7 @@ func New(cfg *config.Config, deps Dependencies) (*federationhttp.Server, error) 
 	if err != nil {
 		return nil, err
 	}
-	server, err := federationhttp.New(federationhttp.Options{Issuer: settings.Issuer, Provider: provider, Protocol: protocol, Store: store, Auth: auth, Clients: forms, Captcha: deps.Captcha, ClientIP: deps.ClientIP, RateLimit: deps.RateLimit, Logger: deps.Logger, Audit: deps.Audit})
+	server, err := federationhttp.New(federationhttp.Options{Issuer: settings.Issuer, Provider: provider, Protocol: protocol, Store: store, Auth: auth, Clients: forms, Captcha: deps.Captcha, Challenges: challenges, ClientIP: deps.ClientIP, RateLimit: deps.RateLimit, Logger: deps.Logger, Audit: deps.Audit})
 	if err != nil {
 		return nil, err
 	}

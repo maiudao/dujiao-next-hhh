@@ -36,14 +36,18 @@ type CaptchaVerifier interface {
 	Verify(string, captchahttp.CaptchaPayloadRequest, string) error
 }
 type UIClient struct{ ID, FormURL string }
+type ChallengeVerifier interface {
+	Verify(context.Context, string, string, string, string) error
+}
 type Options struct {
-	Issuer   string
-	Provider *op.Provider
-	Protocol *oidcprovider.Storage
-	Store    *federationstore.Store
-	Auth     *federationapp.Service
-	Clients  []UIClient
-	Captcha  CaptchaVerifier
+	Issuer     string
+	Provider   *op.Provider
+	Protocol   *oidcprovider.Storage
+	Store      *federationstore.Store
+	Auth       *federationapp.Service
+	Clients    []UIClient
+	Captcha    CaptchaVerifier
+	Challenges map[string]ChallengeVerifier
 	// These callbacks must use the application's trusted proxy and existing
 	// shared limiter. There is no permissive fallback when they are absent.
 	ClientIP  func(*http.Request) string
@@ -101,6 +105,11 @@ func New(options Options) (*Server, error) {
 			return nil, errors.New("duplicate identity UI client")
 		}
 		s.forms[client.ID] = form
+	}
+	for client, verifier := range options.Challenges {
+		if _, ok := s.forms[client]; !ok || verifier == nil {
+			return nil, errors.New("invalid identity challenge client")
+		}
 	}
 	s.handler = http.StripPrefix(issuer.Path, options.Provider)
 	return s, nil
@@ -375,15 +384,23 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 	var result *federationapp.Result
 	remember := value.RememberMe
 	if path == "/login/password" {
-		payload := captchahttp.CaptchaPayloadRequest{CaptchaID: r.PostForm.Get("captcha_id"), CaptchaCode: r.PostForm.Get("captcha_code"), TurnstileToken: r.PostForm.Get("turnstile_token")}
-		if err := s.options.Captcha.Verify(constants.CaptchaSceneLogin, payload, s.options.ClientIP(r)); err != nil {
-			s.fail(w, r, http.StatusForbidden, "captcha")
-			return
-		}
 		email, password := r.PostForm.Get("email"), r.PostForm.Get("password")
 		if len(email) > 254 || len(password) > 1024 {
 			s.fail(w, r, http.StatusBadRequest, "credential_size")
 			return
+		}
+		if verifier, configured := s.options.Challenges[value.ClientID]; configured {
+			receipt := r.PostForm.Get("challenge_receipt")
+			if !secretValue(receipt) || verifier.Verify(r.Context(), id, csrf, receipt, email) != nil {
+				s.fail(w, r, http.StatusForbidden, "client_challenge")
+				return
+			}
+		} else {
+			payload := captchahttp.CaptchaPayloadRequest{CaptchaID: r.PostForm.Get("captcha_id"), CaptchaCode: r.PostForm.Get("captcha_code"), TurnstileToken: r.PostForm.Get("turnstile_token")}
+			if err := s.options.Captcha.Verify(constants.CaptchaSceneLogin, payload, s.options.ClientIP(r)); err != nil {
+				s.fail(w, r, http.StatusForbidden, "captcha")
+				return
+			}
 		}
 		remember = r.PostForm.Get("remember_me") == "true"
 		result, err = s.options.Auth.Password(r.Context(), binding, email, password, remember)
