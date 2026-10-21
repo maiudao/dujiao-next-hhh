@@ -247,6 +247,66 @@ func TestPendingSecondFactorCannotSurviveAuthVersionChange(t *testing.T) {
 	}
 }
 
+func TestRecoveryCodeAndOldSessionSurviveRotationFailure(t *testing.T) {
+	f := newFixture(t)
+	secret, recovery := f.enableTOTP(t)
+	oldBinding := f.begin(t)
+	if _, err := f.auth.Password(t.Context(), oldBinding, f.user.Email, "fixture-password", false); err != nil {
+		t.Fatal(err)
+	}
+	code, err := totp.GenerateCode(secret, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	old, err := f.auth.SecondFactor(t.Context(), oldBinding, code, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	binding := f.begin(t)
+	binding.PreviousSessionCookie = old.Cookie
+	if _, err := f.auth.Password(t.Context(), binding, f.user.Email, "fixture-password", false); err != nil {
+		t.Fatal(err)
+	}
+	var before userdomain.User
+	if err := f.db.First(&before, f.user.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.db.Callback().Update().Before("gorm:update").Register("test:rotation-failure", func(tx *gorm.DB) {
+		if tx.Statement.Table == "identity_browser_sessions" {
+			tx.AddError(errors.New("injected rotation failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.auth.SecondFactor(t.Context(), binding, "", recovery[0]); err == nil {
+		t.Fatal("rotation failure ignored")
+	}
+	if err := f.db.Callback().Update().Remove("test:rotation-failure"); err != nil {
+		t.Fatal(err)
+	}
+	var after userdomain.User
+	if err := f.db.First(&after, f.user.ID).Error; err != nil || before.RecoveryCodes != after.RecoveryCodes {
+		t.Fatal("failed rotation consumed recovery code")
+	}
+	if _, err := f.store.Session(t.Context(), old.Cookie); err != nil {
+		t.Fatal("failed rotation revoked original session")
+	}
+	var count int64
+	if err := f.db.Model(&federationdomain.BrowserSession{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatal("failed rotation left another session")
+	}
+	result, err := f.auth.SecondFactor(t.Context(), binding, "", recovery[0])
+	if err != nil || result.Session == nil {
+		t.Fatalf("recovery retry failed: %v", err)
+	}
+	if _, err := f.store.Session(t.Context(), old.Cookie); !errors.Is(err, federationdomain.ErrInteraction) {
+		t.Fatal("successful rotation retained old session")
+	}
+	if _, err := f.store.Session(t.Context(), result.Cookie); err != nil {
+		t.Fatal("successful rotation lost new session")
+	}
+}
+
 func TestSecondFactorAttemptLimitBlocksLaterValidRecoveryCode(t *testing.T) {
 	f := newFixture(t)
 	_, recovery := f.enableTOTP(t)

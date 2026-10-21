@@ -20,7 +20,7 @@ type SecondFactor struct {
 
 // Complete uses the existing encrypted TOTP and recovery-code service, with its
 // repository bound to the exact transaction which creates the authority session.
-func (a SecondFactor) Complete(ctx context.Context, value *federationdomain.Interaction, code, recovery string, lifetime time.Duration) (string, *federationdomain.BrowserSession, error) {
+func (a SecondFactor) Complete(ctx context.Context, value *federationdomain.Interaction, code, recovery string, lifetime time.Duration, previousCookie string) (string, *federationdomain.BrowserSession, error) {
 	if a.Config == nil || a.Store == nil {
 		return "", nil, federationdomain.ErrInteraction
 	}
@@ -34,5 +34,5 @@ func (a SecondFactor) Complete(ctx context.Context, value *federationdomain.Inte
 			return verifier.VerifyChallengeRecoveryCode(userID, recovery)
 		}
 		return verifier.VerifyChallengeCode(userID, code)
-	})
+	}, previousCookie)
 }

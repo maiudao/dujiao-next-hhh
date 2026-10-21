@@ -63,7 +63,7 @@ func testInteraction(t *testing.T, s *Store) (*federationdomain.Interaction, str
 func testAuthenticated(t *testing.T, s *Store) (*federationdomain.Interaction, string, *federationdomain.BrowserSession) {
 	t.Helper()
 	value, browser, csrf := testInteraction(t, s)
-	cookie, session, err := s.AuthenticatePassword(context.Background(), value, 1, 0, time.Hour)
+	cookie, session, err := s.AuthenticatePassword(context.Background(), value, 1, 0, time.Hour, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestDatabaseReopenPreservesUnconsumedCodeAndHashedBrowserSecrets(t *testing
 	s, db := testStore(t)
 	ctx := context.Background()
 	value, browser, csrf := testInteraction(t, s)
-	cookie, session, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour)
+	cookie, session, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,12 +173,12 @@ func TestBindingsExpiryAndAttemptBudget(t *testing.T) {
 	if _, err := s.ReadBound(ctx, value.ID, "main", browser, csrf); !errors.Is(err, ErrInteraction) {
 		t.Fatal("attempt limit ignored")
 	}
-	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour); !errors.Is(err, ErrInteraction) {
+	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour, ""); !errors.Is(err, ErrInteraction) {
 		t.Fatal("stale read bypassed attempt limit")
 	}
 	value, _, _ = testInteraction(t, s)
 	s.now = func() time.Time { return value.ExpiresAt }
-	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour); !errors.Is(err, ErrInteraction) {
+	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour, ""); !errors.Is(err, ErrInteraction) {
 		t.Fatal("expired request authenticated")
 	}
 }
@@ -190,7 +190,7 @@ func TestCancellationPreventsStaleAuthentication(t *testing.T) {
 	if err := s.Cancel(ctx, value); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour); !errors.Is(err, ErrInteraction) {
+	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour, ""); !errors.Is(err, ErrInteraction) {
 		t.Fatal("cancelled request authenticated")
 	}
 	for _, model := range []any{&federationdomain.Subject{}, &federationdomain.BrowserSession{}} {
@@ -209,10 +209,10 @@ func TestSecondFactorCannotBeDowngradedOrSwitched(t *testing.T) {
 		t.Fatal(err)
 	}
 	value, browser, csrf := testInteraction(t, s)
-	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour); !errors.Is(err, ErrInteraction) {
+	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour, ""); !errors.Is(err, ErrInteraction) {
 		t.Fatal("2FA user authenticated without second factor")
 	}
-	if _, _, err := s.AuthenticateSecondFactor(ctx, value, time.Hour, func(*gorm.DB, uint) error { return nil }); !errors.Is(err, ErrInteraction) {
+	if _, _, err := s.AuthenticateSecondFactor(ctx, value, time.Hour, func(*gorm.DB, uint) error { return nil }, ""); !errors.Is(err, ErrInteraction) {
 		t.Fatal("2FA completed without first factor")
 	}
 	if err := s.AwaitSecondFactor(ctx, value, 1, 0, false); err != nil {
@@ -221,14 +221,14 @@ func TestSecondFactorCannotBeDowngradedOrSwitched(t *testing.T) {
 	if err := s.AwaitSecondFactor(ctx, value, 2, 0, false); !errors.Is(err, ErrInteraction) {
 		t.Fatal("pending user switched")
 	}
-	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour); !errors.Is(err, ErrInteraction) {
+	if _, _, err := s.AuthenticatePassword(ctx, value, 1, 0, time.Hour, ""); !errors.Is(err, ErrInteraction) {
 		t.Fatal("2FA state downgraded")
 	}
 	value, err := s.ReadBound(ctx, value.ID, "main", browser, csrf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, session, err := s.AuthenticateSecondFactor(ctx, value, time.Hour, func(*gorm.DB, uint) error { return nil }); err != nil || session.AMR != "pwd otp" {
+	if _, session, err := s.AuthenticateSecondFactor(ctx, value, time.Hour, func(*gorm.DB, uint) error { return nil }, ""); err != nil || session.AMR != "pwd otp" {
 		t.Fatalf("2FA login failed: %v", err)
 	}
 }

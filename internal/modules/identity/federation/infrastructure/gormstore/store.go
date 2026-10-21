@@ -161,23 +161,23 @@ func subjectFor(db *gorm.DB, userID uint, now time.Time) (string, error) {
 
 // AuthenticatePassword completes password-only authentication. Second-factor
 // verification must use AuthenticateSecondFactor's transaction instead.
-func (s *Store) AuthenticatePassword(ctx context.Context, value *federationdomain.Interaction, userID uint, version uint64, lifetime time.Duration) (string, *federationdomain.BrowserSession, error) {
-	return s.authenticate(ctx, value, userID, version, false, lifetime, nil)
+func (s *Store) AuthenticatePassword(ctx context.Context, value *federationdomain.Interaction, userID uint, version uint64, lifetime time.Duration, previousCookie string) (string, *federationdomain.BrowserSession, error) {
+	return s.authenticate(ctx, value, userID, version, false, lifetime, nil, previousCookie)
 }
 
 // AuthenticateSecondFactor reserves an attempt under the same write transaction
 // used by the real TOTP/recovery-code service and the new browser session. Failed
 // proofs commit only the attempt; any later persistence failure rolls back proof
 // consumption as well, so a recovery code is not lost without a session.
-func (s *Store) AuthenticateSecondFactor(ctx context.Context, value *federationdomain.Interaction, lifetime time.Duration, verify func(*gorm.DB, uint) error) (string, *federationdomain.BrowserSession, error) {
+func (s *Store) AuthenticateSecondFactor(ctx context.Context, value *federationdomain.Interaction, lifetime time.Duration, verify func(*gorm.DB, uint) error, previousCookie string) (string, *federationdomain.BrowserSession, error) {
 	if value == nil || value.Stage != StageSecondFactor || verify == nil {
 		return "", nil, ErrInteraction
 	}
-	return s.authenticate(ctx, value, value.PendingUserID, value.PendingTokenVersion, true, lifetime, verify)
+	return s.authenticate(ctx, value, value.PendingUserID, value.PendingTokenVersion, true, lifetime, verify, previousCookie)
 }
 
-func (s *Store) authenticate(ctx context.Context, value *federationdomain.Interaction, userID uint, version uint64, secondFactor bool, lifetime time.Duration, verify func(*gorm.DB, uint) error) (string, *federationdomain.BrowserSession, error) {
-	if lifetime <= 0 || lifetime > 30*24*time.Hour {
+func (s *Store) authenticate(ctx context.Context, value *federationdomain.Interaction, userID uint, version uint64, secondFactor bool, lifetime time.Duration, verify func(*gorm.DB, uint) error, previousCookie string) (string, *federationdomain.BrowserSession, error) {
+	if lifetime <= 0 || lifetime > 30*24*time.Hour || (previousCookie != "" && !validSecret(previousCookie)) {
 		return "", nil, ErrInteraction
 	}
 	cookie, err := Secret()
@@ -229,6 +229,14 @@ func (s *Store) authenticate(ctx context.Context, value *federationdomain.Intera
 		}
 		if err := tx.Create(session).Error; err != nil {
 			return err
+		}
+		// Rotate the current browser in the same commit as proof consumption and
+		// session creation. A failed revocation must leave its recovery code usable.
+		// Expired/revoked cookies are harmless; other devices are never selected.
+		if previousCookie != "" {
+			if err := tx.Model(&federationdomain.BrowserSession{}).Where("cookie_hash = ? AND revoked_at IS NULL", Hash(previousCookie)).UpdateColumn("revoked_at", now).Error; err != nil {
+				return err
+			}
 		}
 		return changed(tx.Model(&userdomain.User{}).Where("id = ? AND token_version = ?", userID, version).UpdateColumn("last_login_at", now))
 	})

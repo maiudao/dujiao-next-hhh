@@ -13,13 +13,13 @@ type Store interface {
 	ReadBound(context.Context, string, string, string, string) (*federationdomain.Interaction, error)
 	RejectAttempt(context.Context, *federationdomain.Interaction) error
 	AwaitSecondFactor(context.Context, *federationdomain.Interaction, uint, uint64, bool) error
-	AuthenticatePassword(context.Context, *federationdomain.Interaction, uint, uint64, time.Duration) (string, *federationdomain.BrowserSession, error)
+	AuthenticatePassword(context.Context, *federationdomain.Interaction, uint, uint64, time.Duration, string) (string, *federationdomain.BrowserSession, error)
 }
 type PasswordVerifier interface {
 	CheckPassword(string, string) (*userauthapp.PasswordIdentity, error)
 }
 type SecondFactorCompleter interface {
-	Complete(context.Context, *federationdomain.Interaction, string, string, time.Duration) (string, *federationdomain.BrowserSession, error)
+	Complete(context.Context, *federationdomain.Interaction, string, string, time.Duration, string) (string, *federationdomain.BrowserSession, error)
 }
 
 type Service struct {
@@ -36,7 +36,10 @@ func New(store Store, password PasswordVerifier, secondFactor SecondFactorComple
 	return &Service{store: store, password: password, secondFactor: secondFactor, lifetime: lifetime, rememberLifetime: rememberLifetime}, nil
 }
 
-type Binding struct{ RequestID, ClientID, Browser, CSRF string }
+type Binding struct {
+	RequestID, ClientID, Browser, CSRF string
+	PreviousSessionCookie              string
+}
 type Result struct {
 	RequiresSecondFactor bool
 	// Only the host-only HTTP cookie adapter may read these fields. No protocol
@@ -78,7 +81,7 @@ func (s *Service) Password(ctx context.Context, binding Binding, email, password
 		}
 		return &Result{RequiresSecondFactor: true}, nil
 	}
-	cookie, session, err := s.store.AuthenticatePassword(ctx, value, identity.UserID, identity.TokenVersion, s.duration(remember))
+	cookie, session, err := s.store.AuthenticatePassword(ctx, value, identity.UserID, identity.TokenVersion, s.duration(remember), binding.PreviousSessionCookie)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +96,7 @@ func (s *Service) SecondFactor(ctx context.Context, binding Binding, code, recov
 	if value.Stage != federationdomain.StageSecondFactor {
 		return nil, federationdomain.ErrInteraction
 	}
-	cookie, session, err := s.secondFactor.Complete(ctx, value, code, recovery, s.duration(value.RememberMe))
+	cookie, session, err := s.secondFactor.Complete(ctx, value, code, recovery, s.duration(value.RememberMe), binding.PreviousSessionCookie)
 	if err != nil {
 		return nil, err
 	}
