@@ -78,3 +78,15 @@ type AccessToken struct {
 }
 
 func (AccessToken) TableName() string { return "identity_access_tokens" }
+
+// ClientSession records a delegation established by a consumed OIDC code. It
+// authorizes confidential-client session checks, independently of short-lived
+// API tokens. A sid alone never grants this delegation to another client.
+type ClientSession struct {
+	ClientID  string    `gorm:"primaryKey;size:128"`
+	SessionID string    `gorm:"primaryKey;size:64"`
+	SubjectID string    `gorm:"not null;size:64"`
+	CreatedAt time.Time `gorm:"not null"`
+}
+
+func (ClientSession) TableName() string { return "identity_client_sessions" }

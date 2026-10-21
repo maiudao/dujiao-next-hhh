@@ -58,7 +58,7 @@ func validSecret(value string) bool {
 }
 
 func (s *Store) Migrate(ctx context.Context) error {
-	return s.db.WithContext(ctx).AutoMigrate(&federationdomain.Subject{}, &federationdomain.BrowserSession{}, &federationdomain.Interaction{}, &federationdomain.AccessToken{})
+	return s.db.WithContext(ctx).AutoMigrate(&federationdomain.Subject{}, &federationdomain.BrowserSession{}, &federationdomain.Interaction{}, &federationdomain.AccessToken{}, &federationdomain.ClientSession{})
 }
 
 // Begin only persists an already validated OIDC request. The OIDC adapter must
@@ -347,7 +347,18 @@ func (s *Store) ConsumeCode(ctx context.Context, id, clientID, scopesJSON string
 			expiresAt = session.ExpiresAt
 		}
 		token = &federationdomain.AccessToken{ID: tokenID, ClientID: clientID, SessionID: session.ID, SubjectID: request.SubjectID, ScopesJSON: scopesJSON, CreatedAt: s.now(), ExpiresAt: expiresAt}
-		return tx.Create(token).Error
+		if err := tx.Create(token).Error; err != nil {
+			return err
+		}
+		grant := federationdomain.ClientSession{ClientID: clientID, SessionID: session.ID, SubjectID: request.SubjectID, CreatedAt: s.now()}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&grant).Error; err != nil {
+			return err
+		}
+		var saved federationdomain.ClientSession
+		if err := tx.Where("client_id = ? AND session_id = ? AND subject_id = ?", clientID, session.ID, request.SubjectID).First(&saved).Error; err != nil {
+			return ErrInteraction
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -471,4 +482,50 @@ func (s *Store) FinishRequest(ctx context.Context, id string) error {
 
 func (s *Store) Health(ctx context.Context) error {
 	return s.db.WithContext(ctx).Exec("SELECT 1").Error
+}
+
+// ClientSession requires a previously consumed authorization for this exact
+// client and checks live user/version/session state on every call. It does not
+// revive expired tokens or extend the authority's original session deadline.
+func (s *Store) ClientSession(ctx context.Context, client, sid, subject string) (*federationdomain.BrowserSession, error) {
+	if client == "" || !validSecret(sid) || !validSecret(subject) {
+		return nil, ErrInteraction
+	}
+	var grant federationdomain.ClientSession
+	if err := s.db.WithContext(ctx).Where("client_id = ? AND session_id = ? AND subject_id = ?", client, sid, subject).First(&grant).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrInteraction
+		}
+		return nil, err
+	}
+	session, err := s.SessionByID(ctx, sid)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.UserForSubject(ctx, subject)
+	if err != nil {
+		return nil, err
+	}
+	if user.ID != session.UserID {
+		return nil, ErrInteraction
+	}
+	return session, nil
+}
+
+// RevokeClientSession is retryable but only for a previously delegated sid.
+// Revocation covers every client of this browser, preserving other devices.
+func (s *Store) RevokeClientSession(ctx context.Context, client, sid, subject string) error {
+	if client == "" || !validSecret(sid) || !validSecret(subject) {
+		return ErrInteraction
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var grant federationdomain.ClientSession
+		if err := tx.Where("client_id = ? AND session_id = ? AND subject_id = ?", client, sid, subject).First(&grant).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrInteraction
+			}
+			return err
+		}
+		return tx.Model(&federationdomain.BrowserSession{}).Where("id = ? AND revoked_at IS NULL", sid).UpdateColumn("revoked_at", s.now()).Error
+	})
 }

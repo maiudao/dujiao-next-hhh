@@ -164,6 +164,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.interaction(w, r)
 		return
 	}
+	if path == "/session/check" || path == "/session/revoke" {
+		s.clientSession(w, r, path == "/session/revoke")
+		return
+	}
 	browser, err := cookieValue(r, BrowserCookieName)
 	if err != nil {
 		s.fail(w, r, http.StatusForbidden, "browser_cookie")

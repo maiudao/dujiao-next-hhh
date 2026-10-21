@@ -150,7 +150,7 @@ func SchemaReady(ctx context.Context, db *gorm.DB) error {
 	if db == nil {
 		return errors.New("missing identity database")
 	}
-	for _, model := range []any{&federationdomain.Subject{}, &federationdomain.BrowserSession{}, &federationdomain.Interaction{}, &federationdomain.AccessToken{}} {
+	for _, model := range []any{&federationdomain.Subject{}, &federationdomain.BrowserSession{}, &federationdomain.Interaction{}, &federationdomain.AccessToken{}, &federationdomain.ClientSession{}} {
 		if !db.WithContext(ctx).Migrator().HasTable(model) {
 			return errors.New("identity schema is not ready")
 		}
