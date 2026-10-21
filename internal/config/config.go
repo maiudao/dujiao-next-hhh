@@ -14,25 +14,47 @@ import (
 
 // Config 应用配置结构
 type Config struct {
-	App          AppConfig          `mapstructure:"app"`
-	Server       ServerConfig       `mapstructure:"server"`
-	Log          LogConfig          `mapstructure:"log"`
-	Database     DatabaseConfig     `mapstructure:"database"`
-	JWT          JWTConfig          `mapstructure:"jwt"`
-	UserJWT      JWTConfig          `mapstructure:"user_jwt"`
-	Bootstrap    BootstrapConfig    `mapstructure:"bootstrap"`
-	TelegramAuth TelegramAuthConfig `mapstructure:"telegram_auth"`
-	GoogleAuth   GoogleAuthConfig   `mapstructure:"google_auth"`
-	Redis        RedisConfig        `mapstructure:"redis"`
-	Queue        QueueConfig        `mapstructure:"queue"`
-	Upload       UploadConfig       `mapstructure:"upload"`
-	CORS         CORSConfig         `mapstructure:"cors"`
-	Security     SecurityConfig     `mapstructure:"security"`
-	Email        EmailConfig        `mapstructure:"email"`
-	Order        OrderConfig        `mapstructure:"order"`
-	Captcha      CaptchaConfig      `mapstructure:"captcha"`
-	Web          WebConfig          `mapstructure:"web"`
-	Reseller     ResellerConfig     `mapstructure:"reseller"`
+	App              AppConfig              `mapstructure:"app"`
+	Server           ServerConfig           `mapstructure:"server"`
+	Log              LogConfig              `mapstructure:"log"`
+	Database         DatabaseConfig         `mapstructure:"database"`
+	JWT              JWTConfig              `mapstructure:"jwt"`
+	UserJWT          JWTConfig              `mapstructure:"user_jwt"`
+	Bootstrap        BootstrapConfig        `mapstructure:"bootstrap"`
+	TelegramAuth     TelegramAuthConfig     `mapstructure:"telegram_auth"`
+	GoogleAuth       GoogleAuthConfig       `mapstructure:"google_auth"`
+	IdentityProvider IdentityProviderConfig `mapstructure:"identity_provider"`
+	Redis            RedisConfig            `mapstructure:"redis"`
+	Queue            QueueConfig            `mapstructure:"queue"`
+	Upload           UploadConfig           `mapstructure:"upload"`
+	CORS             CORSConfig             `mapstructure:"cors"`
+	Security         SecurityConfig         `mapstructure:"security"`
+	Email            EmailConfig            `mapstructure:"email"`
+	Order            OrderConfig            `mapstructure:"order"`
+	Captcha          CaptchaConfig          `mapstructure:"captcha"`
+	Web              WebConfig              `mapstructure:"web"`
+	Reseller         ResellerConfig         `mapstructure:"reseller"`
+}
+
+// IdentityProviderConfig is deliberately disabled until both relying parties
+// and the explicit identity schema migration have passed release validation.
+type IdentityProviderConfig struct {
+	Enabled        bool                   `mapstructure:"enabled"`
+	Issuer         string                 `mapstructure:"issuer"`
+	SigningKeyFile string                 `mapstructure:"signing_key_file"`
+	SigningKeyID   string                 `mapstructure:"signing_key_id"`
+	CryptoKey      string                 `mapstructure:"crypto_key" json:"-"`
+	SessionHours   int                    `mapstructure:"session_hours"`
+	RememberHours  int                    `mapstructure:"remember_hours"`
+	Clients        []IdentityClientConfig `mapstructure:"clients"`
+}
+
+type IdentityClientConfig struct {
+	ID                    string `mapstructure:"id"`
+	Secret                string `mapstructure:"secret" json:"-"`
+	RedirectURI           string `mapstructure:"redirect_uri"`
+	PostLogoutRedirectURI string `mapstructure:"post_logout_redirect_uri"`
+	FormURL               string `mapstructure:"form_url"`
 }
 
 // AppConfig 应用级配置
@@ -141,8 +163,8 @@ type QueueConfig struct {
 
 // OrderConfig 订单配置
 type OrderConfig struct {
-	PaymentExpireMinutes int `mapstructure:"payment_expire_minutes"`
-	MaxRefundDays        int `mapstructure:"max_refund_days"`
+	PaymentExpireMinutes int  `mapstructure:"payment_expire_minutes"`
+	MaxRefundDays        int  `mapstructure:"max_refund_days"`
 	AllowGuestOrders     bool `mapstructure:"allow_guest_orders"`
 }
 
@@ -344,6 +366,9 @@ func Load() *Config {
 	viper.SetDefault("telegram_auth.login_expire_seconds", 300)
 	viper.SetDefault("telegram_auth.replay_ttl_seconds", 300)
 	viper.SetDefault("google_auth.enabled", false)
+	viper.SetDefault("identity_provider.enabled", false)
+	viper.SetDefault("identity_provider.session_hours", 1)
+	viper.SetDefault("identity_provider.remember_hours", 168)
 	viper.SetDefault("google_auth.client_id", "")
 	viper.SetDefault("redis.enabled", true)
 	viper.SetDefault("redis.host", "127.0.0.1")

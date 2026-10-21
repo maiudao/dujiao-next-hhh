@@ -49,6 +49,13 @@ type Options struct {
 	ClientIP  func(*http.Request) string
 	RateLimit func(*http.Request, string, string) error
 	Logger    *slog.Logger
+	Audit     func(*http.Request, LoginEvent)
+}
+
+type LoginEvent struct {
+	ClientID string
+	UserID   uint
+	Success  bool
 }
 
 type Server struct {
@@ -384,6 +391,9 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 		result, err = s.options.Auth.SecondFactor(r.Context(), binding, r.PostForm.Get("code"), r.PostForm.Get("recovery_code"))
 	}
 	if err != nil {
+		if s.options.Audit != nil {
+			s.options.Audit(r, LoginEvent{ClientID: value.ClientID})
+		}
 		fresh, _, lookupErr := s.request(r, id)
 		if lookupErr != nil {
 			s.fail(w, r, http.StatusUnauthorized, "authentication")
@@ -412,6 +422,9 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 		cookie.Expires = result.Session.ExpiresAt
 	}
 	http.SetCookie(w, cookie)
+	if s.options.Audit != nil {
+		s.options.Audit(r, LoginEvent{ClientID: value.ClientID, UserID: result.Session.UserID, Success: true})
+	}
 	s.options.Logger.InfoContext(r.Context(), "identity authentication completed", "client", value.ClientID, "user_id", result.Session.UserID)
 	s.callback(w, r, id)
 }
