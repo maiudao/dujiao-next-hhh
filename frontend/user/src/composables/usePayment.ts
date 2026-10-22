@@ -25,6 +25,7 @@ import QRCode from 'qrcode'
 import { type PageAlert } from '../utils/alerts'
 import { loadGuestOrderAuth, saveGuestOrderAuth } from '../utils/guestOrderAuth'
 import { useStorefrontMode } from './useStorefrontMode'
+import { personalSectionEnabled } from '../utils/personalFeatures'
 
 /**
  * 支付页共享逻辑（classic + vault 双模板共用）。
@@ -128,8 +129,8 @@ export function usePayment() {
   const backLink = computed(() => (isGuest.value ? '/guest/orders' : '/me/orders'))
   const hasGuestAuth = computed(() => Boolean(guestAuth.value.email && guestAuth.value.order_password))
   const showGuestAuthForm = computed(() => isGuest.value && (!hasGuestAuth.value || guestAuthError.value))
-  const walletOnlyPayment = computed(() => !!appStore.config?.wallet_only_payment)
-  const showBalanceOption = computed(() => !isGuest.value)
+  const walletOnlyPayment = computed(() => personalSectionEnabled('wallet') && !!appStore.config?.wallet_only_payment)
+  const showBalanceOption = computed(() => personalSectionEnabled('wallet') && !isGuest.value)
 
   const filterChannelsByOrder = (list: any[]) => {
     if (!Array.isArray(list)) return []
@@ -566,7 +567,7 @@ export function usePayment() {
   const debouncedLoadOrderPaymentChannels = debounceAsync(loadOrderPaymentChannels, 250)
 
   const loadWallet = async () => {
-    if (isGuest.value) return
+    if (!showBalanceOption.value) return
     walletLoading.value = true
     try {
       const response = await walletAPI.account()
@@ -1011,7 +1012,7 @@ export function usePayment() {
       } else {
         const payload: any = {
           order_no: orderNoResolved.value,
-          use_balance: useBalance.value,
+          use_balance: showBalanceOption.value && useBalance.value,
         }
         if (requiresOnlineChannel.value && selectedChannelId.value) {
           payload.channel_id = selectedChannelId.value

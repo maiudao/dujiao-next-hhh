@@ -457,8 +457,9 @@ func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order,
 		return nil, ErrResellerProductNotListed
 	}
 
-	// 仅允许钱包余额支付时，在创建订单（锁库存）前预校验余额是否充足
-	if s.settingService != nil && s.settingService.GetWalletOnlyPayment() {
+	// The main shop has no wallet payment; only reseller orders may still
+	// require a wallet balance before reserving inventory.
+	if isResellerOrderContext(input.Tenant) && s.settingService != nil && s.settingService.GetWalletOnlyPayment() {
 		if input.UserID == 0 {
 			// 游客无钱包，wallet-only 模式下不允许下单
 			return nil, walletcontract.ErrOnlyPaymentRequired

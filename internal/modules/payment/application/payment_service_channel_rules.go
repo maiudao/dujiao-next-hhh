@@ -108,10 +108,8 @@ func (s *PaymentService) validateWalletRechargeChannel(channelID uint) error {
 
 // GetAllowedChannelsForProducts 获取商品允许的支付渠道列表
 func (s *PaymentService) GetAllowedChannelsForProducts(productIDs []uint) ([]paymentdomain.PaymentChannel, error) {
-	// 仅钱包余额支付模式下不返回任何在线支付渠道
-	if s.settingService != nil && s.settingService.GetWalletOnlyPayment() {
-		return []paymentdomain.PaymentChannel{}, nil
-	}
+	// Keep online channels available after the main shop wallet is closed,
+	// including when the old wallet-only setting is still stored.
 	channels, _, err := s.ListChannels(paymentcontract.ChannelListFilter{
 		Page:       1,
 		PageSize:   200,

@@ -122,7 +122,7 @@ func setupPaymentServiceWalletTest(t *testing.T) (*PaymentService, *gorm.DB) {
 	return paymentSvc, db
 }
 
-func TestCreatePaymentWalletFullAmountCreatesPaymentRecord(t *testing.T) {
+func TestCreateResellerPaymentWalletFullAmountCreatesPaymentRecord(t *testing.T) {
 	svc, db := setupPaymentServiceWalletTest(t)
 	now := time.Now()
 
@@ -139,6 +139,7 @@ func TestCreatePaymentWalletFullAmountCreatesPaymentRecord(t *testing.T) {
 
 	order := &orderdomain.Order{
 		OrderNo:                 "DJTESTWALLETPAY001",
+		ResellerID:              &user.ID,
 		UserID:                  user.ID,
 		Status:                  constants.OrderStatusPendingPayment,
 		Currency:                "CNY",
@@ -1006,6 +1007,11 @@ func createUnderpaidOrder(t *testing.T, db *gorm.DB, orderNo string, userID uint
 		DiscountAmount: money.FromDecimal(decimal.Zero), PromotionDiscountAmount: money.FromDecimal(decimal.Zero),
 		WalletPaidAmount: money.FromDecimal(decimal.Zero), OnlinePaidAmount: money.FromDecimal(decimal.NewFromInt(total)),
 		RefundedAmount: money.FromDecimal(decimal.Zero), CreatedAt: now, UpdatedAt: now,
+	}
+	// Keep wallet accounting regressions on the reseller path, where wallet
+	// payments remain supported. Guest orders still belong to the main shop.
+	if userID != 0 {
+		order.ResellerID = &userID
 	}
 	if err := db.Create(order).Error; err != nil {
 		t.Fatalf("create order failed: %v", err)

@@ -12,7 +12,7 @@
     </PanelHeading>
 
     <!-- Tab 切换 -->
-    <div class="flex rounded-xl border bg-card overflow-hidden">
+    <div v-if="walletEnabled" class="flex rounded-xl border bg-card overflow-hidden">
       <button
         type="button"
         class="flex-1 py-3 text-sm font-semibold text-center transition-colors"
@@ -247,6 +247,7 @@ import { useI18n } from 'vue-i18n'
 import { ShoppingBag, Layers, Clock, CheckCircle2, Wallet } from 'lucide-vue-next'
 import { userOrderAPI } from '../../api'
 import { useStorefrontMode } from '../../composables/useStorefrontMode'
+import { personalSectionEnabled } from '../../utils/personalFeatures'
 import { walletAPI } from '../../api/wallet'
 import { orderStatusVariant, orderStatusLabel, type BadgeTone } from '../../utils/status'
 import { debounceAsync } from '../../utils/debounce'
@@ -263,12 +264,14 @@ import StatCard from '../../components/shared/StatCard.vue'
 
 const { t } = useI18n()
 const { samplingMode, closedPaymentLabel } = useStorefrontMode()
+const walletEnabled = personalSectionEnabled('wallet')
 
 
 // ========== Tab 状态 ==========
 const activeTab = ref<'product' | 'recharge'>('product')
 
 const switchTab = (tab: 'product' | 'recharge') => {
+  if (tab === 'recharge' && !walletEnabled) return
   if (activeTab.value === tab) return
   activeTab.value = tab
   if (tab === 'product' && !orderLoaded.value) {

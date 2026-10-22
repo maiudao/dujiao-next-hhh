@@ -1,5 +1,6 @@
 // Restore a feature here when the shop is ready to offer it. Existing data is retained.
 export const personalFeatures: Record<string, boolean> = {
+  wallet: false,
   affiliate: false,
   reseller: false,
   giftCard: false,
@@ -13,6 +14,7 @@ export function personalSectionEnabled(section: string): boolean {
 
 export function personalRouteEnabled(path: string): boolean {
   const routes: Record<string, string> = {
+    '/me/wallet': 'wallet',
     '/me/affiliate': 'affiliate', '/me/reseller': 'reseller',
     '/me/gift-cards': 'giftCard', '/me/api': 'api', '/reseller': 'reseller',
   }

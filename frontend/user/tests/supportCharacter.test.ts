@@ -73,7 +73,8 @@ test('contacts show only enabled, nonempty entries and explicit configuration di
 })
 
 test('paused account features hide their routes including nested reseller pages, while core pages remain usable', () => {
-  for (const path of ['/me/affiliate', '/me/gift-cards', '/me/api', '/me/reseller', '/reseller', '/reseller/orders/123']) assert.equal(personalRouteEnabled(path), false)
-  for (const path of ['/me', '/me/orders', '/me/wallet', '/me/security', '/me/profile', '/pay', '/products', '/me/apiary']) assert.equal(personalRouteEnabled(path), true)
+  for (const path of ['/me/affiliate', '/me/gift-cards', '/me/api', '/me/wallet', '/me/wallet/recharges/WR-OLD', '/me/reseller', '/reseller', '/reseller/orders/123']) assert.equal(personalRouteEnabled(path), false)
+  for (const path of ['/me', '/me/orders', '/me/security', '/me/profile', '/pay', '/products', '/me/apiary']) assert.equal(personalRouteEnabled(path), true)
+  assert.equal(personalSectionEnabled('wallet'), false)
   assert.equal(personalSectionEnabled('externalIdentity'), false)
 })

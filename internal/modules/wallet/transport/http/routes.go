@@ -1,20 +1,30 @@
 package wallethttp
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/dujiao-next/internal/platform/http/ginutil"
+	"github.com/dujiao-next/internal/platform/http/response"
+	"github.com/gin-gonic/gin"
+)
 
 // RegisterUserRoutes 注册用户钱包端点。
 func RegisterUserRoutes(user gin.IRoutes, handler *UserHandler) {
 	if user == nil || handler == nil {
 		panic("wallet user routes: required dependency is nil")
 	}
-	user.GET("/wallet", handler.GetWallet)
-	user.GET("/wallet/transactions", handler.GetTransactions)
-	user.POST("/wallet/payment-channels", handler.GetPaymentChannels)
-	user.POST("/wallet/recharge", handler.Recharge)
-	user.GET("/wallet/recharges", handler.ListRecharges)
-	user.GET("/wallet/recharges/stats", handler.RechargeStats)
-	user.GET("/wallet/recharges/:recharge_no", handler.GetRecharge)
-	user.POST("/wallet/recharge/payments/:id/capture", handler.CaptureRechargePayment)
+	// Close customer wallet access, including old clients and recharge links.
+	// Keep administrator, channel, callback and refund paths available.
+	disabled := func(c *gin.Context) {
+		ginutil.RespondError(c, response.CodeForbidden, "error.forbidden", nil)
+		c.Abort()
+	}
+	user.GET("/wallet", disabled)
+	user.GET("/wallet/transactions", disabled)
+	user.POST("/wallet/payment-channels", disabled)
+	user.POST("/wallet/recharge", disabled)
+	user.GET("/wallet/recharges", disabled)
+	user.GET("/wallet/recharges/stats", disabled)
+	user.GET("/wallet/recharges/:recharge_no", disabled)
+	user.POST("/wallet/recharge/payments/:id/capture", disabled)
 }
 
 // RegisterAdminRoutes 注册后台钱包端点（须挂在 paymentProtected 分组）。

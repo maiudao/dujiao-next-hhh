@@ -85,13 +85,6 @@ func (s *PaymentService) CreatePayment(input CreatePaymentInput) (*CreatePayment
 		mode, _ := setting["storefront_mode"].(string)
 		storefrontPaused = strings.EqualFold(strings.TrimSpace(mode), "sampling")
 	}
-	if walletOnly {
-		input.UseBalance = true
-		if input.ChannelID != 0 {
-			return nil, walletcontract.ErrOnlyPaymentRequired
-		}
-	}
-
 	err := s.paymentRepo.WithinTransaction(func(tx paymentcontract.Transaction) error {
 		preloaded, err := tx.Orders().GetByIDForUpdateWithChildren(input.OrderID)
 		if err != nil {
@@ -107,6 +100,18 @@ func (s *PaymentService) CreatePayment(input CreatePaymentInput) (*CreatePayment
 			}
 			if storefrontPaused {
 				return orderapp.ErrStorefrontPaused
+			}
+			// The main shop no longer offers wallet payments. Retain ledger,
+			// callback and refund handling for existing financial records.
+			if input.UseBalance {
+				return ErrPaymentInvalid
+			}
+			walletOnly = false
+		}
+		if walletOnly {
+			input.UseBalance = true
+			if input.ChannelID != 0 {
+				return walletcontract.ErrOnlyPaymentRequired
 			}
 		}
 		if lockedOrder.ParentID != nil {

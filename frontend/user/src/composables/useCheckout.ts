@@ -18,6 +18,7 @@ import ImageCaptcha from '../components/captcha/ImageCaptcha.vue'
 import TurnstileCaptcha from '../components/captcha/TurnstileCaptcha.vue'
 import { useLocalized, useProductLabels } from './useProduct'
 import { useStorefrontMode } from './useStorefrontMode'
+import { personalSectionEnabled } from '../utils/personalFeatures'
 
 interface ManualFormField {
   key: string
@@ -119,11 +120,11 @@ export function useCheckout() {
     return filtered
   })
 
-  const walletOnlyPayment = computed(() => !!appStore.config?.wallet_only_payment)
+  const walletOnlyPayment = computed(() => personalSectionEnabled('wallet') && !!appStore.config?.wallet_only_payment)
   // 分销白标店内后端会清零优惠券/促销/会员/批发等所有折扣（reseller 定价为固定加价），
   // 据此在结算页隐藏优惠券输入与恒为 0 的折扣预览行，避免买家填了无效优惠码。
   const isResellerTenant = computed(() => appStore.isResellerTenant)
-  const showBalanceOption = computed(() => userAuthStore.isAuthenticated)
+  const showBalanceOption = computed(() => personalSectionEnabled('wallet') && userAuthStore.isAuthenticated)
   const expectedWalletPaidCents = computed(() => {
     if (!showBalanceOption.value || !useBalance.value) return 0
     const balance = amountToCents(walletBalance.value)
@@ -839,7 +840,7 @@ export function useCheckout() {
       const payload = {
         ...buildOrderPayload(),
         channel_id: requiresOnlineChannel.value ? (selectedChannelId.value || undefined) : undefined,
-        use_balance: useBalance.value,
+        use_balance: showBalanceOption.value && useBalance.value,
       }
 
       let responseData: any
@@ -920,7 +921,7 @@ export function useCheckout() {
   )
 
   const loadWalletBalance = async () => {
-    if (!userAuthStore.isAuthenticated) return
+    if (!showBalanceOption.value) return
     walletLoading.value = true
     try {
       const response = await walletAPI.account()
