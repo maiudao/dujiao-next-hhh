@@ -38,6 +38,9 @@ const (
 )
 
 func main() {
+	if len(os.Args) >= 2 && os.Args[1] == "identity" {
+		os.Exit(runIdentityCommand(os.Args[2:]))
+	}
 	// admin 子命令短路：./dujiao-api admin <subcommand>
 	// 在 banner / web 提示 / migrate / default admin / app.Run 之前处理，
 	// 避免运维操作时打印一堆无关日志。

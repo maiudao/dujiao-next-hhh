@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,29 +43,57 @@ func valid(value string) bool {
 }
 
 func (c *Client) Verify(ctx context.Context, id, state, receipt, email string) error {
+	_, err := c.verify(ctx, id, state, receipt, email, false)
+	return err
+}
+
+func (c *Client) VerifyIdentifier(ctx context.Context, id, state, receipt, identifier string) (string, error) {
+	return c.verify(ctx, id, state, receipt, identifier, true)
+}
+
+func (c *Client) verify(ctx context.Context, id, state, receipt, email string, resolve bool) (string, error) {
 	if !valid(id) || !valid(state) || !valid(receipt) {
-		return errRejected
+		return "", errRejected
 	}
 	email = strings.ToLower(strings.TrimSpace(email))
-	if email == "" || len(email) > 254 || !strings.Contains(email, "@") {
-		return errRejected
+	if email == "" || len(email) > 254 || (!resolve && !strings.Contains(email, "@")) {
+		return "", errRejected
 	}
 	digest := sha256.Sum256([]byte(email))
-	data, _ := json.Marshal(map[string]string{"id": id, "state": state, "receipt": receipt, "identity": hex.EncodeToString(digest[:])})
+	input := map[string]string{"id": id, "state": state, "receipt": receipt, "identity": hex.EncodeToString(digest[:])}
+	if resolve {
+		input["identifier"] = email
+	}
+	data, _ := json.Marshal(input)
 	r, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(data))
 	if err != nil {
-		return errRejected
+		return "", errRejected
 	}
 	r.Header.Set("Content-Type", "application/json")
 	r.SetBasicAuth(c.clientID, c.secret)
 	response, err := c.http.Do(r)
 	if err != nil {
-		return errRejected
+		return "", errRejected
 	}
 	defer response.Body.Close()
-	// Never read or log a backend response body or underlying network error.
-	if response.StatusCode != http.StatusNoContent {
-		return errRejected
+	// Only the explicitly requested canonical identifier response may be read.
+	// Error bodies and underlying network errors are never exposed or logged.
+	if resolve && response.StatusCode == http.StatusOK {
+		var value struct {
+			Email string `json:"email"`
+		}
+		decoder := json.NewDecoder(io.LimitReader(response.Body, 1025))
+		decoder.DisallowUnknownFields()
+		if decoder.Decode(&value) != nil || decoder.Decode(&struct{}{}) != io.EOF || len(value.Email) > 254 || !strings.Contains(value.Email, "@") {
+			return "", errRejected
+		}
+		return value.Email, nil
 	}
-	return nil
+	if response.StatusCode != http.StatusNoContent {
+		return "", errRejected
+	}
+	if !strings.Contains(email, "@") {
+		return "", errRejected
+	}
+	return email, nil
 }

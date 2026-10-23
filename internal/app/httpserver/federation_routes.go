@@ -40,6 +40,7 @@ func registerFederationRoutes(r *gin.Engine, cfg *config.Config, c *container.Co
 	})
 	server, err := federation.New(cfg, federation.Dependencies{
 		DB: gormdb.DB, Auth: c.UserAuthService, Captcha: captchahttp.NewVerifier(c.CaptchaService),
+		RegistrationEnabled: func() (bool, error) { return c.SettingService.GetRegistrationEnabled(true) },
 		ClientIP: func(r *http.Request) string {
 			boundary, _ := r.Context().Value(identityBoundaryKey{}).(identityBoundary)
 			return boundary.ip
@@ -82,16 +83,21 @@ func registerFederationRoutes(r *gin.Engine, cfg *config.Config, c *container.Co
 	// process-wide logger around concurrent requests. The application's zap
 	// request/business loggers keep their existing destinations and behavior.
 	slog.SetDefault(protocolLog)
+	browser := federationBrowser(cfg, c)
 	r.Any(federation.Path+"/*identityPath", identityRecovery, general, func(ctx *gin.Context) {
 		path := ctx.Param("identityPath")
-		if path == "/login/password" || path == "/login/second-factor" || path == "/login/cancel" {
+		if path == "/login/password" || path == "/login/second-factor" || path == "/login/cancel" || path == "/login/register" || path == "/registration/code" {
 			form(ctx)
 			return
 		}
 		ctx.Next()
 	}, func(ctx *gin.Context) {
 		path := ctx.Param("identityPath")
-		boundary := identityBoundary{ip: ctx.ClientIP(), requestID: ctx.GetString("request_id"), form: path == "/login/password" || path == "/login/second-factor" || path == "/login/cancel"}
+		if path == "/browser" || path == "/browser/logout" {
+			browser(ctx)
+			return
+		}
+		boundary := identityBoundary{ip: ctx.ClientIP(), requestID: ctx.GetString("request_id"), form: path == "/login/password" || path == "/login/second-factor" || path == "/login/cancel" || path == "/login/register" || path == "/registration/code"}
 		request := ctx.Request.WithContext(context.WithValue(ctx.Request.Context(), identityBoundaryKey{}, boundary))
 		server.ServeHTTP(ctx.Writer, request)
 	})

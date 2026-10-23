@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -318,7 +320,11 @@ func AdminRBACMiddleware(authzService *authz.Service) gin.HandlerFunc {
 }
 
 // UserJWTAuthMiddleware 用户 JWT 鉴权中间件
-func UserJWTAuthMiddleware(secretKey string, userRepo usercontract.Store) gin.HandlerFunc {
+type UserSessionValidator func(context.Context, *userauthapp.UserJWTClaims) error
+
+var ErrUserSessionUnavailable = errors.New("identity session temporarily unavailable")
+
+func UserJWTAuthMiddleware(secretKey string, userRepo usercontract.Store, validators ...UserSessionValidator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if secretKey == "" {
 			msg := i18n.T(i18n.ResolveLocale(c), "error.jwt_secret_missing")
@@ -365,6 +371,19 @@ func UserJWTAuthMiddleware(secretKey string, userRepo usercontract.Store) gin.Ha
 			response.Unauthorized(c, msg)
 			c.Abort()
 			return
+		}
+		for _, validate := range validators {
+			if validate != nil {
+				if err := validate(c.Request.Context(), claims); err != nil {
+					if errors.Is(err, ErrUserSessionUnavailable) {
+						c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"code": 503, "message": "统一会员服务暂时不可用，请稍后重试"})
+					} else {
+						response.Unauthorized(c, i18n.T(i18n.ResolveLocale(c), "error.token_revoked"))
+						c.Abort()
+					}
+					return
+				}
+			}
 		}
 
 		if cached, hit, cacheErr := cache.GetUserAuthState(c.Request.Context(), claims.UserID); cacheErr == nil && hit && cached != nil {

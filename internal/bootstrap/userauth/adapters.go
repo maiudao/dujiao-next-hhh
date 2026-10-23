@@ -102,6 +102,9 @@ type userVerifyTransportAdapter struct {
 }
 
 func (a userVerifyTransportAdapter) GetEmailVerificationEnabled(defaultValue bool) (bool, error) {
+	if a.auth.RequiresRegistrationEmailProof() {
+		return true, nil
+	}
 	return a.settings.GetEmailVerificationEnabled(defaultValue)
 }
 
@@ -409,6 +412,9 @@ func (a userLoginTransportAdapter) GetRegistrationEnabled(defaultValue bool) (bo
 }
 
 func (a userLoginTransportAdapter) GetEmailVerificationEnabled(defaultValue bool) (bool, error) {
+	if a.auth.RequiresRegistrationEmailProof() {
+		return true, nil
+	}
 	return a.settings.GetEmailVerificationEnabled(defaultValue)
 }
 

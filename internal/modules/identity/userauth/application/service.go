@@ -106,6 +106,7 @@ func NewService(
 
 // UserJWTClaims 用户 JWT 声明
 type UserJWTClaims struct {
+	SessionID    string `json:"sid,omitempty"`
 	UserID       uint   `json:"user_id"`
 	Email        string `json:"email"`
 	TokenVersion uint64 `json:"token_version"`
@@ -261,6 +262,7 @@ func (s *Service) checkRegistrationEmailDomain(email string) error {
 
 // Register 用户注册
 func (s *Service) Register(email, password, code string, agreementAccepted bool, emailVerificationEnabled bool) (*userdomain.User, string, time.Time, error) {
+	emailVerificationEnabled = emailVerificationEnabled || s.cfg.IdentityProvider.Enabled
 	if !agreementAccepted {
 		return nil, "", time.Time{}, ErrAgreementRequired
 	}
@@ -518,7 +520,31 @@ func (s *Service) CompleteLoginAfter2FA(userID uint, rememberMe bool) (*UserLogi
 }
 
 func (s *Service) sendVerifyCode(ctx context.Context, email, purpose, locale string) error {
-	latest, err := s.codeRepo.GetLatest(email, purpose)
+	// Resolve settings before acquiring the send transaction. SQLite runs with
+	// one connection; a brand resolver that reads settings would deadlock in it.
+	brand, overridden := ctx.Value(registrationBrandKey{}).(mailbrand.Brand)
+	if !overridden && s.emailBrandResolver != nil {
+		var err error
+		brand, err = s.emailBrandResolver.ResolveEmailBrand(ctx, mailbrand.Scope{})
+		if err != nil {
+			return err
+		}
+	}
+	if locked, ok := s.codeRepo.(interface {
+		WithSendLock(context.Context, string, string, func(emailverificationcontract.Store) error) error
+	}); ok {
+		return locked.WithSendLock(ctx, email, purpose, func(store emailverificationcontract.Store) error {
+			return s.sendVerifyCodeLocked(ctx, store, email, purpose, locale, brand)
+		})
+	}
+	if s.cfg.IdentityProvider.Enabled {
+		return ErrAuthTransactionUnavailable
+	}
+	return s.sendVerifyCodeLocked(ctx, s.codeRepo, email, purpose, locale, brand)
+}
+
+func (s *Service) sendVerifyCodeLocked(ctx context.Context, store emailverificationcontract.Store, email, purpose, locale string, brand mailbrand.Brand) error {
+	latest, err := store.GetLatest(email, purpose)
 	if err != nil {
 		return err
 	}
@@ -534,14 +560,6 @@ func (s *Service) sendVerifyCode(ctx context.Context, email, purpose, locale str
 	if err != nil {
 		return err
 	}
-	brand := mailbrand.Brand{}
-	if s.emailBrandResolver != nil {
-		brand, err = s.emailBrandResolver.ResolveEmailBrand(ctx, mailbrand.Scope{})
-		if err != nil {
-			return err
-		}
-	}
-
 	record := &emailverificationdomain.Code{
 		Email:     email,
 		Purpose:   strings.ToLower(purpose),
@@ -554,7 +572,7 @@ func (s *Service) sendVerifyCode(ctx context.Context, email, purpose, locale str
 		return err
 	}
 
-	if err := s.codeRepo.Create(record); err != nil {
+	if err := store.Create(record); err != nil {
 		return err
 	}
 
@@ -566,7 +584,7 @@ func normalizeEmail(email string) (string, error) {
 	if normalized == "" {
 		return "", ErrInvalidEmail
 	}
-	if _, err := mail.ParseAddress(normalized); err != nil {
+	if parsed, err := mail.ParseAddress(normalized); err != nil || parsed.Address != normalized {
 		return "", ErrInvalidEmail
 	}
 	return normalized, nil

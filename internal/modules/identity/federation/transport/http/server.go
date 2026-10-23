@@ -13,6 +13,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,14 +41,16 @@ type ChallengeVerifier interface {
 	Verify(context.Context, string, string, string, string) error
 }
 type Options struct {
-	Issuer     string
-	Provider   *op.Provider
-	Protocol   *oidcprovider.Storage
-	Store      *federationstore.Store
-	Auth       *federationapp.Service
-	Clients    []UIClient
-	Captcha    CaptchaVerifier
-	Challenges map[string]ChallengeVerifier
+	Issuer              string
+	Provider            *op.Provider
+	Protocol            *oidcprovider.Storage
+	Store               *federationstore.Store
+	Auth                *federationapp.Service
+	Clients             []UIClient
+	Captcha             CaptchaVerifier
+	Challenges          map[string]ChallengeVerifier
+	Registration        RegistrationService
+	RegistrationEnabled func() (bool, error)
 	// These callbacks must use the application's trusted proxy and existing
 	// shared limiter. There is no permissive fallback when they are absent.
 	ClientIP  func(*http.Request) string
@@ -164,6 +167,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.interaction(w, r)
 		return
 	}
+	if path == "/registration/code" {
+		s.registrationCode(w, r)
+		return
+	}
+	if path == "/registration/code/check" {
+		s.registrationCodeCheck(w, r)
+		return
+	}
 	if path == "/session/check" || path == "/session/revoke" {
 		s.clientSession(w, r, path == "/session/revoke")
 		return
@@ -200,7 +211,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// First-party RP state is a 256-bit random value and doubles as the
 		// form's synchronizer token. Authentication still requires this browser.
 		csrf = r.URL.Query().Get("state")
-	case "/login/password", "/login/second-factor", "/login/cancel":
+	case "/login/password", "/login/second-factor", "/login/cancel", "/login/register":
 		if r.Method != http.MethodPost || r.URL.RawQuery != "" {
 			s.fail(w, r, http.StatusMethodNotAllowed, "form_method")
 			return
@@ -264,7 +275,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.continueLogin(w, r)
 		return
 	}
-	if path == "/login/password" || path == "/login/second-factor" || path == "/login/cancel" {
+	if path == "/login/password" || path == "/login/second-factor" || path == "/login/cancel" || path == "/login/register" {
 		s.form(w, r, path, browser, csrf)
 		return
 	}
@@ -387,7 +398,7 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 	binding := federationapp.Binding{RequestID: id, ClientID: value.ClientID, Browser: browser, CSRF: csrf, PreviousSessionCookie: previous}
 	var result *federationapp.Result
 	remember := value.RememberMe
-	if path == "/login/password" {
+	if path == "/login/password" || path == "/login/register" {
 		email, password := r.PostForm.Get("email"), r.PostForm.Get("password")
 		if len(email) > 254 || len(password) > 1024 {
 			s.fail(w, r, http.StatusBadRequest, "credential_size")
@@ -395,9 +406,24 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 		}
 		if verifier, configured := s.options.Challenges[value.ClientID]; configured {
 			receipt := r.PostForm.Get("challenge_receipt")
-			if !secretValue(receipt) || verifier.Verify(r.Context(), id, csrf, receipt, email) != nil {
+			if !secretValue(receipt) {
 				s.fail(w, r, http.StatusForbidden, "client_challenge")
 				return
+			}
+			var proofErr error
+			if resolver, ok := verifier.(interface {
+				VerifyIdentifier(context.Context, string, string, string, string) (string, error)
+			}); ok {
+				email, proofErr = resolver.VerifyIdentifier(r.Context(), id, csrf, receipt, email)
+			} else {
+				proofErr = verifier.Verify(r.Context(), id, csrf, receipt, email)
+			}
+			if !secretValue(receipt) || proofErr != nil {
+				s.fail(w, r, http.StatusForbidden, "client_challenge")
+				return
+			}
+			if path == "/login/register" {
+				r.PostForm.Set("email", email)
 			}
 		} else {
 			payload := captchahttp.CaptchaPayloadRequest{CaptchaID: r.PostForm.Get("captcha_id"), CaptchaCode: r.PostForm.Get("captcha_code"), TurnstileToken: r.PostForm.Get("turnstile_token")}
@@ -407,7 +433,12 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 			}
 		}
 		remember = r.PostForm.Get("remember_me") == "true"
-		result, err = s.options.Auth.Password(r.Context(), binding, email, password, remember)
+		if path == "/login/register" {
+			err = s.registerAccount(r)
+		}
+		if err == nil {
+			result, err = s.options.Auth.Password(r.Context(), binding, email, password, remember)
+		}
 	} else {
 		result, err = s.options.Auth.SecondFactor(r.Context(), binding, r.PostForm.Get("code"), r.PostForm.Get("recovery_code"))
 	}
@@ -443,6 +474,9 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 		cookie.Expires = result.Session.ExpiresAt
 	}
 	http.SetCookie(w, cookie)
+	if r.Host == "shop.huihuahui.xyz" {
+		http.SetCookie(w, &http.Cookie{Name: "huihua-member-signal", Value: strconv.FormatInt(time.Now().UnixNano(), 36), Path: "/", Domain: "huihuahui.xyz", Secure: true, SameSite: http.SameSiteLaxMode, MaxAge: 30 * 24 * 60 * 60})
+	}
 	if s.options.Audit != nil {
 		s.options.Audit(r, LoginEvent{ClientID: value.ClientID, UserID: result.Session.UserID, Success: true})
 	}

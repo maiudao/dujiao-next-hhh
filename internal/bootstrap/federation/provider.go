@@ -33,13 +33,14 @@ import (
 const Path = "/api/identity"
 
 type Dependencies struct {
-	DB        *gorm.DB
-	Auth      *userauthapp.Service
-	Captcha   federationhttp.CaptchaVerifier
-	ClientIP  func(*http.Request) string
-	RateLimit func(*http.Request, string, string) error
-	Logger    *slog.Logger
-	Audit     func(*http.Request, federationhttp.LoginEvent)
+	DB                  *gorm.DB
+	Auth                *userauthapp.Service
+	Captcha             federationhttp.CaptchaVerifier
+	ClientIP            func(*http.Request) string
+	RateLimit           func(*http.Request, string, string) error
+	Logger              *slog.Logger
+	Audit               func(*http.Request, federationhttp.LoginEvent)
+	RegistrationEnabled func() (bool, error)
 }
 
 func New(cfg *config.Config, deps Dependencies) (*federationhttp.Server, error) {
@@ -98,7 +99,7 @@ func New(cfg *config.Config, deps Dependencies) (*federationhttp.Server, error) 
 	if err != nil {
 		return nil, err
 	}
-	server, err := federationhttp.New(federationhttp.Options{Issuer: settings.Issuer, Provider: provider, Protocol: protocol, Store: store, Auth: auth, Clients: forms, Captcha: deps.Captcha, Challenges: challenges, ClientIP: deps.ClientIP, RateLimit: deps.RateLimit, Logger: deps.Logger, Audit: deps.Audit})
+	server, err := federationhttp.New(federationhttp.Options{Issuer: settings.Issuer, Provider: provider, Protocol: protocol, Store: store, Auth: auth, Clients: forms, Captcha: deps.Captcha, Challenges: challenges, ClientIP: deps.ClientIP, RateLimit: deps.RateLimit, Logger: deps.Logger, Audit: deps.Audit, Registration: deps.Auth, RegistrationEnabled: deps.RegistrationEnabled})
 	if err != nil {
 		return nil, err
 	}

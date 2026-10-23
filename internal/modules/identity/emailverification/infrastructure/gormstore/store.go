@@ -1,13 +1,39 @@
 package emailverificationstore
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"time"
 
+	emailverificationcontract "github.com/dujiao-next/internal/modules/identity/emailverification/contract"
 	emailverificationdomain "github.com/dujiao-next/internal/modules/identity/emailverification/domain"
 
 	"gorm.io/gorm"
 )
+
+// WithSendLock serializes the first send as well as resends across processes.
+// The SMTP call is not retried by this transaction: retrying it could send the
+// same request twice after a database/connection failure.
+func (store *Store) WithSendLock(ctx context.Context, email, purpose string, send func(emailverificationcontract.Store) error) error {
+	return store.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		switch tx.Dialector.Name() {
+		case "postgres":
+			digest := sha256.Sum256([]byte("email-code\x00" + email + "\x00" + purpose))
+			if err := tx.Exec("SELECT pg_advisory_xact_lock(?)", int64(binary.BigEndian.Uint64(digest[:8]))).Error; err != nil {
+				return err
+			}
+		case "sqlite":
+			if err := tx.Exec("UPDATE email_verify_codes SET id=id WHERE 0=1").Error; err != nil {
+				return err
+			}
+		default:
+			return errors.New("verification send locking is unavailable")
+		}
+		return send(New(tx))
+	})
+}
 
 type Store struct {
 	db *gorm.DB

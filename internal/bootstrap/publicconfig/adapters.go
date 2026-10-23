@@ -76,6 +76,9 @@ func (a publicConfigSettingsAdapter) GetRegistrationEnabled(defaultValue bool) (
 }
 
 func (a publicConfigSettingsAdapter) GetEmailVerificationEnabled(defaultValue bool) (bool, error) {
+	if a.cfg != nil && a.cfg.IdentityProvider.Enabled {
+		return true, nil
+	}
 	return a.settings.GetEmailVerificationEnabled(defaultValue)
 }
 

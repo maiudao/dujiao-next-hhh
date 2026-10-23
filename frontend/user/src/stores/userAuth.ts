@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { userAuthAPI } from '../api'
+import { toast } from '../composables/useToast'
 
 export const useUserAuthStore = defineStore('user-auth', () => {
     const router = useRouter()
@@ -41,6 +42,60 @@ export const useUserAuthStore = defineStore('user-auth', () => {
         user.value = null
         localStorage.removeItem('user_token')
         localStorage.removeItem('user_profile')
+    }
+
+    let federationEnabled: boolean | null = null
+    let sessionRequest: Promise<void> | null = null
+    let watchingSession = false
+    let loggingOut = false
+    const sessionSignal = () => document.cookie.split('; ').find(part => part.startsWith('huihua-member-signal=')) || ''
+
+    // Only the host-only HttpOnly authority cookie can restore a login. The
+    // shared marker merely asks both open sites to check the server again.
+    const syncBrowserSession = (): Promise<void> => {
+        if (loggingOut) return Promise.resolve()
+        if (sessionRequest) return sessionRequest
+        sessionRequest = (async () => {
+            const response = await fetch('/api/identity/browser', {
+                credentials: 'same-origin', cache: 'no-store',
+                headers: { 'X-Huihua-Session': '1' }, signal: AbortSignal.timeout(8000),
+            })
+            if (response.status === 404) { federationEnabled = false; return }
+            if (!response.ok) throw new Error('统一登录状态暂时无法确认，请稍后重试。')
+            const state = await response.json()
+            if (state.enabled !== true || typeof state.logged_in !== 'boolean') throw new Error('登录状态无效')
+            federationEnabled = true
+            if (state.logged_in) {
+                if (typeof state.token !== 'string' || !state.token || !state.user?.id) throw new Error('登录状态无效')
+                setToken(state.token)
+                setUser(state.user)
+            } else {
+                clearAuth()
+            }
+        })().finally(() => { sessionRequest = null })
+        return sessionRequest
+    }
+
+    const watchBrowserSession = () => {
+        if (watchingSession) return
+        watchingSession = true
+        let signal = sessionSignal()
+        const check = async () => {
+            if (document.hidden) return
+            try {
+                await syncBrowserSession()
+                if (federationEnabled && !isAuthenticated.value && router.currentRoute.value.meta.requiresUserAuth) {
+                    await router.replace('/auth/login')
+                }
+            } catch (_) { /* An outage preserves local state; protected APIs still validate the session. */ }
+        }
+        window.addEventListener('focus', check)
+        window.addEventListener('pageshow', check)
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) void check() })
+        window.setInterval(() => {
+            const current = sessionSignal()
+            if (current !== signal && !document.hidden) { signal = current; void check() }
+        }, 1500)
     }
 
     const sendVerifyCode = async (payload: any) => {
@@ -192,9 +247,30 @@ export const useUserAuthStore = defineStore('user-auth', () => {
         setUser(nextUser)
     }
 
-    const logout = (redirect = '/auth/login') => {
-        clearAuth()
-        router.push(redirect)
+    const logout = async (redirect = '/auth/login') => {
+        if (loggingOut) return false
+        try {
+            // Do not report a successful logout until authority revocation has
+            // committed. Waiting also prevents an in-flight restore racing it.
+            await syncBrowserSession()
+            loggingOut = true
+            if (federationEnabled) {
+                const response = await fetch('/api/identity/browser/logout', {
+                    method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                    headers: { 'X-Huihua-Session': '1' }, signal: AbortSignal.timeout(8000),
+                })
+                if (!response.ok) throw new Error('退出暂时未完成，请稍后重试。')
+            }
+            clearAuth()
+            clearChallenge()
+            await router.push(redirect)
+            return true
+        } catch (_) {
+            toast.error('退出暂时未完成，请稍后重试。')
+            return false
+        } finally {
+            loggingOut = false
+        }
     }
 
     return {
@@ -217,5 +293,7 @@ export const useUserAuthStore = defineStore('user-auth', () => {
         forgotPassword,
         syncUserProfile,
         logout,
+        syncBrowserSession,
+        watchBrowserSession,
     }
 })

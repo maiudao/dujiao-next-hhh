@@ -310,7 +310,9 @@ const router = createRouter({
             path: '/auth/forgot',
             name: 'user-forgot',
             component: templateView('auth/Forgot', () => import('../views/auth/Forgot.vue')),
-            meta: { userGuest: true }
+            // Existing browser sessions may still need fresh mailbox proof.
+            // Reset verifies the email code and revokes those sessions itself.
+            meta: {}
         },
         {
             path: '/auth/telegram/callback',
@@ -342,6 +344,9 @@ router.beforeEach(async (to, _from, next) => {
 
     // 首次导航复用启动时取得的配置；后续切页仍刷新营业状态等业务配置。
     await appStore.loadConfig(Boolean(_from.name))
+
+    try { await userAuthStore.syncBrowserSession() } catch (_) { /* API authorization fails closed during an outage. */ }
+    userAuthStore.watchBrowserSession()
 
     if (to.meta.requiresUserAuth) {
         if (!userAuthStore.isAuthenticated) {

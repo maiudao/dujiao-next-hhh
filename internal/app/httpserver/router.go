@@ -247,6 +247,9 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	if err := registerFederationRoutes(r, cfg, c); err != nil {
 		panic(fmt.Errorf("identity provider initialization failed: %w", err))
 	}
+	if cfg.IdentityProvider.Enabled {
+		r.Use(federationAuthResponses(cfg, c))
+	}
 
 	// 静态文件服务（上传的图片）必须放在前面。
 	// SVG 强制下载并禁止脚本：即使上传校验被绕过，直接打开 /uploads/x.svg 也不会在站点源下执行脚本；
