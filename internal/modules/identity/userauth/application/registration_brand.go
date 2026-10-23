@@ -5,9 +5,14 @@ import (
 
 	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/shared/mailbrand"
+	"github.com/dujiao-next/internal/shared/passwordpolicy"
 )
 
 type registrationBrandKey struct{}
+
+func (s *Service) RegistrationPasswordPolicy() passwordpolicy.Policy {
+	return s.cfg.Security.PasswordPolicy.ValidationPolicy()
+}
 
 func (s *Service) RequiresRegistrationEmailProof() bool {
 	return s != nil && s.cfg != nil && s.cfg.IdentityProvider.Enabled

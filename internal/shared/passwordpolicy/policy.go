@@ -10,11 +10,11 @@ import (
 var ErrWeak = errors.New("weak password")
 
 type Policy struct {
-	MinLength      int
-	RequireUpper   bool
-	RequireLower   bool
-	RequireNumber  bool
-	RequireSpecial bool
+	MinLength      int  `json:"min_length"`
+	RequireUpper   bool `json:"require_upper"`
+	RequireLower   bool `json:"require_lower"`
+	RequireNumber  bool `json:"require_number"`
+	RequireSpecial bool `json:"require_special"`
 }
 
 type violation struct {

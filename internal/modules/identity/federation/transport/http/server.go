@@ -23,6 +23,7 @@ import (
 	federationdomain "github.com/dujiao-next/internal/modules/identity/federation/domain"
 	federationstore "github.com/dujiao-next/internal/modules/identity/federation/infrastructure/gormstore"
 	"github.com/dujiao-next/internal/modules/identity/federation/infrastructure/oidcprovider"
+	"github.com/dujiao-next/internal/shared/passwordpolicy"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
 )
@@ -142,6 +143,11 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, status int, action
 	// Only fixed actions/status are logged. URL/query/body, credentials and raw
 	// upstream errors are deliberately excluded even on protocol failures.
 	s.options.Logger.WarnContext(r.Context(), "identity request rejected", "action", action, "status", status)
+	if s.registrationJSON(w, r) {
+		code, message := registrationProtocolError(action)
+		writeRegistrationError(w, status, code, "", message)
+		return
+	}
 	http.Error(w, "登录暂时无法完成，请返回重试。", status)
 }
 
@@ -159,6 +165,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxBody)
 	path := strings.TrimPrefix(r.URL.Path, s.issuer.Path)
+	s.registrationJSON(w, r)
 	if err := s.options.RateLimit(r, "identity", ""); err != nil {
 		s.fail(w, r, http.StatusTooManyRequests, "rate_limit")
 		return
@@ -435,6 +442,12 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 		remember = r.PostForm.Get("remember_me") == "true"
 		if path == "/login/register" {
 			err = s.registerAccount(r)
+			if err != nil && s.registrationJSON(w, r) {
+				status, code, field, message := registrationError(err)
+				s.options.Logger.WarnContext(r.Context(), "identity registration rejected", "code", code, "status", status)
+				writeRegistrationError(w, status, code, field, message)
+				return
+			}
 		}
 		if err == nil {
 			result, err = s.options.Auth.Password(r.Context(), binding, email, password, remember)
@@ -443,6 +456,10 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 		result, err = s.options.Auth.SecondFactor(r.Context(), binding, r.PostForm.Get("code"), r.PostForm.Get("recovery_code"))
 	}
 	if err != nil {
+		if path == "/login/register" && s.registrationJSON(w, r) {
+			writeRegistrationError(w, 503, "account_created", "", "账号已创建，但自动登录未完成，请使用刚才的邮箱和密码登录，无需重复注册。")
+			return
+		}
 		if s.options.Audit != nil {
 			s.options.Audit(r, LoginEvent{ClientID: value.ClientID})
 		}
@@ -481,6 +498,10 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 		s.options.Audit(r, LoginEvent{ClientID: value.ClientID, UserID: result.Session.UserID, Success: true})
 	}
 	s.options.Logger.InfoContext(r.Context(), "identity authentication completed", "client", value.ClientID, "user_id", result.Session.UserID)
+	if path == "/login/register" && s.registrationJSON(w, r) {
+		_ = json.NewEncoder(w).Encode(map[string]string{"next_url": s.issuer.Path + s.options.Provider.AuthorizationEndpoint().Relative() + "/callback?id=" + url.QueryEscape(id)})
+		return
+	}
 	s.callback(w, r, id)
 }
 
@@ -521,17 +542,23 @@ func (s *Server) interaction(w http.ResponseWriter, r *http.Request) {
 	if value.Stage == federationdomain.StageSecondFactor {
 		action = "/login/second-factor"
 	}
-	_ = json.NewEncoder(w).Encode(InteractionResponse{ID: value.ID, ClientID: value.ClientID, State: protocol.State, Nonce: protocol.Nonce, CodeChallenge: protocol.CodeChallenge, CodeChallengeMethod: string(protocol.CodeChallengeMethod), Stage: value.Stage, FormAction: strings.TrimSuffix(s.options.Issuer, "/") + action, CancelAction: strings.TrimSuffix(s.options.Issuer, "/") + "/login/cancel"})
+	response := InteractionResponse{ID: value.ID, ClientID: value.ClientID, State: protocol.State, Nonce: protocol.Nonce, CodeChallenge: protocol.CodeChallenge, CodeChallengeMethod: string(protocol.CodeChallengeMethod), Stage: value.Stage, FormAction: strings.TrimSuffix(s.options.Issuer, "/") + action, CancelAction: strings.TrimSuffix(s.options.Issuer, "/") + "/login/cancel"}
+	if policy, ok := s.options.Registration.(interface{ RegistrationPasswordPolicy() passwordpolicy.Policy }); ok {
+		p := policy.RegistrationPasswordPolicy()
+		response.PasswordPolicy = &p
+	}
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 type InteractionResponse struct {
-	ID                  string `json:"auth_request_id"`
-	ClientID            string `json:"client_id"`
-	State               string `json:"state"`
-	Nonce               string `json:"nonce"`
-	CodeChallenge       string `json:"code_challenge"`
-	CodeChallengeMethod string `json:"code_challenge_method"`
-	Stage               string `json:"stage"`
-	FormAction          string `json:"form_action"`
-	CancelAction        string `json:"cancel_action"`
+	PasswordPolicy      *passwordpolicy.Policy `json:"password_policy,omitempty"`
+	ID                  string                 `json:"auth_request_id"`
+	ClientID            string                 `json:"client_id"`
+	State               string                 `json:"state"`
+	Nonce               string                 `json:"nonce"`
+	CodeChallenge       string                 `json:"code_challenge"`
+	CodeChallengeMethod string                 `json:"code_challenge_method"`
+	Stage               string                 `json:"stage"`
+	FormAction          string                 `json:"form_action"`
+	CancelAction        string                 `json:"cancel_action"`
 }

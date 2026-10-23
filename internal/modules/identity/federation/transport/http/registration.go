@@ -118,16 +118,22 @@ func (s *Server) registrationCode(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) registerAccount(r *http.Request) error {
 	if s.options.Registration == nil || s.options.RegistrationEnabled == nil {
-		return errors.New("registration unavailable")
+		return userauthapp.ErrRegistrationDisabled
 	}
 	enabled, err := s.options.RegistrationEnabled()
 	if err != nil || !enabled {
-		return errors.New("registration unavailable")
+		if err != nil {
+			return err
+		}
+		return userauthapp.ErrRegistrationDisabled
 	}
 	password := r.PostForm.Get("password")
 	code := strings.TrimSpace(r.PostForm.Get("code"))
-	if code == "" || len(code) > 32 || password != r.PostForm.Get("password_confirm") {
-		return errors.New("registration proof required")
+	if password != r.PostForm.Get("password_confirm") {
+		return userauthapp.ErrInvalidPassword
+	}
+	if code == "" || len(code) > 32 {
+		return userauthapp.ErrVerifyCodeInvalid
 	}
 	// Force verification regardless of the storefront's optional legacy setting.
 	// Register atomically consumes the code and creates the Shop identity.

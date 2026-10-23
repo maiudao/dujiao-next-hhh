@@ -3,6 +3,7 @@ package mailbrandwiring
 import (
 	"context"
 	"net/mail"
+	"net/url"
 	"strings"
 
 	resellercontract "github.com/dujiao-next/internal/modules/reseller/contract"
@@ -42,10 +43,15 @@ func (r *Resolver) ResolveEmailBrand(ctx context.Context, scope mailbrand.Scope)
 	if err != nil {
 		return mailbrand.Brand{}, err
 	}
-	return mailbrand.Brand{
+	resolved := mailbrand.Brand{
 		SiteName: strings.TrimSpace(brand.SiteName),
 		SiteURL:  strings.TrimRight(strings.TrimSpace(brand.SiteURL), "/"),
-	}, nil
+		FromName: strings.TrimSpace(brand.SiteName),
+	}
+	if site, err := url.Parse(resolved.SiteURL); err == nil && (site.Hostname() == "www.huihuahui.xyz" || site.Hostname() == "shop.huihuahui.xyz" || site.Hostname() == "huihuahui.xyz") {
+		resolved.SiteName, resolved.FromName = "绘画荟", "绘画荟"
+	}
+	return resolved, nil
 }
 
 func scopeFromContext(ctx context.Context, scope mailbrand.Scope) mailbrand.Scope {
