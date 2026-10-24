@@ -72,9 +72,14 @@ func TestClientChallengeCannotFallBackToNativeCaptcha(t *testing.T) {
 		t.Fatal("missing receipt fell back to native captcha")
 	}
 	form.Set("challenge_receipt", randomSecret(t))
-	_, status, _ = f.post(t, "/login/password", "https://main.example.invalid", form)
-	if status != http.StatusForbidden || f.captcha.calls != 0 {
-		t.Fatal("wrong receipt fell back")
+	location, status, rejectedCookies := f.post(t, "/login/password", "https://main.example.invalid", form)
+	if status != http.StatusSeeOther || location.Host != "main.example.invalid" || location.Query().Get("error") != "authentication_failed" || location.Query().Get("authRequestID") != id || location.Query().Get("state") != state || f.captcha.calls != 0 {
+		t.Fatal("rejected receipt must return to its bound form without native captcha fallback")
+	}
+	for _, cookie := range rejectedCookies {
+		if cookie.Name == SessionCookieName {
+			t.Fatal("rejected receipt issued a session")
+		}
 	}
 	form.Set("challenge_receipt", check.receipt)
 	// Authority browser binding must be checked before the receipt is redeemed.

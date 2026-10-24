@@ -425,7 +425,15 @@ func (s *Server) form(w http.ResponseWriter, r *http.Request, path, browser, csr
 			} else {
 				proofErr = verifier.Verify(r.Context(), id, csrf, receipt, email)
 			}
-			if !secretValue(receipt) || proofErr != nil {
+			if proofErr != nil && path == "/login/password" {
+				// The flow, origin, CSRF and authority browser were checked above.
+				// A rejected/expired receipt or unknown identifier grants no session;
+				// return to the registered form so the user can solve a fresh puzzle.
+				s.options.Logger.WarnContext(r.Context(), "identity request rejected", "action", "client_challenge", "status", http.StatusForbidden)
+				s.returnForm(w, r, value, protocol, true)
+				return
+			}
+			if proofErr != nil {
 				s.fail(w, r, http.StatusForbidden, "client_challenge")
 				return
 			}
