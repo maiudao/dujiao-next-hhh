@@ -19,10 +19,10 @@ type mainBrandReaderStub struct {
 }
 
 func TestHuihuaMailUsesCorrectOfficialName(t *testing.T) {
-	for _, host := range []string{"www.huihuahui.xyz", "shop.huihuahui.xyz"} {
-		resolver := New(&mainBrandReaderStub{brand: settingsapp.SiteBrand{SiteName: "绘画灰", SiteURL: "https://" + host}}, nil)
+	for _, host := range []string{"www.huihuahui.xyz", "shop.huihuahui.xyz", "huihuahui.xyz"} {
+		resolver := New(&mainBrandReaderStub{brand: settingsapp.SiteBrand{SiteName: "绘画荟", SiteURL: "https://" + host}}, nil)
 		brand, err := resolver.ResolveEmailBrand(context.Background(), mailbrand.Scope{})
-		if err != nil || brand.SiteName != "绘画荟" || brand.FromName != "绘画荟" {
+		if err != nil || brand.SiteName != "绘画灰" || brand.FromName != "绘画灰" {
 			t.Fatal("wrong official email brand")
 		}
 	}

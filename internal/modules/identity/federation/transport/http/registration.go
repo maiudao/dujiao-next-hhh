@@ -85,7 +85,7 @@ func (s *Server) registrationCode(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, 403, "registration_challenge")
 		return
 	}
-	brand := mailbrand.Brand{SiteName: "绘画荟", SiteURL: form.Scheme + "://" + form.Host, FromName: "绘画荟"}
+	brand := mailbrand.Brand{SiteName: "绘画灰", SiteURL: form.Scheme + "://" + form.Host, FromName: "绘画灰"}
 	err = s.options.Registration.SendRegistrationCodeForSite(r.Context(), input.Email, input.Locale, brand)
 	if err != nil {
 		status, code := http.StatusServiceUnavailable, "mail_unavailable"

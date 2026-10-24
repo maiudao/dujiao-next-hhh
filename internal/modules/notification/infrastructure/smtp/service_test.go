@@ -270,6 +270,28 @@ func TestBuildVerifyCodeContentUsesResolvedWhiteLabelBrand(t *testing.T) {
 	}
 }
 
+func TestMainSiteRegistrationMailUsesExactHuihuaBrand(t *testing.T) {
+	brand := mailbrand.Brand{SiteName: "绘画灰", SiteURL: "https://www.huihuahui.xyz", FromName: "绘画灰"}
+	subject, body := buildVerifyCodeContent("123456", "register", i18n.LocaleZH, brand)
+	if subject != "绘画灰 - 注册验证码" || !strings.Contains(body, "站点：绘画灰") || !strings.Contains(body, "网址：https://www.huihuahui.xyz") {
+		t.Fatal("registration subject or site footer lost the exact main-site brand")
+	}
+	service := &Service{cfg: &config.EmailConfig{Enabled: true, Host: "smtp.example.invalid", Port: 465, From: "mailer@example.invalid", FromName: "旧配置名称"}}
+	from, _, err := service.prepareSMTPEnvelope("recipient@example.invalid", brand.FromName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := mail.ParseAddress(from)
+	if err != nil || parsed.Name != "绘画灰" || parsed.Address != "mailer@example.invalid" {
+		t.Fatal("sender display name must use 绘画灰 while retaining the configured sender address")
+	}
+	for _, wrong := range []string{"绘画荟", "绘画会", "旧配置名称"} {
+		if strings.Contains(subject+body+from, wrong) {
+			t.Fatal("registration email contains an incorrect brand")
+		}
+	}
+}
+
 func TestBuildEmailMessageSupportsPerMessageFromNameAndReplyTo(t *testing.T) {
 	from := buildFromAddress("mailer@service.example", "白标商店")
 	parsedFrom, err := mail.ParseAddress(from)

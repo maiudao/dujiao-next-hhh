@@ -69,7 +69,7 @@ func TestRegistrationDeliveryConcurrentCooldownFailureAndBrand(t *testing.T) {
 		t.Fatal(err)
 	}
 	pool.SetMaxOpenConns(1)
-	brand := mailbrand.Brand{SiteName: "绘画荟", SiteURL: "https://main.example.invalid", FromName: "绘画荟"}
+	brand := mailbrand.Brand{SiteName: "绘画灰", SiteURL: "https://main.example.invalid", FromName: "绘画灰"}
 	results := make(chan error, 8)
 	var wg sync.WaitGroup
 	for i := 0; i < 8; i++ {

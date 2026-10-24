@@ -22,9 +22,11 @@ type previewRegistrationStub struct {
 	calls      int
 	rejection  error
 	registered bool
+	brand      mailbrand.Brand
 }
 
-func (*previewRegistrationStub) SendRegistrationCodeForSite(context.Context, string, string, mailbrand.Brand) error {
+func (p *previewRegistrationStub) SendRegistrationCodeForSite(_ context.Context, _, _ string, brand mailbrand.Brand) error {
+	p.brand = brand
 	return nil
 }
 func (*previewRegistrationStub) RegistrationCodePolicy() (int, int) { return 90, 900 }
@@ -102,6 +104,9 @@ func TestRegistrationCodeHTTPPreviewAndRemovedCheckbox(t *testing.T) {
 	}
 	if status != 200 || json.Unmarshal(body, &delivery) != nil || !delivery.Sent || delivery.Length != 8 || delivery.Token == "" || challenge.calls != 1 {
 		t.Fatal("send lost preview capability or actual code length")
+	}
+	if service.brand.SiteName != "绘画灰" || service.brand.FromName != "绘画灰" || service.brand.SiteURL != "https://main.example.invalid" {
+		t.Fatal("main-site registration mail must use the 绘画灰 brand and registered site URL")
 	}
 	input := map[string]string{"auth_request_id": id, "state": state, "email": "fixture@example.invalid", "code": "12345678", "check_token": delivery.Token}
 	for _, mutation := range []string{"email", "state", "check_token", "origin"} {

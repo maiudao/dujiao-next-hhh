@@ -49,7 +49,7 @@ func (r *Resolver) ResolveEmailBrand(ctx context.Context, scope mailbrand.Scope)
 		FromName: strings.TrimSpace(brand.SiteName),
 	}
 	if site, err := url.Parse(resolved.SiteURL); err == nil && (site.Hostname() == "www.huihuahui.xyz" || site.Hostname() == "shop.huihuahui.xyz" || site.Hostname() == "huihuahui.xyz") {
-		resolved.SiteName, resolved.FromName = "绘画荟", "绘画荟"
+		resolved.SiteName, resolved.FromName = "绘画灰", "绘画灰"
 	}
 	return resolved, nil
 }
