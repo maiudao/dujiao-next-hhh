@@ -21,13 +21,17 @@
           </h1>
           <p class="landing-description">{{ content.description }}</p>
 
-          <p v-if="!loading && !loadError" class="catalog-summary" aria-live="polite">
-            <span>{{ copy.productCount(products.length) }}</span>
-            <span class="summary-separator" aria-hidden="true">·</span>
-            <span>{{ copy.availableCount(availableCount) }}</span>
-            <template v-if="lowestPrice">
+          <p class="catalog-summary" aria-live="polite" :aria-busy="loading">
+            <span v-if="loading">{{ copy.loading }}</span>
+            <span v-else-if="loadError">{{ copy.loadError }}</span>
+            <template v-else>
+              <span>{{ copy.productCount(products.length) }}</span>
               <span class="summary-separator" aria-hidden="true">·</span>
-              <span>{{ copy.startsAt }} <strong>{{ lowestPrice }}</strong></span>
+              <span>{{ copy.availableCount(availableCount) }}</span>
+              <template v-if="lowestPrice">
+                <span class="summary-separator" aria-hidden="true">·</span>
+                <span>{{ copy.startsAt }} <strong>{{ lowestPrice }}</strong></span>
+              </template>
             </template>
           </p>
 
@@ -74,6 +78,11 @@
               <h2 id="products-title">{{ copy.catalogTitle }}</h2>
             </div>
           </div>
+
+          <p class="catalog-footnote">
+            <ShieldCheck :size="16" aria-hidden="true" />
+            {{ samplingMode ? samplingNotice : copy.orderCheckNote }}
+          </p>
 
           <div v-if="loading" class="catalog-state" role="status">
             <span class="loading-spinner" aria-hidden="true"></span>
@@ -137,10 +146,6 @@
             <span>{{ copy.emptyCatalog }}</span>
           </div>
 
-          <p class="catalog-footnote">
-            <ShieldCheck :size="16" aria-hidden="true" />
-            {{ samplingMode ? samplingNotice : copy.orderCheckNote }}
-          </p>
         </section>
 
       </main>
@@ -630,6 +635,8 @@ onMounted(async () => {
   margin: 20px 0 0;
   color: var(--muted);
   font-size: 13px;
+  line-height: 24px;
+  min-height: 24px;
 }
 
 .catalog-summary strong {
@@ -1064,7 +1071,7 @@ onMounted(async () => {
 
 .catalog-footnote {
   gap: 9px;
-  margin: 18px 0 0;
+  margin: 0 0 18px;
   padding: 12px 14px;
   color: var(--muted);
   background: var(--surface-soft);
