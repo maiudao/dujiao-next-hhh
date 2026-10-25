@@ -14,8 +14,8 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 
 # 先只拷 manifest，让依赖安装层能在源码变动时命中缓存
-COPY frontend/admin/package.json frontend/admin/pnpm-lock.yaml ./admin/
-COPY frontend/user/package.json  frontend/user/pnpm-lock.yaml  ./user/
+COPY frontend/admin/package.json frontend/admin/pnpm-lock.yaml frontend/admin/pnpm-workspace.yaml ./admin/
+COPY frontend/user/package.json frontend/user/pnpm-lock.yaml frontend/user/pnpm-workspace.yaml ./user/
 RUN cd admin && pnpm install --frozen-lockfile
 RUN cd user  && pnpm install --frozen-lockfile
 
