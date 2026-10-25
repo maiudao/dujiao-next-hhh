@@ -4,7 +4,7 @@
     <header class="sticky top-0 z-50 border-b bg-[color:var(--bg)]">
       <div class="mx-auto flex h-[70px] w-full max-w-[1180px] items-center gap-3 px-4 sm:gap-5 sm:px-6 max-[400px]:gap-1.5 max-[400px]:px-3">
         <RouterLink class="inline-flex min-w-0 items-center gap-2.5 text-foreground" to="/" :title="brandName">
-          <img :src="brandLogo || '/dj.svg'" :alt="brandName" class="h-8 max-w-[120px] object-contain sm:max-w-[160px]" />
+          <img :src="brandLogo || '/dj.svg'" :alt="brandName" width="32" height="32" class="h-8 w-8 flex-none object-contain" />
           <span class="flex min-w-0 flex-col justify-center leading-tight">
             <span class="whitespace-nowrap text-[19px] font-extrabold tracking-[-0.02em] max-[900px]:text-[15px]">{{ brandName }}</span>
             <span class="brand-description mt-0.5 whitespace-nowrap text-[10px] font-medium text-muted-foreground max-[400px]:whitespace-normal max-[400px]:text-[9px]">
@@ -106,7 +106,7 @@
       <div class="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-[30px] px-6 pb-9 pt-[52px] sm:grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr]">
         <div>
           <RouterLink class="inline-flex items-center gap-2.5 text-[19px] font-extrabold tracking-[-0.02em] text-foreground" to="/">
-            <img :src="brandLogo || '/dj.svg'" :alt="brandName" class="h-8 max-w-[160px] object-contain" />
+            <img :src="brandLogo || '/dj.svg'" :alt="brandName" width="32" height="32" class="h-8 w-8 flex-none object-contain" />
             <span class="truncate">{{ brandName }}</span>
           </RouterLink>
         </div>

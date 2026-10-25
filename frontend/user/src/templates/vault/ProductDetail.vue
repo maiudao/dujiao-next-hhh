@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto w-full max-w-[1180px] px-6 pb-6">
+  <div class="mx-auto min-h-[calc(100svh-70px)] w-full max-w-[1180px] px-6 pb-6">
     <!-- Loading -->
     <div v-if="loading" class="grid gap-11 py-2.5 lg:grid-cols-2">
       <div class="h-[380px] rounded-xl bg-[linear-gradient(135deg,#3a3950,var(--ink))] opacity-50"></div>
