@@ -10,6 +10,7 @@ import (
 
 	"github.com/dujiao-next/internal/modules/sitemap/contract"
 	"github.com/dujiao-next/internal/modules/sitemap/domain"
+	"github.com/dujiao-next/internal/shared/siteurl"
 )
 
 // Service 生成 sitemap.xml / robots.txt 内容。
@@ -43,9 +44,10 @@ const (
 
 // Generate 生成 sitemap.xml 内容；baseURL 必须是不带尾斜杠的站点根（如 https://example.com）
 func (s *Service) Generate(ctx context.Context, baseURL string) (string, error) {
-	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
-	if baseURL == "" {
-		return "", fmt.Errorf("sitemap: empty base url")
+	var err error
+	baseURL, err = siteurl.Normalize(baseURL)
+	if err != nil {
+		return "", fmt.Errorf("sitemap: invalid base url: %w", err)
 	}
 
 	cacheKey := sitemapCachePrefix + baseURL
@@ -69,12 +71,13 @@ func (s *Service) Generate(ctx context.Context, baseURL string) (string, error) 
 
 // GenerateRobots 生成 robots.txt 内容
 func (s *Service) GenerateRobots(baseURL string) string {
-	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	baseURL, _ = siteurl.Normalize(baseURL)
 	var b strings.Builder
 	b.WriteString("User-agent: *\n")
 	b.WriteString("Disallow: /api/\n")
 	b.WriteString("Disallow: /admin/\n")
 	b.WriteString("Disallow: /me/\n")
+	b.WriteString("Disallow: /me$\n")
 	b.WriteString("Disallow: /cart\n")
 	b.WriteString("Disallow: /checkout\n")
 	b.WriteString("Disallow: /pay\n")
@@ -107,7 +110,6 @@ type urlSet struct {
 }
 
 func (s *Service) collectURLs(ctx context.Context, baseURL string) ([]domain.URL, error) {
-	now := time.Now().UTC().Format("2006-01-02")
 	entries := make([]domain.URL, 0, 64)
 
 	// 1. 静态页面
@@ -118,16 +120,10 @@ func (s *Service) collectURLs(ctx context.Context, baseURL string) ([]domain.URL
 	}{
 		{"/", "daily", "1.0"},
 		{"/products", "daily", "0.9"},
-		{"/blog", "weekly", "0.6"},
-		{"/notice", "weekly", "0.5"},
-		{"/about", "monthly", "0.3"},
-		{"/terms", "yearly", "0.2"},
-		{"/privacy", "yearly", "0.2"},
 	}
 	for _, p := range staticPages {
 		entries = append(entries, domain.URL{
 			Location:        baseURL + p.Path,
-			LastModified:    now,
 			ChangeFrequency: p.ChangeFreq,
 			Priority:        p.Priority,
 		})
@@ -166,7 +162,16 @@ func (s *Service) collectURLs(ctx context.Context, baseURL string) ([]domain.URL
 	if err != nil {
 		return nil, fmt.Errorf("sitemap: list posts: %w", err)
 	}
+	postLists := map[string]bool{}
 	for _, post := range posts {
+		kind := post.Type
+		if kind == "" {
+			kind = "blog"
+		}
+		if !postLists[kind] && (kind == "blog" || kind == "notice") {
+			entries = append(entries, domain.URL{Location: baseURL + "/" + kind, ChangeFrequency: "weekly", Priority: "0.5"})
+			postLists[kind] = true
+		}
 		lastmod := post.CreatedAt
 		if post.PublishedAt != nil {
 			lastmod = *post.PublishedAt

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"sort"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	paymentwiring "github.com/dujiao-next/internal/bootstrap/payment"
 	publicconfigwiring "github.com/dujiao-next/internal/bootstrap/publicconfig"
 	resellerbootstrap "github.com/dujiao-next/internal/bootstrap/reseller"
+	storefrontseowiring "github.com/dujiao-next/internal/bootstrap/storefrontseo"
 	upstreamwiring "github.com/dujiao-next/internal/bootstrap/upstreamapi"
 	userauthwiring "github.com/dujiao-next/internal/bootstrap/userauth"
 	walletbootstrap "github.com/dujiao-next/internal/bootstrap/wallet"
@@ -273,6 +275,7 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	registerAdminRoutes(r, apiV1, cfg, c, adminLoginHandler, admin2FAHandler, adminUser2FAHandler, adminUserHandler, adminAuthzHandler, adminFulfillmentHandler, adminOrderHandler, adminOrderRefundHandler, adminContentHandler, adminDashboardHandler, adminMemberLevelHandler, adminApiCredentialHandler, adminAuditLogHandler, adminCardSecretHandler, adminCatalogCategoryHandler, adminCatalogProductHandler, adminCatalogProductMappingHandler, adminCouponHandler, adminGiftCardHandler, adminPromotionHandler, adminNotificationHandler, adminProcurementHandler, adminResellerManagementHandler, adminResellerProfileDetailHandler, adminResellerSiteConfigHandler, adminResellerProductSettingHandler, adminResellerOperationsHandler, adminResellerFinanceHandler, adminSettingsHandler, adminWalletHandler, adminPaymentHandler, adminPaymentChannelHandler, redisClient, adminLoginRule)
 
 	// 健康检查
+	dashboardtransport.RegisterDailyReportRoute(r, c.DashboardService, os.Getenv("HUIHUA_DAILY_REPORT_TOKEN"))
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
@@ -287,7 +290,7 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 		if err := web.RegisterAdmin(r, cfg.Web.AdminPath, web.AdminFS()); err != nil {
 			log.Sugar().Fatalf("注册 admin SPA 失败: %v", err)
 		}
-		if err := web.RegisterUser(r, web.UserFS()); err != nil {
+		if err := web.RegisterUser(r, web.UserFS(), storefrontseowiring.New(c.SettingService, c.ProductReadService, c.CategoryService, c.ContentPostService)); err != nil {
 			log.Sugar().Fatalf("注册 user SPA 失败: %v", err)
 		}
 	}

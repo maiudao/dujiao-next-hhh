@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
+import { usePageSeo } from './usePageSeo'
 
 /**
  * 404 页共享逻辑（classic + vault 双模板共用）。
@@ -9,6 +10,7 @@ import { useAppStore } from '../stores/app'
 export function useNotFound() {
   const router = useRouter()
   const appStore = useAppStore()
+  usePageSeo({ title: () => '404', noindex: () => true })
 
   const brandSiteName = computed(() => {
     const siteName = String(appStore.config?.brand?.site_name || '').trim()

@@ -45,6 +45,7 @@ const bootstrap = async () => {
   app.use(router)
   // router.isReady 同时等待当前页面 chunk；layoutReady 同时等待外壳及其 CSS。
   await Promise.all([router.isReady(), layoutReady])
+  document.querySelectorAll('[data-storefront-seo]').forEach((element) => element.remove())
   app.mount('#app')
   document.documentElement.dataset.storefrontReady = 'true'
 }

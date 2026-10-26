@@ -107,7 +107,7 @@ func TestUpdateSiteSettingNormalized(t *testing.T) {
 	result, err := svc.Update(constants.SettingKeySiteConfig, map[string]interface{}{
 		"brand": map[string]interface{}{
 			"site_name": 123,
-			"site_url":  "  https://example.com/path/  ",
+			"site_url":  "  example.com/  ",
 			"site_icon": "  /uploads/site/icon.png  ",
 			"site_logo": "  /uploads/site/logo.png  ",
 		},
@@ -203,7 +203,7 @@ func TestUpdateSiteSettingNormalized(t *testing.T) {
 	if brand["site_name"] != "" {
 		t.Fatalf("unexpected brand.site_name: %v", brand["site_name"])
 	}
-	if brand["site_url"] != "https://example.com/path" {
+	if brand["site_url"] != "https://example.com" {
 		t.Fatalf("unexpected brand.site_url: %v", brand["site_url"])
 	}
 	if brand["site_icon"] != "/uploads/site/icon.png" {

@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useAppStore } from '../stores/app'
 import { getImageUrl } from '../utils/image'
+import { absolutePublicUrl, normalizePublicOrigin } from '../utils/seoUrl'
 
 export interface PageSeoOptions {
   /** 页面专属标题；若与站点名相同，仅展示站点名 */
@@ -18,26 +19,21 @@ export interface PageSeoOptions {
   noindex?: () => boolean
 }
 
-const trimSlashEnd = (s: string) => s.replace(/\/+$/, '')
-
 const resolveImage = (raw: string, baseUrl: string): string => {
   const trimmed = raw.trim()
   if (!trimmed) return ''
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
   // 优先走 getImageUrl 处理 uploads 路径，得到的可能是相对 /uploads/...
   const resolved = getImageUrl(trimmed) || trimmed
-  if (/^https?:\/\//i.test(resolved)) return resolved
-  if (baseUrl && resolved.startsWith('/')) return baseUrl + resolved
-  return resolved
+  return absolutePublicUrl(resolved, baseUrl)
 }
 
 export function usePageSeo(options: PageSeoOptions = {}) {
   const appStore = useAppStore()
 
   const baseUrl = computed(() => {
-    const fromConfig = trimSlashEnd(String(appStore.config?.brand?.site_url || '').trim())
+    const fromConfig = normalizePublicOrigin(String(appStore.config?.brand?.site_url || ''))
     if (fromConfig) return fromConfig
-    if (typeof window !== 'undefined') return trimSlashEnd(window.location.origin)
+    if (typeof window !== 'undefined') return normalizePublicOrigin(window.location.origin)
     return ''
   })
 
@@ -85,8 +81,7 @@ export function usePageSeo(options: PageSeoOptions = {}) {
     if (!path && typeof window !== 'undefined') path = window.location.pathname
     if (!path) path = '/'
     if (!path.startsWith('/')) path = '/' + path
-    if (!baseUrl.value) return path
-    return baseUrl.value + path
+    return absolutePublicUrl(path, baseUrl.value)
   })
 
   const fullImage = computed(() => {

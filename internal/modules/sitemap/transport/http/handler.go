@@ -2,9 +2,9 @@ package sitemaphttp
 
 import (
 	"context"
-	"strings"
 
 	"github.com/dujiao-next/internal/logger"
+	"github.com/dujiao-next/internal/shared/siteurl"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,7 +66,7 @@ func (h *Handler) GetRobots(c *gin.Context) {
 func (h *Handler) resolveBaseURL(c *gin.Context) string {
 	if h != nil && h.brand != nil {
 		if siteURL, err := h.brand.GetSiteURL(); err == nil {
-			if u := strings.TrimRight(strings.TrimSpace(siteURL), "/"); u != "" {
+			if u, normalizeErr := siteurl.Normalize(siteURL); normalizeErr == nil {
 				return u
 			}
 		}
@@ -83,5 +83,9 @@ func (h *Handler) resolveBaseURL(c *gin.Context) string {
 	if forwardedHost := c.GetHeader("X-Forwarded-Host"); forwardedHost != "" {
 		host = forwardedHost
 	}
-	return scheme + "://" + host
+	if origin, err := siteurl.Normalize(scheme + "://" + host); err == nil {
+		return origin
+	}
+	origin, _ := siteurl.Normalize("https://" + c.Request.Host)
+	return origin
 }

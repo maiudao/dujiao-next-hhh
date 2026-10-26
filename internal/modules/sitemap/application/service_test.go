@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -85,6 +86,11 @@ func TestGenerateCachesRenderedDocument(t *testing.T) {
 	}
 	if cache.setKey != "sitemap:xml:https://example.com" {
 		t.Fatalf("cache key got %q", cache.setKey)
+	}
+	for _, path := range []string{"/terms", "/privacy", "/about", "/blog", "/notice", "<lastmod>"} {
+		if strings.Contains(document, path) {
+			t.Fatalf("empty or undated page advertised: %s", path)
+		}
 	}
 	if cache.setValue != document || cache.setValue == "" {
 		t.Fatal("rendered document was not written to cache")

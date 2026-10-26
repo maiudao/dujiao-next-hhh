@@ -238,7 +238,7 @@
     <!-- 错误 -->
     <div v-else class="my-10 flex flex-col items-center gap-3 rounded-lg border border-dashed py-14 text-center text-muted-foreground">
       <AlertCircle class="h-12 w-12 opacity-60" />
-      <p>{{ t('productDetail.notFound') }}</p>
+      <p>{{ loadError ? t('common.api.serviceUnavailable') : t('productDetail.notFound') }}</p>
       <div class="mt-2 flex flex-wrap justify-center gap-2.5">
         <Button size="sm" class="rounded-full" @click="loadProduct"><RotateCw /> {{ t('errorBoundary.retry') }}</Button>
         <Button as-child variant="outline" size="sm" class="rounded-full"><RouterLink to="/products">{{ t('productDetail.backToProducts') }}</RouterLink></Button>
@@ -286,7 +286,7 @@ const {
   hasSkuPromotionPrice, getSkuPromotionSaveAmount,
   hasPromotionRules, getPromotionRules,
   formatPromotionRule, formatWholesaleTier, formatRelatedPostDate, normalizeSkuId,
-  loading, product, relatedPosts, currentImage, selectedSkuId, quantity, purchaseWarning,
+  loading, loadError, product, relatedPosts, currentImage, selectedSkuId, quantity, purchaseWarning,
   activeSkus, selectedSku,
   selectedSkuMemberPrice, hasMemberPrice,
   hasSelectedSkuWholesalePrice, selectedSkuWholesaleFinalIsMember, selectedSkuWholesaleFinalPrice,

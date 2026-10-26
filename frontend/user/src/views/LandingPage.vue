@@ -185,6 +185,7 @@ const selectedHeadline = headlineVariants[Math.floor(Math.random() * headlineVar
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useHead } from '@unhead/vue'
+import { usePageSeo } from '../composables/usePageSeo'
 import { useRouter } from 'vue-router'
 import {
   ArrowRight,
@@ -277,6 +278,7 @@ const businessStatus = computed(() => {
   if (appStore.locale === 'zh-TW') return { open: '小店正在營業中', closed: '小店已經打烊了' }
   return { open: '小店正在营业中', closed: '小店已经打烊了' }
 })
+usePageSeo({ canonicalPath: () => '/' })
 useHead(() => appStore.isResellerTenant ? {} : {
   title: 'HHH 小店｜ChatGPT 代充',
   meta: [

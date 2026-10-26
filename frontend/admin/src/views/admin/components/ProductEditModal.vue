@@ -142,7 +142,7 @@ const form = reactive({
   id: 0,
   title: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as LocalizedText,
   slug: '',
-  seo_meta: { keywords: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' }, description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } } as { keywords: LocalizedText; description: LocalizedText; [key: string]: LocalizedText },
+  seo_meta: { title: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' }, keywords: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' }, description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } } as { title: LocalizedText; keywords: LocalizedText; description: LocalizedText; [key: string]: LocalizedText },
   description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as LocalizedText,
   content: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as LocalizedText,
   instructions: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as LocalizedText,
@@ -204,7 +204,7 @@ const getCurrentLangName = () => {
 const emptyI18nString = () => ({ 'zh-CN': '', 'zh-TW': '', 'en-US': '' })
 
 const normalizeSeoMeta = (raw: Record<string, LocalizedText> | null | undefined) => {
-  if (!raw) return { keywords: emptyI18nString(), description: emptyI18nString() }
+  if (!raw) return { title: emptyI18nString(), keywords: emptyI18nString(), description: emptyI18nString() }
   const normalize = (val: string | LocalizedText | null | undefined) => {
     if (!val) return emptyI18nString()
     if (typeof val === 'string') {
@@ -216,6 +216,7 @@ const normalizeSeoMeta = (raw: Record<string, LocalizedText> | null | undefined)
     return emptyI18nString()
   }
   return {
+    title: normalize(raw.title),
     keywords: normalize(raw.keywords),
     description: normalize(raw.description),
   }
@@ -484,7 +485,7 @@ const resetForm = () => {
     id: 0,
     title: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
     slug: '',
-    seo_meta: { keywords: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' }, description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } },
+    seo_meta: { title: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' }, keywords: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' }, description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } },
     description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
     content: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
     instructions: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
@@ -776,6 +777,11 @@ watch(
             <label class="block text-xs font-medium text-muted-foreground mb-1.5">{{ t('admin.products.form.slug') }}</label>
             <Input v-model="form.slug" required :placeholder="t('admin.products.form.slugPlaceholder')" />
             <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.products.form.slugTip') }}</p>
+          </div>
+
+          <div class="col-span-1">
+            <label class="block text-xs font-medium text-muted-foreground mb-1.5">SEO 标题（{{ getCurrentLangName() }}）</label>
+            <Input v-model="form.seo_meta.title[currentLang]" placeholder="留空时使用商品名称与现有标签" />
           </div>
 
           <div class="col-span-1">

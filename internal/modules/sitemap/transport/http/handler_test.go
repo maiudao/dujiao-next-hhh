@@ -59,6 +59,19 @@ func TestGetSitemapUsesConfiguredSiteURL(t *testing.T) {
 	}
 }
 
+func TestLegacyBareSiteURLIsNormalizedForSitemapAndRobots(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	gen := &fakeGenerator{xml: "<urlset/>", robots: "User-agent: *"}
+	handler := NewHandler(gen, fakeBrand{url: "shop.huihuahui.xyz"})
+	for _, serve := range []func(*gin.Context){handler.GetSitemap, handler.GetRobots} {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "https://shop.huihuahui.xyz/sitemap.xml", nil)
+		serve(c)
+		if gen.base != "https://shop.huihuahui.xyz" { t.Fatalf("invalid public origin: %q", gen.base) }
+	}
+}
+
 func TestGetSitemapFallsBackToRequestHost(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	gen := &fakeGenerator{xml: "<urlset/>"}

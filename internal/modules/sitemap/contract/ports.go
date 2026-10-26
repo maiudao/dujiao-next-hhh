@@ -19,6 +19,7 @@ type Product struct {
 
 // PublishedPost 是生成 Sitemap 所需的已发布文章投影。
 type PublishedPost struct {
+	Type        string
 	Slug        string
 	CreatedAt   time.Time
 	PublishedAt *time.Time

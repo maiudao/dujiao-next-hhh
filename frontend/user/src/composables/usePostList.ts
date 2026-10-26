@@ -20,6 +20,7 @@ export function usePostList(
   usePageSeo({
     title: seo.title,
     canonicalPath: () => seo.canonicalPath,
+    noindex: () => !loading.value && (posts.value.length === 0 || !!searchKeyword.value.trim()),
   })
 
   const loading = ref(true)

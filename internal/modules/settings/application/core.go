@@ -1,9 +1,12 @@
 package settingsapp
 
 import (
+	"fmt"
 	"github.com/dujiao-next/internal/config"
+	"github.com/dujiao-next/internal/constants"
 	settingscontract "github.com/dujiao-next/internal/modules/settings/contract"
 	"github.com/dujiao-next/internal/shared/jsonmap"
+	"github.com/dujiao-next/internal/shared/siteurl"
 )
 
 // Service 是站点设置的核心用例入口：读写、Registry 归一化与声明式副作用。
@@ -73,6 +76,17 @@ func (s *Service) UpdateWithEffects(key string, value map[string]interface{}) (U
 		return UpdateResult{}, nil
 	}
 	normalized := s.registry.Normalize(key, jsonmap.JSON(value))
+	if key == constants.SettingKeySiteConfig {
+		if brand, ok := normalized["brand"].(map[string]interface{}); ok {
+			if raw, ok := brand["site_url"].(string); ok && raw != "" {
+				origin, err := siteurl.Normalize(raw)
+				if err != nil {
+					return UpdateResult{}, fmt.Errorf("brand.site_url: %w", err)
+				}
+				brand["site_url"] = origin
+			}
+		}
+	}
 
 	stored, err := s.repo.Upsert(key, normalized)
 	if err != nil {

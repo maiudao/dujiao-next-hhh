@@ -396,7 +396,7 @@
         v-else
         size="lg"
         icon="alert"
-        :title="t('productDetail.notFound')"
+        :title="loadError ? t('common.api.serviceUnavailable') : t('productDetail.notFound')"
       >
         <template #action>
           <Button class="rounded-full h-10" @click="loadProduct">
@@ -457,7 +457,7 @@ const {
   hasSkuPromotionPrice, getSkuPromotionSaveAmount,
   hasPromotionRules, getPromotionRules,
   formatPromotionRule, formatWholesaleTier, formatRelatedPostDate, normalizeSkuId,
-  loading, product, relatedPosts, currentImage, selectedSkuId, quantity, purchaseWarning,
+  loading, loadError, product, relatedPosts, currentImage, selectedSkuId, quantity, purchaseWarning,
   activeSkus, selectedSku,
   selectedSkuMemberPrice, hasMemberPrice,
   hasSelectedSkuWholesalePrice, selectedSkuWholesaleFinalIsMember, selectedSkuWholesaleFinalPrice,

@@ -15,6 +15,7 @@ export function useLegal(type: () => 'terms' | 'privacy') {
   usePageSeo({
     title: () => type() === 'terms' ? t('footer.terms') : t('footer.privacy'),
     canonicalPath: () => type() === 'terms' ? '/terms' : '/privacy',
+    noindex: () => !loading.value && !content.value.trim(),
   })
 
   const loading = computed(() => appStore.loading)

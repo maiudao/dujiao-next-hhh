@@ -4,7 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { useHead } from '@unhead/vue'
 import { useAppStore } from '../stores/app'
 import { productAPI } from '../api'
+import { HttpError } from '../api/client'
+import { productSeo } from '../utils/productSeo'
 import { getImageUrl } from '../utils/image'
+import { absolutePublicUrl, normalizePublicOrigin } from '../utils/seoUrl'
 import { useCartStore } from '../stores/cart'
 import { useBuyNowStore } from '../stores/buyNow'
 import { useUserAuthStore } from '../stores/userAuth'
@@ -530,6 +533,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
 
   const loadProduct = async () => {
     loading.value = true
+	loadError.value = false
     try {
       const slug = route.params.slug as string
       const response = await productAPI.detail(slug)
@@ -543,6 +547,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     } catch (error) {
       console.error('Failed to load product:', error)
       product.value = null
+	  loadError.value = !(error instanceof HttpError && error.status === 404)
       selectedSkuId.value = 0
     } finally {
       loading.value = false
@@ -551,24 +556,38 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
 
   const debouncedLoadProduct = debounceAsync(loadProduct, 300)
 
+  const loadError = ref(false)
+  const productMetadata = computed(() => {
+    const p = product.value
+    if (!p) return { title: '', description: '' }
+    const text = (value: any) => typeof value === 'string' ? value : getLocalizedText(value || {})
+    return productSeo(text(p.title), Array.isArray(p.tags) ? p.tags : [], text(p.seo_meta?.title), text(p.seo_meta?.description), text(p.description) || text(p.content))
+  })
+
   const canonicalUrl = computed(() => {
     if (!product.value?.slug) return ''
-    const fromConfig = String(appStore.config?.brand?.site_url || '').trim().replace(/\/+$/, '')
-    const base = fromConfig || window.location.origin.replace(/\/+$/, '')
-    return `${base}/products/${product.value.slug}`
+    const fromConfig = normalizePublicOrigin(String(appStore.config?.brand?.site_url || ''))
+    const base = fromConfig || normalizePublicOrigin(window.location.origin)
+    return absolutePublicUrl(`/products/${encodeURIComponent(product.value.slug)}`, base)
+  })
+
+  const seoImages = computed(() => {
+    const base = normalizePublicOrigin(String(appStore.config?.brand?.site_url || ''))
+      || normalizePublicOrigin(window.location.origin)
+    return images.value.map((image: string) => absolutePublicUrl(image, base)).filter(Boolean)
   })
 
   useHead({
-    title: () => product.value ? getLocalizedText(product.value.title) : '',
+    title: () => product.value ? productMetadata.value.title : loading.value ? '' : loadError.value ? t('common.api.serviceUnavailable') : t('productDetail.notFound'),
     link: () => {
       if (!canonicalUrl.value) return []
       return [{ rel: 'canonical', href: canonicalUrl.value }]
     },
     meta: () => {
-      if (!product.value) return []
+      if (!product.value) return loading.value ? [] : [{ name: 'robots', content: 'noindex, follow' }]
       const seoMeta = product.value.seo_meta || {}
       const seoKeywords = getLocalizedText(seoMeta.keywords) || (typeof seoMeta.keywords === 'string' ? seoMeta.keywords : '')
-      const seoDescription = getLocalizedText(seoMeta.description) || (typeof seoMeta.description === 'string' ? seoMeta.description : '')
+      const seoDescription = productMetadata.value.description
       const tags = []
 
       if (seoKeywords) tags.push({ name: 'keywords', content: seoKeywords })
@@ -576,13 +595,13 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
 
       tags.push({ property: 'og:type', content: 'product' })
       if (product.value.title) {
-        tags.push({ property: 'og:title', content: getLocalizedText(product.value.title) })
+        tags.push({ property: 'og:title', content: productMetadata.value.title })
       }
       if (seoDescription) {
         tags.push({ property: 'og:description', content: seoDescription })
       }
       if (images.value && images.value.length > 0) {
-        tags.push({ property: 'og:image', content: images.value[0] })
+        tags.push({ property: 'og:image', content: seoImages.value[0] || '' })
       }
       if (canonicalUrl.value) {
         tags.push({ property: 'og:url', content: canonicalUrl.value })
@@ -590,22 +609,21 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
 
       tags.push({ name: 'twitter:card', content: 'summary_large_image' })
       if (product.value.title) {
-        tags.push({ name: 'twitter:title', content: getLocalizedText(product.value.title) })
+        tags.push({ name: 'twitter:title', content: productMetadata.value.title })
       }
       if (seoDescription) {
         tags.push({ name: 'twitter:description', content: seoDescription })
       }
       if (images.value && images.value.length > 0) {
-        tags.push({ name: 'twitter:image', content: images.value[0] })
+        tags.push({ name: 'twitter:image', content: seoImages.value[0] || '' })
       }
 
       return tags
     },
     script: () => {
       if (!product.value) return []
-      const title = getLocalizedText(product.value.title)
-      const seoMeta = product.value.seo_meta || {}
-      const description = getLocalizedText(seoMeta.description) || (typeof seoMeta.description === 'string' ? seoMeta.description : '')
+      const title = productMetadata.value.title
+      const description = productMetadata.value.description
       const priceAmount = product.value.price_amount || '0'
       const currency = siteCurrency.value || 'CNY'
 
@@ -624,7 +642,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
         },
       }
       if (description) jsonLd.description = description
-      if (images.value.length > 0) jsonLd.image = images.value
+      if (seoImages.value.length > 0) jsonLd.image = seoImages.value
       if (product.value.category?.name) {
         jsonLd.category = getLocalizedText(product.value.category.name)
       }
@@ -679,7 +697,7 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
     formatPromotionRule, formatWholesaleTier, formatRelatedPostDate,
     normalizeSkuId,
     // 状态
-    loading, product, relatedPosts, currentImage, selectedSkuId, quantity, purchaseWarning,
+    loading, loadError, product, relatedPosts, currentImage, selectedSkuId, quantity, purchaseWarning,
     activeSkus, selectedSku,
     // 价格计算
     selectedSkuMemberPrice, hasMemberPrice,

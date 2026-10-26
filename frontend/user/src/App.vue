@@ -33,6 +33,8 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useHead } from '@unhead/vue'
+import { isPrivateStorefrontPath } from './utils/seoUrl'
 import { getActiveTemplate, loadVaultLayout } from './templates/registry'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
@@ -50,6 +52,8 @@ const VaultLayout = defineAsyncComponent(loadVaultLayout)
 // config 由 router.beforeEach 统一加载，无需在此重复调用
 useStorefrontRefresh()
 const route = useRoute()
+useHead({ meta: () => isPrivateStorefrontPath(route.path)
+  ? [{ name: 'robots', content: 'noindex, nofollow' }] : [] })
 const isResellerConsole = computed(() => route.meta.resellerConsole === true)
 // 启动时确定模板，外壳与路由始终使用同一份选择。
 const isVault = computed(() => getActiveTemplate() === 'vault')

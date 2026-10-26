@@ -16,6 +16,11 @@ export interface ApiResponse<T = any> {
     }
 }
 
+export class HttpError extends Error {
+    status: number
+    constructor(message: string, status: number) { super(message); this.name = 'HttpError'; this.status = status }
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const API_PREFIX = '/api/v1'
 
@@ -122,7 +127,7 @@ function createClient(injectAuth: boolean) {
             if (!response.ok) {
                 const message = getHttpErrorMessage(response.status)
                 console.error('HTTP Error:', message)
-                return Promise.reject(new Error(message))
+                return Promise.reject(new HttpError(message, response.status))
             }
             const blob = await response.blob()
             return { data: blob }
@@ -144,7 +149,7 @@ function createClient(injectAuth: boolean) {
                     }
                 }
                 console.error('HTTP Error:', message)
-                return Promise.reject(new Error(message))
+                return Promise.reject(new HttpError(message, status))
             }
             console.error('API Error: No response data')
             return Promise.reject(new Error(t('common.api.responseMissing')))
@@ -160,7 +165,7 @@ function createClient(injectAuth: boolean) {
                 window.location.href = '/auth/login'
             }
             console.error('HTTP Error:', message)
-            return Promise.reject(new Error(message))
+            return Promise.reject(new HttpError(message, status))
         }
 
         // Business error check

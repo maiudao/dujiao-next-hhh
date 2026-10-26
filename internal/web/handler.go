@@ -160,7 +160,7 @@ func RegisterAdmin(r *gin.Engine, prefix string, fsys fs.FS) error {
 //
 // 由于 NoRoute 在所有显式路由（API、uploads、health、admin）之后才匹配，
 // 这里不需要做路径前缀剥离；命中真实文件返回文件，否则 fallback 到 index.html。
-func RegisterUser(r *gin.Engine, fsys fs.FS) error {
+func RegisterUser(r *gin.Engine, fsys fs.FS, resolvers ...StorefrontResolver) error {
 	if r == nil {
 		return errors.New("nil gin engine")
 	}
@@ -185,12 +185,22 @@ func RegisterUser(r *gin.Engine, fsys fs.FS) error {
 		}
 
 		fp := strings.TrimPrefix(c.Request.URL.Path, "/")
-		if fp == "" || fp == "index.html" {
-			serveIndex(c, indexCached)
+		if fp != "index.html" && hasFile(fsys, fp) {
+			serveAsset(c, fileServer, fp)
 			return
 		}
-		if hasFile(fsys, fp) {
-			serveAsset(c, fileServer, fp)
+		if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		if privateStorefrontPath(c.Request.URL.Path) {
+			c.Header("X-Robots-Tag", "noindex, nofollow")
+			c.Header("Cache-Control", "private, no-store")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", indexCached)
+			return
+		}
+		if len(resolvers) > 0 && resolvers[0] != nil {
+			serveStorefront(c, indexCached, resolvers[0])
 			return
 		}
 		serveIndex(c, indexCached)
