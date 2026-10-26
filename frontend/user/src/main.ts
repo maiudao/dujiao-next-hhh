@@ -3,8 +3,8 @@ import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue/client'
 import './style.css'
 import App from './App.vue'
-import router, { warmupCommonRoutes } from './router'
-import i18n, { detectLocale, setI18nLocale, warmupLocaleMessages } from './i18n'
+import router from './router'
+import i18n, { detectLocale, setI18nLocale } from './i18n'
 import { useTelegramMiniAppStore } from './stores/telegramMiniApp'
 import { useAppStore } from './stores/app'
 import { getActiveTemplate, initializeStorefrontTemplate, initTemplateOverride, loadVaultLayout } from './templates/registry'
@@ -47,8 +47,6 @@ const bootstrap = async () => {
   await Promise.all([router.isReady(), layoutReady])
   app.mount('#app')
   document.documentElement.dataset.storefrontReady = 'true'
-  warmupCommonRoutes()
-  warmupLocaleMessages()
 }
 
 // 配置/资源失败时提供明确的重试入口，不能静默显示原版页面或永久留白。

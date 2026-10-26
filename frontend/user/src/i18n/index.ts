@@ -51,24 +51,4 @@ export async function setI18nLocale(locale: string): Promise<void> {
     i18n.global.locale.value = locale
 }
 
-// 空闲时预取其余语言包：让语言切换即时生效，也避免部署更新后旧页面
-// 再切语言时请求已失效的旧 chunk（预取时已进入浏览器缓存）
-export function warmupLocaleMessages(): void {
-    if (supportedLocales.length === 1 || typeof window === 'undefined') return
-
-    const prefetch = () => {
-        for (const locale of Object.keys(localeLoaders)) {
-            void loadLocaleMessages(locale).catch(() => {
-                // 预取失败静默忽略，实际切换时会重试并走 setI18nLocale 的错误处理
-            })
-        }
-    }
-
-    if ('requestIdleCallback' in window && typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(prefetch, { timeout: 3000 })
-        return
-    }
-    window.setTimeout(prefetch, 1000)
-}
-
 export default i18n
