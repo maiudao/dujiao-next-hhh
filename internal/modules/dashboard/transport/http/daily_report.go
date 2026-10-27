@@ -15,19 +15,29 @@ type DailyReader interface {
 	DailyReport(context.Context, string) (*dashboard.DailyExport, error)
 }
 
-// RegisterDailyReportRoute is opt-in, loopback-only and uses an independent
-// read-only credential. No admin cookie or transaction access is delegated.
-func RegisterDailyReportRoute(r gin.IRoutes, reader DailyReader, token string) {
+// RegisterDailyReportRoute uses an independent read-only credential and accepts
+// loopback by default. An optional single private peer supports a Docker bridge
+// gateway only when the host port is loopback-bound and the public proxy blocks
+// this path. Forwarded headers never grant access.
+func RegisterDailyReportRoute(r gin.IRoutes, reader DailyReader, token string, containerPeer ...string) {
 	token = strings.TrimSpace(token)
-	if len(token) < 32 {
+	if len(token) < 32 || len(containerPeer) > 1 {
 		return
+	}
+	var peerIP net.IP
+	if len(containerPeer) == 1 && strings.TrimSpace(containerPeer[0]) != "" {
+		peerIP = net.ParseIP(strings.TrimSpace(containerPeer[0]))
+		if peerIP == nil || !peerIP.IsPrivate() {
+			return
+		}
 	}
 	gate := make(chan struct{}, 1)
 	r.GET("/internal/reports/daily", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-store")
 		host, _, err := net.SplitHostPort(c.Request.RemoteAddr)
 		ip := net.ParseIP(host)
-		if err != nil || ip == nil || !ip.IsLoopback() || subtle.ConstantTimeCompare([]byte(c.GetHeader("Authorization")), []byte("Bearer "+token)) != 1 {
+		allowedPeer := ip != nil && (ip.IsLoopback() || (peerIP != nil && ip.Equal(peerIP)))
+		if err != nil || !allowedPeer || subtle.ConstantTimeCompare([]byte(c.GetHeader("Authorization")), []byte("Bearer "+token)) != 1 {
 			c.Status(http.StatusNotFound)
 			return
 		}

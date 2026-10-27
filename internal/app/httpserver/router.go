@@ -275,7 +275,7 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	registerAdminRoutes(r, apiV1, cfg, c, adminLoginHandler, admin2FAHandler, adminUser2FAHandler, adminUserHandler, adminAuthzHandler, adminFulfillmentHandler, adminOrderHandler, adminOrderRefundHandler, adminContentHandler, adminDashboardHandler, adminMemberLevelHandler, adminApiCredentialHandler, adminAuditLogHandler, adminCardSecretHandler, adminCatalogCategoryHandler, adminCatalogProductHandler, adminCatalogProductMappingHandler, adminCouponHandler, adminGiftCardHandler, adminPromotionHandler, adminNotificationHandler, adminProcurementHandler, adminResellerManagementHandler, adminResellerProfileDetailHandler, adminResellerSiteConfigHandler, adminResellerProductSettingHandler, adminResellerOperationsHandler, adminResellerFinanceHandler, adminSettingsHandler, adminWalletHandler, adminPaymentHandler, adminPaymentChannelHandler, redisClient, adminLoginRule)
 
 	// 健康检查
-	dashboardtransport.RegisterDailyReportRoute(r, c.DashboardService, os.Getenv("HUIHUA_DAILY_REPORT_TOKEN"))
+	dashboardtransport.RegisterDailyReportRoute(r, c.DashboardService, os.Getenv("HUIHUA_DAILY_REPORT_TOKEN"), os.Getenv("HUIHUA_DAILY_REPORT_PEER_IP"))
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
