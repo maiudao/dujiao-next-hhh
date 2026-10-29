@@ -73,7 +73,7 @@ func registerFederationRoutes(r *gin.Engine, cfg *config.Config, c *container.Co
 	if prefix == "" {
 		prefix = constants.RedisPrefixDefault
 	}
-	general := middleware.RateLimitMiddleware(cache.Client(), middleware.RateLimitRule{Prefix: prefix + ":rate:identity", WindowSeconds: 60, MaxRequests: 120, BlockSeconds: 60}, middleware.KeyByIP)
+	general := identityGeneralRateLimit(cache.Client(), prefix, cfg.IdentityProvider.Clients)
 	form := middleware.RateLimitMiddleware(cache.Client(), middleware.RateLimitRule{Prefix: prefix + ":rate:identity_form", WindowSeconds: cfg.Security.LoginRateLimit.WindowSeconds, MaxRequests: cfg.Security.LoginRateLimit.MaxAttempts, BlockSeconds: cfg.Security.LoginRateLimit.BlockSeconds}, middleware.KeyByIP)
 	if cfg.Security.LoginRateLimit.WindowSeconds < 1 || cfg.Security.LoginRateLimit.MaxAttempts < 1 {
 		return errors.New("identity login rate limit is required")
