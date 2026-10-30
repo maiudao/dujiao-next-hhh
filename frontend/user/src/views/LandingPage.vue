@@ -73,10 +73,24 @@
 
         <section id="products" class="product-panel" aria-labelledby="products-title">
           <div class="product-panel-header">
-            <div>
+            <div class="product-panel-heading">
               <p class="panel-kicker">{{ copy.catalogKicker }}</p>
               <h2 id="products-title">{{ copy.catalogTitle }}</h2>
             </div>
+            <nav v-if="categoryGroups.length > 1" class="catalog-filters" aria-label="商品分组">
+              <button type="button" class="catalog-filter" :aria-pressed="selectedCategory === null" @click="selectCategory(null)">
+                <LayoutGrid class="catalog-filter-icon" aria-hidden="true" />
+                <span>全部</span>
+              </button>
+              <button v-for="category in categoryGroups" :key="category.id" type="button" class="catalog-filter"
+                :aria-pressed="selectedCategory === category.id" @click="selectCategory(category.id)">
+                <img v-if="categoryThumbnail(category) && !failedCategoryIcons[category.id]"
+                  :src="categoryThumbnail(category)" alt="" width="16" height="16" class="catalog-filter-icon"
+                  @error="failedCategoryIcons[category.id] = true" />
+                <Folder v-else class="catalog-filter-icon" aria-hidden="true" />
+                <span>{{ getLocalizedText(category.name) || category.slug }}</span>
+              </button>
+            </nav>
           </div>
 
           <p class="catalog-footnote">
@@ -97,9 +111,9 @@
             </button>
           </div>
 
-          <div v-else-if="products.length" class="product-grid" tabindex="0" role="region" aria-labelledby="products-title">
+          <div v-else-if="filteredProducts.length" ref="productGrid" class="product-grid" tabindex="0" role="region" aria-labelledby="products-title">
             <RouterLink
-              v-for="product in products"
+              v-for="product in filteredProducts"
               :key="product.id || product.slug"
               :to="`/products/${encodeURIComponent(product.slug)}`"
               class="product-option"
@@ -108,8 +122,8 @@
             >
               <span class="product-option-top">
                 <span v-if="product.category?.name" class="product-category">
-                  <img v-if="product.category.icon && !failedCategoryIcons[product.category.id]"
-                    :src="getImageUrl(product.category.icon)" alt="" class="product-category-icon"
+                  <img v-if="categoryThumbnail(product.category) && !failedCategoryIcons[product.category.id]"
+                    :src="categoryThumbnail(product.category)" alt="" width="16" height="16" class="product-category-icon"
                     loading="lazy" @error="failedCategoryIcons[product.category.id] = true" />
                   <Folder v-else class="product-category-icon" aria-hidden="true" />
                   <span class="product-category-name">{{ getLocalizedText(product.category.name) }}</span>
@@ -143,7 +157,7 @@
 
           <div v-else class="catalog-state">
             <PackageSearch :size="26" aria-hidden="true" />
-            <span>{{ copy.emptyCatalog }}</span>
+            <span>{{ selectedCategory === null ? copy.emptyCatalog : '此分组暂时没有可展示的商品。' }}</span>
           </div>
 
         </section>
@@ -192,6 +206,7 @@ import {
   Boxes,
   ClipboardCheck,
   Folder,
+  LayoutGrid,
   MessageCircle,
   PackageCheck,
   PackageSearch,
@@ -199,7 +214,7 @@ import {
   ShieldCheck,
   Store,
 } from 'lucide-vue-next'
-import { productAPI } from '../api'
+import { categoryAPI, productAPI } from '../api'
 import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { useAnnouncement, type HomeAnnouncement } from '../composables/useAnnouncement'
 import { useStorefrontMode } from '../composables/useStorefrontMode'
@@ -208,7 +223,7 @@ import { useAppStore } from '../stores/app'
 import { useUserAuthStore } from '../stores/userAuth'
 import { useTheme } from '../utils/theme'
 import { loadAllPages } from '../utils/loadAllPages'
-import { getImageUrl } from '../utils/image'
+import { buildCategoryGroups, type PublicCategory } from '../utils/category'
 
 type LandingField = Record<string, string> | undefined
 
@@ -220,6 +235,23 @@ const { theme } = useTheme()
 const { getLocalizedText, formatPrice, siteCurrency } = useLocalized()
 const { isSoldOut, getStockStatusLabel, hasPromotionPrice, getPromotionPriceAmount } = useProductLabels()
 const products = ref<any[]>([])
+const categories = ref<(PublicCategory & { icon_thumbnail?: string })[]>([])
+const categoryGroups = computed(() => buildCategoryGroups(categories.value))
+const selectedCategory = ref<number | null>(null)
+const productGrid = ref<HTMLElement | null>(null)
+const categoryThumbnails = computed(() => new Map(categories.value.map(category => [category.id, category.icon_thumbnail || ''])))
+const categoryThumbnail = (category: PublicCategory) => categoryThumbnails.value.get(Number(category.id)) || ''
+const filteredProducts = computed(() => {
+  if (categoryGroups.value.length < 2 || selectedCategory.value === null) return products.value
+  const group = categoryGroups.value.find(category => category.id === selectedCategory.value)
+  if (!group) return products.value
+  const ids = new Set([group.id, ...group.children.map(category => category.id)])
+  return products.value.filter(product => ids.has(Number(product.category_id || product.category?.id)))
+})
+const selectCategory = (id: number | null) => {
+  selectedCategory.value = id
+  productGrid.value?.scrollTo({ top: 0 })
+}
 const failedCategoryIcons = ref<Record<number, boolean>>({})
 const loading = ref(true)
 const loadError = ref(false)
@@ -402,11 +434,20 @@ const loadProducts = async () => {
   }
 }
 
+const loadCategories = async () => {
+  try {
+    const response = await categoryAPI.list()
+    categories.value = Array.isArray(response.data?.data) ? response.data.data : []
+  } catch (error) {
+    console.error('Failed to load landing page categories:', error)
+  }
+}
+
 onMounted(async () => {
   if (activeAnnouncement.value && shouldShow(activeAnnouncement.value)) {
     announcementVisible.value = true
   }
-  await loadProducts()
+  await Promise.all([loadProducts(), loadCategories()])
 })
 </script>
 
@@ -835,11 +876,44 @@ onMounted(async () => {
 
 .product-panel-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
 }
+
+.product-panel-heading { flex: none; white-space: nowrap; }
+.catalog-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: auto;
+  overflow-x: auto;
+  padding: 3px;
+}
+.catalog-filter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.catalog-filter:hover { color: var(--blue); border-color: var(--blue); }
+.catalog-filter[aria-pressed="true"] { color: var(--blue); border-color: var(--blue); background: var(--blue-soft); }
+.catalog-filter:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.catalog-filter-icon { flex: none; width: 16px; height: 16px; object-fit: contain; }
 
 .panel-kicker {
   margin: 0 0 7px;
@@ -1335,6 +1409,11 @@ onMounted(async () => {
     font-size: 23px;
   }
 
+  .product-panel-header { gap: 8px; }
+  .catalog-filters { gap: 4px; padding: 2px; }
+  .catalog-filter { min-height: 32px; padding: 0 6px; gap: 3px; border-radius: 7px; font-size: 11px; }
+  .catalog-filter-icon { width: 12px; height: 12px; }
+
   .panel-description {
     font-size: 12px;
   }
@@ -1368,5 +1447,12 @@ onMounted(async () => {
     min-height: 43px;
     padding: 0 14px;
   }
+}
+@media (max-width: 360px) {
+  .product-panel-header { gap: 6px; }
+  .product-panel-header h2 { font-size: 22px; }
+  .catalog-filters { gap: 3px; }
+  .catalog-filter { padding-inline: 4px; font-size: 10.5px; }
+  .catalog-filter-icon { width: 11px; height: 11px; }
 }
 </style>

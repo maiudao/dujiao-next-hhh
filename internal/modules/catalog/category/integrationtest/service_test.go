@@ -1,7 +1,14 @@
 package categoryintegrationtest
 
 import (
+	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,8 +17,10 @@ import (
 	categoryapp "github.com/dujiao-next/internal/modules/catalog/category/application"
 	categorydomain "github.com/dujiao-next/internal/modules/catalog/category/domain"
 	categorygormstore "github.com/dujiao-next/internal/modules/catalog/category/infrastructure/gormstore"
+	categoryhttp "github.com/dujiao-next/internal/modules/catalog/category/transport/http"
 	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/shared/money"
+	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -175,5 +184,56 @@ func TestCategoryServiceListSortOrderDescending(t *testing.T) {
 	}
 	if rows[0].Slug != "high" || rows[1].Slug != "low" {
 		t.Fatalf("expected high sort_order first, got %s then %s", rows[0].Slug, rows[1].Slug)
+	}
+}
+
+type iconCategoryQueries struct{}
+
+func (iconCategoryQueries) ListActive() ([]categorydomain.Category, error) {
+	return []categorydomain.Category{
+		{ID: 1, Slug: "gpt", Icon: "/uploads/gpt.png"},
+		{ID: 2, Slug: "grok", Icon: "/uploads/missing.png"},
+	}, nil
+}
+
+func TestPublicCategoriesIncludeSmallIconWithoutChangingOriginalURL(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	if err := os.Mkdir("uploads", 0700); err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.Create(filepath.Join(root, "uploads", "gpt.png"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := png.Encode(file, image.NewNRGBA(image.Rect(0, 0, 512, 512))); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	handler := categoryhttp.NewPublicHandler(iconCategoryQueries{})
+	router := gin.New()
+	router.GET("/categories", handler.List)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", "/categories", nil))
+	var response struct {
+		Data []struct {
+			ID        uint   `json:"id"`
+			Icon      string `json:"icon"`
+			Thumbnail string `json:"icon_thumbnail"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if recorder.Code != 200 || len(response.Data) != 2 {
+		t.Fatalf("response: %s", recorder.Body.String())
+	}
+	if response.Data[0].Icon != "/uploads/gpt.png" || !strings.HasPrefix(response.Data[0].Thumbnail, "data:image/png;base64,") {
+		t.Fatal("category image contract changed")
+	}
+	if response.Data[1].Thumbnail != "" || response.Data[1].Icon != "/uploads/missing.png" {
+		t.Fatal("missing icon broke category response")
 	}
 }

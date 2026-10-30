@@ -74,8 +74,14 @@
             </button>
             <div v-if="moreOpen" class="absolute right-0 top-[calc(100%+8px)] z-[60] flex min-w-[168px] flex-col gap-0.5 rounded-md border bg-card p-2 shadow-[var(--shadow-lg)]" @click.stop>
               <template v-for="item in menuItems" :key="`m-${item.key}`">
-                <RouterLink v-if="item.type === 'route'" :to="item.path" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</RouterLink>
-                <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ item.label }}</a>
+                <RouterLink v-if="item.type === 'route'" :to="item.path" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">
+                  <component :is="item.icon" class="h-[18px] w-[18px] flex-none" aria-hidden="true" />
+                  <span>{{ item.label }}</span>
+                </RouterLink>
+                <a v-else :href="item.path" :target="item.target" rel="noopener noreferrer" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">
+                  <component :is="item.icon" class="h-[18px] w-[18px] flex-none" aria-hidden="true" />
+                  <span>{{ item.label }}</span>
+                </a>
               </template>
               <RouterLink to="/cart" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">
                 <ShoppingCart class="h-[18px] w-[18px]" aria-hidden="true" />
@@ -83,8 +89,14 @@
                 <span v-if="cartCount > 0" class="ml-auto rounded-full bg-primary/10 px-2 text-xs font-bold tabular-nums text-primary">{{ cartCount }}</span>
               </RouterLink>
               <RouterLink v-if="appStore.config?.guest_orders_enabled && !userAuthStore.isAuthenticated" to="/guest/orders" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ t('navbar.guestOrders') }}</RouterLink>
-              <RouterLink v-if="userAuthStore.isAuthenticated" to="/me" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ t('navbar.personalCenter') }}</RouterLink>
-              <RouterLink v-else to="/auth/login" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">{{ t('navbar.login') }}</RouterLink>
+              <RouterLink v-if="userAuthStore.isAuthenticated" to="/me" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">
+                <UserRound class="h-[18px] w-[18px] flex-none" aria-hidden="true" />
+                <span>{{ t('navbar.personalCenter') }}</span>
+              </RouterLink>
+              <RouterLink v-else to="/auth/login" class="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" @click="moreOpen = false">
+                <UserRound class="h-[18px] w-[18px] flex-none" aria-hidden="true" />
+                <span>{{ t('navbar.login') }}</span>
+              </RouterLink>
               <span v-if="languages.length > 1" class="px-3 pb-0.5 pt-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{{ t('navbar.selectLanguage') }}</span>
               <button v-for="lang in languages.length > 1 ? languages : []" :key="`ml-${lang.code}`" class="flex w-full items-center justify-between gap-2.5 rounded-sm px-3 py-2.5 text-left text-sm font-semibold transition-colors hover:bg-secondary hover:text-foreground" :class="appStore.locale === lang.code ? 'text-primary' : 'text-muted-foreground'" @click="changeLanguage(lang.code); moreOpen = false">
                 {{ lang.name }}
@@ -133,7 +145,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  Moon, Sun, ShoppingCart, Languages, Menu, X, ClipboardList, LayoutGrid,
+  Moon, Sun, ShoppingCart, Languages, Menu, X, ClipboardList, LayoutGrid, House, UserRound,
 } from 'lucide-vue-next'
 import { useAppStore } from '../../../stores/app'
 import ContactDialog from '../../../components/ContactDialog.vue'
@@ -184,7 +196,7 @@ const menuItems = computed<NavItem[]>(() => {
   if (!isListMode.value) {
     items.push({ key: 'products', path: '/products', label: t('products.allCategories'), icon: LayoutGrid, type: 'route', target: '_self' })
   }
-  items.push({ key: 'main-site', path: 'https://huihuahui.xyz', label: '主站', icon: LayoutGrid, type: 'link', target: '_self' })
+  items.push({ key: 'main-site', path: 'https://huihuahui.xyz', label: '主站', icon: House, type: 'link', target: '_self' })
   // 内置（博客/公告/关于）+ 后台自定义导航项
   items.push(...secondaryNavItems.value)
   return items
